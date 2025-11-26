@@ -1,4 +1,3 @@
-
 <?php 
 include 'Database/db.php';
 session_start();
@@ -54,11 +53,31 @@ session_start();
 
                     if ($result->num_rows > 0) {
                         while($row = $result->fetch_assoc()) {
+                            $product_id = $row['product_id'];
+                            $product_name = htmlspecialchars($row['product_name']);
+                            $price = number_format($row['price'], 2);
+                            $image_url = htmlspecialchars($row['image_url']);
+                            $stock = $row['stock_quantity'];
+                            
                             echo '
                             <div class="product-card" data-category="'.$row['category_id'].'" data-price="'.$row['price'].'">
-                                <img src="'.$row['image_url'].'" alt="'.$row['product_name'].'" onerror="this.src=\'https://via.placeholder.com/300x400?text=No+Image\'">
-                                <h3>'.$row['product_name'].'</h3>
-                                <p class="price">$'.number_format($row['price'], 2).'</p>
+                                <div class="product-image">
+                                    <img src="'.$image_url.'" alt="'.$product_name.'" onerror="this.src=\'https://via.placeholder.com/300x400?text=No+Image\'">
+                                    '.($stock < 10 && $stock > 0 ? '<span class="stock-badge low">Only '.$stock.' left</span>' : '').'
+                                    '.($stock == 0 ? '<span class="stock-badge out">Out of Stock</span>' : '').'
+                                </div>
+                                <div class="product-info">
+                                    <h3>'.$product_name.'</h3>
+                                    <p class="price">$'.$price.'</p>
+                                    <button class="btn-add-cart" 
+                                            onclick="addToCart('.$product_id.')"
+                                            '.($stock == 0 ? 'disabled' : '').'>
+                                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                                        </svg>
+                                        '.($stock == 0 ? 'Out of Stock' : 'Add to Cart').'
+                                    </button>
+                                </div>
                             </div>';
                         }
                     } else {
