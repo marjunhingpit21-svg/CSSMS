@@ -37,6 +37,19 @@ if ($result->num_rows === 0) {
 $product = $result->fetch_assoc();
 $stmt->close();
 
+// Fetch available sizes (assuming clothing for this example; adjust for shoes if needed)
+$sizes_stmt = $conn->prepare("
+    SELECT ps.product_size_id, cs.size_name, ps.stock_quantity
+    FROM product_sizes ps
+    LEFT JOIN clothing_sizes cs ON ps.clothing_size_id = cs.clothing_size_id
+    WHERE ps.product_id = ? AND ps.is_available = 1
+    ORDER BY cs.size_order
+");
+$sizes_stmt->bind_param("i", $product_id);
+$sizes_stmt->execute();
+$sizes_result = $sizes_stmt->get_result();
+$sizes_stmt->close();
+
 // Fetch related products (same category, exclude current product)
 $related_stmt = $conn->prepare("
     SELECT product_id, product_name, price, image_url, stock_quantity 
@@ -54,47 +67,63 @@ $related_stmt->close();
 $message = '';
 if (isset($_POST['add_to_cart'])) {
     $quantity = (int)$_POST['quantity'] ?? 1;
-    $size = $_POST['size'] ?? 'M';
+    $size = $_POST['size'] ?? null;
     
-    if ($product['stock_quantity'] > 0) {
-        if (isset($_SESSION['cart'][$product_id])) {
-            $_SESSION['cart'][$product_id]['quantity'] += $quantity;
+    if ($size) {
+        // Fetch stock for this size
+        $size_stmt = $conn->prepare("
+            SELECT ps.stock_quantity, ps.product_size_id 
+            FROM product_sizes ps
+            LEFT JOIN clothing_sizes cs ON ps.clothing_size_id = cs.clothing_size_id
+            WHERE ps.product_id = ? AND cs.size_name = ?
+        ");
+        $size_stmt->bind_param("is", $product_id, $size);
+        $size_stmt->execute();
+        $size_result = $size_stmt->get_result();
+        $size_data = $size_result->fetch_assoc();
+        $stock = $size_data ? $size_data['stock_quantity'] : 0;
+        $size_stmt->close();
+        
+        if ($stock > 0) {
+            $cart_key = $product_id . '_' . $size; // Unique key per size
+            if (isset($_SESSION['cart'][$cart_key])) {
+                $_SESSION['cart'][$cart_key]['quantity'] += $quantity;
+            } else {
+                $_SESSION['cart'][$cart_key] = [
+                    'product_id' => $product['product_id'],
+                    'product_name' => $product['product_name'],
+                    'price' => $product['price'],
+                    'quantity' => $quantity,
+                    'stock' => $stock,
+                    'size' => $size
+                ];
+            }
+            
+            // Limit to stock quantity
+            if ($_SESSION['cart'][$cart_key]['quantity'] > $stock) {
+                $_SESSION['cart'][$cart_key]['quantity'] = $stock;
+            }
+            
+            $message = 'Added to cart successfully!';
+            $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
         } else {
-            $_SESSION['cart'][$product_id] = [
-                'product_id' => $product['product_id'],
-                'product_name' => $product['product_name'],
-                'price' => $product['price'],
-                'quantity' => $quantity,
-                'stock' => $product['stock_quantity'],
-                'size' => $size
-            ];
+            $message = 'Out of stock for selected size!';
         }
-        
-        // Limit to stock quantity
-        if ($_SESSION['cart'][$product_id]['quantity'] > $product['stock_quantity']) {
-            $_SESSION['cart'][$product_id]['quantity'] = $product['stock_quantity'];
-        }
-        
-        $message = 'Added to cart successfully!';
-        $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
+    } else {
+        $message = 'Please select a size!';
     }
 }
 
-// Determine stock status
-$stock = $product['stock_quantity'] ?? 0;
-$stock_status = '';
-$stock_class = '';
-
-if ($stock > 10) {
-    $stock_status = 'In Stock';
-    $stock_class = 'in-stock';
-} elseif ($stock > 0) {
-    $stock_status = 'Only ' . $stock . ' left';
-    $stock_class = 'low-stock';
-} else {
-    $stock_status = 'Out of Stock';
-    $stock_class = 'out-of-stock';
+// Determine if any stock available (for initial add button state)
+$has_stock = false;
+$sizes_result->data_seek(0); // Reset result pointer
+while ($size = $sizes_result->fetch_assoc()) {
+    if ($size['stock_quantity'] > 0) {
+        $has_stock = true;
+        break;
+    }
 }
+$sizes_result->data_seek(0); // Reset again for later use
 ?>
 
 <!DOCTYPE html>
@@ -104,491 +133,9 @@ if ($stock > 10) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($product['product_name']); ?> - TrendyWear</title>
     <link rel="stylesheet" href="css/Header.css">
+    <link rel="stylesheet" href="css/product_details.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: #f5f5f5;
-        }
-
-        .page-wrapper {
-            padding-top: 80px;
-            min-height: 100vh;
-        }
-
-        .breadcrumb {
-            background: white;
-            padding: 15px 0;
-            border-bottom: 1px solid #eee;
-        }
-
-        .breadcrumb .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.9rem;
-            color: #666;
-        }
-
-        .breadcrumb a {
-            color: #e91e63;
-            text-decoration: none;
-        }
-
-        .breadcrumb a:hover {
-            text-decoration: underline;
-        }
-
-        .product-container {
-            max-width: 1200px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
-
-        .product-detail {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 60px;
-            background: white;
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
-            margin-bottom: 60px;
-        }
-
-        /* Image Gallery */
-        .product-gallery {
-            position: sticky;
-            top: 100px;
-            height: fit-content;
-        }
-
-        .main-image {
-            width: 100%;
-            height: 600px;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 20px;
-            position: relative;
-            background: #f8f8f8;
-        }
-
-        .main-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            cursor: zoom-in;
-            transition: transform 0.3s ease;
-        }
-
-        .main-image img:hover {
-            transform: scale(1.05);
-        }
-
-        .zoom-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.95);
-            z-index: 9999;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            cursor: zoom-out;
-        }
-
-        .zoom-overlay.active {
-            display: flex;
-        }
-
-        .zoom-overlay img {
-            max-width: 90%;
-            max-height: 90%;
-            object-fit: contain;
-        }
-
-        .thumbnail-gallery {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-        }
-
-        .thumbnail {
-            width: 100%;
-            height: 100px;
-            border-radius: 8px;
-            overflow: hidden;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: all 0.3s ease;
-        }
-
-        .thumbnail:hover,
-        .thumbnail.active {
-            border-color: #e91e63;
-        }
-
-        .thumbnail img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        /* Product Info */
-        .product-info {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .product-title {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #222;
-            line-height: 1.3;
-        }
-
-        .product-meta {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .product-category {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 6px 12px;
-            background: #f8f8f8;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            color: #666;
-        }
-
-        .product-rating {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .stars {
-            color: #ffc107;
-            font-size: 1.1rem;
-        }
-
-        .rating-count {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .product-price {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #e91e63;
-        }
-
-        .stock-info {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            width: fit-content;
-        }
-
-        .stock-info.in-stock {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .stock-info.low-stock {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .stock-info.out-of-stock {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .stock-icon {
-            width: 18px;
-            height: 18px;
-        }
-
-        .product-description {
-            line-height: 1.8;
-            color: #555;
-            padding: 20px 0;
-            border-bottom: 1px solid #eee;
-        }
-
-        .product-features {
-            list-style: none;
-            padding: 20px 0;
-            border-bottom: 1px solid #eee;
-        }
-
-        .product-features li {
-            padding: 8px 0;
-            padding-left: 28px;
-            position: relative;
-            color: #555;
-        }
-
-        .product-features li:before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #e91e63;
-            font-weight: bold;
-            font-size: 1.2rem;
-        }
-
-        /* Size Selection */
-        .size-selector {
-            padding: 20px 0;
-        }
-
-        .size-label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: #222;
-        }
-
-        .size-options {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .size-option {
-            position: relative;
-        }
-
-        .size-option input[type="radio"] {
-            position: absolute;
-            opacity: 0;
-        }
-
-        .size-option label {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 60px;
-            height: 50px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .size-option input[type="radio"]:checked + label {
-            border-color: #e91e63;
-            background: #e91e63;
-            color: white;
-        }
-
-        .size-option label:hover {
-            border-color: #e91e63;
-        }
-
-        /* Quantity and Add to Cart */
-        .purchase-section {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            padding: 30px 0;
-        }
-
-        .quantity-selector {
-            display: flex;
-            align-items: center;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .quantity-selector button {
-            width: 45px;
-            height: 50px;
-            border: none;
-            background: #f8f8f8;
-            cursor: pointer;
-            font-size: 1.2rem;
-            color: #333;
-            transition: background 0.3s ease;
-        }
-
-        .quantity-selector button:hover {
-            background: #e91e63;
-            color: white;
-        }
-
-        .quantity-selector input {
-            width: 60px;
-            height: 50px;
-            border: none;
-            text-align: center;
-            font-size: 1.1rem;
-            font-weight: 600;
-            font-family: 'Poppins', sans-serif;
-        }
-
-        .btn-add-to-cart {
-            flex: 1;
-            height: 56px;
-            background: #e91e63;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            font-family: 'Poppins', sans-serif;
-        }
-
-        .btn-add-to-cart:hover:not(:disabled) {
-            background: #c2185b;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(233, 30, 99, 0.4);
-        }
-
-        .btn-add-to-cart:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        /* Success Message */
-        .success-message {
-            display: none;
-            padding: 15px 20px;
-            background: #d4edda;
-            color: #155724;
-            border-radius: 8px;
-            margin-top: 20px;
-            align-items: center;
-            gap: 10px;
-            animation: slideIn 0.3s ease;
-        }
-
-        .success-message.show {
-            display: flex;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Related Products */
-        .related-products {
-            margin-top: 60px;
-        }
-
-        .section-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 30px;
-            color: #222;
-            text-align: center;
-        }
-
-        .related-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 30px;
-        }
-
-        .related-card {
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            transition: all 0.3s ease;
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .related-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-        }
-
-        .related-card img {
-            width: 100%;
-            height: 280px;
-            object-fit: cover;
-        }
-
-        .related-info {
-            padding: 20px;
-        }
-
-        .related-name {
-            font-weight: 600;
-            color: #222;
-            margin-bottom: 8px;
-        }
-
-        .related-price {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #e91e63;
-        }
-
-        /* Responsive */
-        @media (max-width: 968px) {
-            .product-detail {
-                grid-template-columns: 1fr;
-                gap: 30px;
-            }
-
-            .product-gallery {
-                position: relative;
-                top: 0;
-            }
-
-            .main-image {
-                height: 400px;
-            }
-
-            .purchase-section {
-                flex-direction: column;
-            }
-
-            .btn-add-to-cart {
-                width: 100%;
-            }
-        }
-    </style>
+  
 </head>
 <body>
     <?php include 'header.php'; ?>
@@ -609,7 +156,7 @@ if ($stock > 10) {
 
         <div class="product-container">
             <div class="product-detail">
-                <!-- Image Gallery -->
+                <!-- Image Gallery (unchanged) -->
                 <div class="product-gallery">
                     <div class="main-image" id="mainImage">
                         <img src="<?php echo htmlspecialchars($product['image_url']); ?>" 
@@ -655,17 +202,6 @@ if ($stock > 10) {
 
                     <div class="product-price">₱<?php echo number_format($product['price'], 2); ?></div>
 
-                    <div class="stock-info <?php echo $stock_class; ?>">
-                        <svg class="stock-icon" fill="currentColor" viewBox="0 0 20 20">
-                            <?php if ($stock > 0): ?>
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                            <?php else: ?>
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                            <?php endif; ?>
-                        </svg>
-                        <?php echo $stock_status; ?>
-                    </div>
-
                     <div class="product-description">
                         <p><?php echo nl2br(htmlspecialchars($product['description'])); ?></p>
                     </div>
@@ -683,46 +219,40 @@ if ($stock > 10) {
                         <div class="size-selector">
                             <label class="size-label">Select Size:</label>
                             <div class="size-options">
-                                <div class="size-option">
-                                    <input type="radio" name="size" id="size-xs" value="XS">
-                                    <label for="size-xs">XS</label>
-                                </div>
-                                <div class="size-option">
-                                    <input type="radio" name="size" id="size-s" value="S">
-                                    <label for="size-s">S</label>
-                                </div>
-                                <div class="size-option">
-                                    <input type="radio" name="size" id="size-m" value="M" checked>
-                                    <label for="size-m">M</label>
-                                </div>
-                                <div class="size-option">
-                                    <input type="radio" name="size" id="size-l" value="L">
-                                    <label for="size-l">L</label>
-                                </div>
-                                <div class="size-option">
-                                    <input type="radio" name="size" id="size-xl" value="XL">
-                                    <label for="size-xl">XL</label>
-                                </div>
-                                <div class="size-option">
-                                    <input type="radio" name="size" id="size-xxl" value="XXL">
-                                    <label for="size-xxl">XXL</label>
-                                </div>
+                                <?php 
+                                $default_set = false;
+                                while($size = $sizes_result->fetch_assoc()): 
+                                    $disabled = ($size['stock_quantity'] <= 0) ? 'disabled' : '';
+                                    $checked = '';
+                                    if (!$default_set && empty($disabled)) {
+                                        $checked = 'checked';
+                                        $default_set = true;
+                                    }
+                                ?>
+                                    <div class="size-option">
+                                        <input type="radio" name="size" id="size-<?php echo strtolower($size['size_name']); ?>" value="<?php echo $size['size_name']; ?>" <?php echo $checked; ?> <?php echo $disabled; ?>>
+                                        <label for="size-<?php echo strtolower($size['size_name']); ?>"><?php echo $size['size_name']; ?></label>
+                                    </div>
+                                <?php endwhile; ?>
                             </div>
                         </div>
+
+                        <!-- Stock Info (dynamic per size) -->
+                        <div id="stock-info" class="stock-info"></div>
 
                         <!-- Purchase Section -->
                         <div class="purchase-section">
                             <div class="quantity-selector">
                                 <button type="button" onclick="decrementQty()">−</button>
-                                <input type="number" name="quantity" id="quantity" value="1" min="1" max="<?php echo $stock; ?>" readonly>
+                                <input type="number" name="quantity" id="quantity" value="1" min="1" readonly>
                                 <button type="button" onclick="incrementQty()">+</button>
                             </div>
 
-                            <button type="submit" name="add_to_cart" class="btn-add-to-cart" <?php echo $stock <= 0 ? 'disabled' : ''; ?>>
+                            <button type="submit" name="add_to_cart" class="btn-add-to-cart" <?php echo !$has_stock ? 'disabled' : ''; ?>>
                                 <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
                                 </svg>
-                                <?php echo $stock <= 0 ? 'Out of Stock' : 'Add to Cart'; ?>
+                                <?php echo !$has_stock ? 'Out of Stock' : 'Add to Cart'; ?>
                             </button>
                         </div>
                     </form>
@@ -738,7 +268,7 @@ if ($stock > 10) {
                 </div>
             </div>
 
-            <!-- Related Products -->
+            <!-- Related Products (unchanged) -->
             <?php if ($related_result->num_rows > 0): ?>
                 <div class="related-products">
                     <h2 class="section-title">You May Also Like</h2>
@@ -760,19 +290,28 @@ if ($stock > 10) {
         </div>
     </div>
 
-    <!-- Zoom Overlay -->
+    <!-- Zoom Overlay (unchanged) -->
     <div class="zoom-overlay" id="zoomOverlay" onclick="closeZoom()">
         <img id="zoomedImage" src="" alt="Zoomed product">
     </div>
 
     <script>
+        // Size stocks data from PHP
+        const sizeStocks = {
+            <?php 
+            $sizes_result->data_seek(0);
+            while($size = $sizes_result->fetch_assoc()): 
+                echo "'{$size['size_name']}': {$size['stock_quantity']},";
+            endwhile; 
+            ?>
+        };
+
         // Quantity controls
-        const maxStock = <?php echo $stock; ?>;
-        
         function incrementQty() {
             const input = document.getElementById('quantity');
+            const max = parseInt(input.max) || 1;
             const current = parseInt(input.value);
-            if (current < maxStock) {
+            if (current < max) {
                 input.value = current + 1;
             }
         }
@@ -785,7 +324,7 @@ if ($stock > 10) {
             }
         }
 
-        // Image gallery
+        // Image gallery (unchanged)
         function changeImage(src, element) {
             const mainImg = document.querySelector('#mainImage img');
             mainImg.src = src;
@@ -797,7 +336,7 @@ if ($stock > 10) {
             element.classList.add('active');
         }
 
-        // Zoom functionality
+        // Zoom functionality (unchanged)
         function zoomImage(src) {
             const overlay = document.getElementById('zoomOverlay');
             const zoomedImg = document.getElementById('zoomedImage');
@@ -809,7 +348,7 @@ if ($stock > 10) {
             document.getElementById('zoomOverlay').classList.remove('active');
         }
 
-        // Update cart badge
+        // Update cart badge (unchanged)
         function updateCartBadge() {
             const cartBadge = document.getElementById('cart-count');
             if (cartBadge) {
@@ -819,7 +358,7 @@ if ($stock > 10) {
             }
         }
 
-        // Hide success message after 5 seconds
+        // Hide success message after 5 seconds (unchanged)
         <?php if ($message): ?>
             setTimeout(() => {
                 const msg = document.getElementById('successMessage');
@@ -828,6 +367,58 @@ if ($stock > 10) {
                 }
             }, 5000);
         <?php endif; ?>
+
+        // Dynamic stock display and button control on size change
+        const addButton = document.querySelector('.btn-add-to-cart');
+        const qtyInput = document.getElementById('quantity');
+        document.querySelectorAll('input[name="size"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const selectedSize = this.value;
+                const stock = sizeStocks[selectedSize] || 0;
+                const stockElem = document.getElementById('stock-info');
+
+                let stockStatus = '';
+                let stockClass = '';
+                if (stock > 10) {
+                    stockStatus = `In-stock ${stock}`;
+                    stockClass = 'in-stock';
+                } else if (stock > 0) {
+                    stockStatus = 'Only ' + stock + ' left';
+                    stockClass = 'low-stock';
+                } else {
+                    stockStatus = 'Out of Stock';
+                    stockClass = 'out-of-stock';
+                }
+
+                stockElem.className = 'stock-info ' + stockClass;
+                stockElem.innerHTML = `
+                    <svg class="stock-icon" fill="currentColor" viewBox="0 0 20 20">
+                        ${stock > 0 ? '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>' : '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>'}
+                    </svg>
+                    ${stockStatus}
+                `;
+
+                // Update quantity max and add button
+                qtyInput.max = stock;
+                if (stock <= 0) {
+                    addButton.disabled = true;
+                    addButton.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg> Out of Stock';
+                } else {
+                    addButton.disabled = false;
+                    addButton.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg> Add to Cart';
+                }
+            });
+        });
+
+        // Trigger initial change event for default selected size
+        const defaultRadio = document.querySelector('input[name="size"]:checked');
+        if (defaultRadio) {
+            defaultRadio.dispatchEvent(new Event('change'));
+        } else {
+            // No available sizes, disable add button
+            addButton.disabled = true;
+            addButton.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg> Out of Stock';
+        }
 
         updateCartBadge();
     </script>
