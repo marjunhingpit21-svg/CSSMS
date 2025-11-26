@@ -2,6 +2,14 @@
 include 'Database/db.php';
 session_start();
 
+// Initialize cart if not exists
+if (!isset($_SESSION['cart'])) {
+    $_SESSION['cart'] = [];
+}
+
+// Get cart count for header
+$cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
+
 // Handle login
 $login_error = '';
 if (isset($_POST['login_submit'])) {
@@ -96,12 +104,9 @@ if (isset($_POST['signup_submit'])) {
     <link rel="stylesheet" href="css/Header.css">
     <link rel="stylesheet" href="css/MainPage.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        
-    </style>
 </head>
 <body>
-    <?php include 'Header.php'; ?>
+    <?php include 'header.php'; ?>
 
     <div class="page-wrapper">
         <section class="filters-section">
@@ -139,11 +144,45 @@ if (isset($_POST['signup_submit'])) {
 
                     if ($result->num_rows > 0) {
                         while($row = $result->fetch_assoc()) {
+                            $stock = $row['stock_quantity'] ?? 0;
+                            $stock_status = '';
+                            $stock_class = '';
+                            
+                            if ($stock > 10) {
+                                $stock_status = 'In Stock';
+                                $stock_class = 'in-stock';
+                            } elseif ($stock > 0) {
+                                $stock_status = 'Only ' . $stock . ' left';
+                                $stock_class = 'low-stock';
+                            } else {
+                                $stock_status = 'Out of Stock';
+                                $stock_class = 'out-of-stock';
+                            }
+                            
                             echo '
                             <div class="product-card" data-category="'.$row['category_id'].'" data-price="'.$row['price'].'">
+                                <span class="stock-badge '.$stock_class.'">'.$stock_status.'</span>
                                 <img src="'.$row['image_url'].'" alt="'.$row['product_name'].'" onerror="this.src=\'https://via.placeholder.com/300x400?text=No+Image\'">
-                                <h3>'.$row['product_name'].'</h3>
-                                <p class="price">$'.number_format($row['price'], 2).'</p>
+                                <h3>'.htmlspecialchars($row['product_name']).'</h3>
+                                <p class="price">₱'.number_format($row['price'], 2).'</p>
+                                <div class="product-actions">
+                                    <form method="POST" action="cart.php" style="flex: 1;">
+                                        <input type="hidden" name="product_id" value="'.$row['product_id'].'">
+                                        <input type="hidden" name="quantity" value="1">
+                                        <button type="submit" name="add_to_cart" class="btn-add-cart" '.($stock <= 0 ? 'disabled' : '').'>
+                                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                                            </svg>
+                                            '.($stock <= 0 ? 'Out of Stock' : 'Add to Cart').'
+                                        </button>
+                                    </form>
+                                    <a href="product_details.php?id='.$row['product_id'].'" class="btn-view-details" title="View Details">
+                                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                    </a>
+                                </div>
                             </div>';
                         }
                     } else {
@@ -153,6 +192,14 @@ if (isset($_POST['signup_submit'])) {
                 </div>
             </div>
         </section>
+    </div>
+
+    <!-- Success Toast -->
+    <div id="successToast" class="toast">
+        <svg class="toast-icon" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <span>Added to cart!</span>
     </div>
 
     <!-- Login Modal -->
@@ -276,6 +323,34 @@ if (isset($_POST['signup_submit'])) {
                 event.target.classList.remove('active');
             }
         }
+
+        // Show success toast if redirected from cart
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('added') === '1') {
+            showToast();
+            // Remove the parameter from URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        function showToast() {
+            const toast = document.getElementById('successToast');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Update cart badge
+        function updateCartBadge() {
+            const cartBadge = document.getElementById('cart-count');
+            if (cartBadge) {
+                const count = <?php echo $cart_count; ?>;
+                cartBadge.textContent = count;
+                cartBadge.style.display = count > 0 ? 'flex' : 'none';
+            }
+        }
+
+        updateCartBadge();
 
         // Product filtering & sorting
         const searchBar = document.getElementById('searchBar');
