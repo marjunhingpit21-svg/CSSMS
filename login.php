@@ -10,7 +10,7 @@ if (isset($_SESSION['user_id'])) {
 }
 
 // Include database connection
-require_once 'db_connect.php';
+require_once 'database/db.php';
 
 $error = '';
 $success = '';
