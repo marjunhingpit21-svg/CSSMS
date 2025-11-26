@@ -7,56 +7,17 @@ if (!isset($_SESSION['cart'])) {
   $_SESSION['cart'] = [];
 }
 
-// Handle Add to Cart
-if (isset($_POST['add_to_cart'])) {
-  $product_id = (int) $_POST['product_id'];
-  $quantity = (int) $_POST['quantity'] ?? 1;
-
-  // Get product details
-  $stmt = $conn->prepare("SELECT product_id, product_name, price, stock_quantity FROM products WHERE product_id = ?");
-  $stmt->bind_param("i", $product_id);
-  $stmt->execute();
-  $result = $stmt->get_result();
-
-  if ($result->num_rows > 0) {
-    $product = $result->fetch_assoc();
-
-    // Check if product already in cart
-    if (isset($_SESSION['cart'][$product_id])) {
-      $_SESSION['cart'][$product_id]['quantity'] += $quantity;
-    } else {
-      $_SESSION['cart'][$product_id] = [
-        'product_id' => $product['product_id'],
-        'product_name' => $product['product_name'],
-        'price' => $product['price'],
-        'quantity' => $quantity,
-        'stock' => $product['stock_quantity']
-      ];
-    }
-
-    // Limit to stock quantity
-    if ($_SESSION['cart'][$product_id]['quantity'] > $product['stock_quantity']) {
-      $_SESSION['cart'][$product_id]['quantity'] = $product['stock_quantity'];
-    }
-  }
-  $stmt->close();
-
-  header('Location: cart.php');
-  exit();
-}
-
 // Handle Update Quantity
 if (isset($_POST['update_cart'])) {
-  foreach ($_POST['quantity'] as $product_id => $quantity) {
-    $product_id = (int) $product_id;
+  foreach ($_POST['quantity'] as $cart_key => $quantity) {
     $quantity = (int) $quantity;
 
     if ($quantity <= 0) {
-      unset($_SESSION['cart'][$product_id]);
+      unset($_SESSION['cart'][$cart_key]);
     } else {
-      if (isset($_SESSION['cart'][$product_id])) {
-        $max_quantity = $_SESSION['cart'][$product_id]['stock'];
-        $_SESSION['cart'][$product_id]['quantity'] = min($quantity, $max_quantity);
+      if (isset($_SESSION['cart'][$cart_key])) {
+        $max_quantity = $_SESSION['cart'][$cart_key]['stock'];
+        $_SESSION['cart'][$cart_key]['quantity'] = min($quantity, $max_quantity);
       }
     }
   }
@@ -67,8 +28,8 @@ if (isset($_POST['update_cart'])) {
 
 // Handle Remove Item
 if (isset($_GET['remove'])) {
-  $product_id = (int) $_GET['remove'];
-  unset($_SESSION['cart'][$product_id]);
+  $cart_key = $_GET['remove'];
+  unset($_SESSION['cart'][$cart_key]);
 
   header('Location: cart.php');
   exit();
@@ -94,7 +55,7 @@ if ($subtotal >= 50) {
   $shipping = 0;
 }
 
-$tax = $subtotal * 0.12; // 10% tax
+$tax = $subtotal * 0.12; // 12% tax
 $total = $subtotal + $shipping + $tax;
 
 // Get cart count for header
@@ -137,13 +98,13 @@ $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
         <div class="cart-content">
           <form method="POST" action="cart.php" class="cart-form">
             <div class="cart-items">
-              <?php foreach ($_SESSION['cart'] as $product_id => $item): ?>
+              <?php foreach ($_SESSION['cart'] as $cart_key => $item): ?>
                 <div class="cart-item">
                   <div class="item-image">
                     <?php
                     // Get product image
                     $stmt = $conn->prepare("SELECT image_url FROM products WHERE product_id = ?");
-                    $stmt->bind_param("i", $product_id);
+                    $stmt->bind_param("i", $item['product_id']);
                     $stmt->execute();
                     $result = $stmt->get_result();
                     $product = $result->fetch_assoc();
@@ -157,6 +118,14 @@ $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
 
                   <div class="item-details">
                     <h3><?php echo htmlspecialchars($item['product_name']); ?></h3>
+                    <?php if (isset($item['size'])): ?>
+                      <p class="item-size">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                          <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM8 11V7h2v4H8zm4-4h-2v4h2V7z"/>
+                        </svg>
+                        Size: <strong><?php echo htmlspecialchars($item['size']); ?></strong>
+                      </p>
+                    <?php endif; ?>
                     <p class="item-price">₱<?php echo number_format($item['price'], 2); ?></p>
                     <p class="item-stock">
                       <?php if ($item['stock'] > 0): ?>
@@ -168,8 +137,8 @@ $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
                   </div>
 
                   <div class="item-quantity">
-                    <label for="qty-<?php echo $product_id; ?>">Qty:</label>
-                    <input type="number" id="qty-<?php echo $product_id; ?>" name="quantity[<?php echo $product_id; ?>]"
+                    <label for="qty-<?php echo $cart_key; ?>">Qty:</label>
+                    <input type="number" id="qty-<?php echo $cart_key; ?>" name="quantity[<?php echo $cart_key; ?>]"
                       value="<?php echo $item['quantity']; ?>" min="1" max="<?php echo $item['stock']; ?>"
                       class="quantity-input">
                   </div>
@@ -180,7 +149,7 @@ $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
                   </div>
 
                   <div class="item-remove">
-                    <a href="cart.php?remove=<?php echo $product_id; ?>" class="btn-remove"
+                    <a href="cart.php?remove=<?php echo urlencode($cart_key); ?>" class="btn-remove"
                       onclick="return confirm('Remove this item from cart?')">
                       <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

@@ -166,21 +166,11 @@ if (isset($_POST['signup_submit'])) {
                                 <h3>'.htmlspecialchars($row['product_name']).'</h3>
                                 <p class="price">₱'.number_format($row['price'], 2).'</p>
                                 <div class="product-actions">
-                                    <form method="POST" action="cart.php" style="flex: 1;">
-                                        <input type="hidden" name="product_id" value="'.$row['product_id'].'">
-                                        <input type="hidden" name="quantity" value="1">
-                                        <button type="submit" name="add_to_cart" class="btn-add-cart" '.($stock <= 0 ? 'disabled' : '').'>
-                                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
-                                            </svg>
-                                            '.($stock <= 0 ? 'Out of Stock' : 'Add to Cart').'
-                                        </button>
-                                    </form>
-                                    <a href="product_details.php?id='.$row['product_id'].'" class="btn-view-details" title="View Details">
+                                    <a href="product_details.php?id='.$row['product_id'].'" class="btn-add-cart" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;" '.($stock <= 0 ? 'style="opacity: 0.5; cursor: not-allowed;"' : '').'>
                                         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
                                         </svg>
+                                        '.($stock <= 0 ? 'Out of Stock' : 'Add to cart').'
                                     </a>
                                 </div>
                             </div>';

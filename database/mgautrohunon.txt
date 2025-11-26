@@ -11,3 +11,5 @@ ALTER TABLE products ADD COLUMN stock_quantity INT DEFAULT 0 AFTER price;
 -- create shoe sizes tables that connects to category (shoe)
 
 -- [DONE]
+
+
