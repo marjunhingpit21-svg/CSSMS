@@ -24,6 +24,8 @@
                 <a href="#">Sale</a>
             </nav>
 
+            
+
             <div class="header-actions">
                 <?php if (isset($_SESSION['user_id'])): ?>
                     <span class="user-greeting">Hello, <?php echo htmlspecialchars($_SESSION['username']); ?></span>
