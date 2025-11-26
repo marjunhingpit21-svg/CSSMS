@@ -1,7 +1,8 @@
+[file name]: login.php
+[file content begin]
 <?php
-
- include 'Database/db.php';
- session_start();
+include 'Database/db.php';
+session_start();
 
 // Redirect if already logged in
 if (isset($_SESSION['user_id'])) {
@@ -9,11 +10,8 @@ if (isset($_SESSION['user_id'])) {
     exit();
 }
 
-// Include database connection
-require_once 'database/db.php';
-
 $error = '';
-$success = '';
+$email = '';
 
 // Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -57,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         header('Location: index.php');
                     }
-                    exit();
+                    exit();   
                 } else {
                     $error = 'Invalid email or password.';
                 }
@@ -72,73 +70,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-
-include 'Header.php';
 ?>
 
-<div class="auth-container">
-    <div class="auth-card">
-        <h2>Welcome Back</h2>
-        <p class="auth-subtitle">Login to your TrendyWear account</p>
-        
-        <?php if ($error): ?>
-            <div class="alert alert-error">
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                </svg>
-                <?php echo htmlspecialchars($error); ?>
-            </div>
-        <?php endif; ?>
-        
-        <?php if ($success): ?>
-            <div class="alert alert-success">
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                <?php echo htmlspecialchars($success); ?>
-            </div>
-        <?php endif; ?>
-        
-        <form method="POST" action="login.php" class="auth-form">
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input 
-                    type="email" 
-                    id="email" 
-                    name="email" 
-                    value="<?php echo htmlspecialchars($email ?? ''); ?>"
-                    placeholder="your.email@example.com"
-                    required
-                >
-            </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - TrendyWear</title>
+    <link rel="stylesheet" href="css/Header.css">
+    <link rel="stylesheet" href="css/Auth.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <?php include 'Header.php'; ?>
+
+    <div class="auth-container">
+        <div class="auth-card">
+            <h2>Welcome Back</h2>
+            <p class="auth-subtitle">Login to your TrendyWear account</p>
             
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input 
-                    type="password" 
-                    id="password" 
-                    name="password" 
-                    placeholder="Enter your password"
-                    required
-                >
-            </div>
+            <?php if ($error): ?>
+                <div class="alert alert-error">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    <?php echo htmlspecialchars($error); ?>
+                </div>
+            <?php endif; ?>
             
-            <div class="form-options">
-                <label class="checkbox-label">
-                    <input type="checkbox" name="remember">
-                    <span>Remember me</span>
-                </label>
-                <a href="forgot_password.php" class="forgot-link">Forgot Password?</a>
-            </div>
+            <form method="POST" action="login.php" class="auth-form">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        value="<?php echo htmlspecialchars($email); ?>"
+                        placeholder="your.email@example.com"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        placeholder="Enter your password"
+                        required
+                    >
+                </div>
+                
+                <div class="form-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="remember">
+                        <span>Remember me</span>
+                    </label>
+                    <a href="forgot_password.php" class="forgot-link">Forgot Password?</a>
+                </div>
+                
+                <button type="submit" class="btn-submit">Login</button>
+            </form>
             
-            <button type="submit" class="btn-submit">Login</button>
-        </form>
-        
-        <div class="auth-footer">
-            Don't have an account? <a href="signup.php">Sign Up</a>
+            <div class="auth-footer">
+                Don't have an account? <a href="signup.php">Sign Up</a>
+            </div>
         </div>
     </div>
-</div>
-
 </body>
 </html>
+<?php $conn->close(); ?>
