@@ -1,4 +1,8 @@
-<!-- Header.php -->
+
+<?php
+include 'Database/db.php';
+session_start();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,8 +27,6 @@
                 <a href="#">Accessories</a>
                 <a href="#">Sale</a>
             </nav>
-
-            
 
             <div class="header-actions">
                 <?php if (isset($_SESSION['user_id'])): ?>
