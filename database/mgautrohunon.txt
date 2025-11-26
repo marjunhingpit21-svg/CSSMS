@@ -1,0 +1,3 @@
+-- add stock_quantity to products table for counting of stocks
+
+ALTER TABLE products ADD COLUMN stock_quantity INT DEFAULT 0 AFTER price;
