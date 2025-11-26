@@ -136,15 +136,19 @@ if (isset($_POST['signup_submit'])) {
             <div class="container">
                 <div class="products-grid" id="productsGrid">
                     <?php
-                    $sql = "SELECT p.*, c.category_name 
+                    // Updated query to get total stock from product_sizes table
+                    $sql = "SELECT p.*, c.category_name, 
+                            COALESCE(SUM(ps.stock_quantity), 0) as total_stock
                             FROM products p 
                             LEFT JOIN categories c ON p.category_id = c.category_id 
+                            LEFT JOIN product_sizes ps ON p.product_id = ps.product_id
+                            GROUP BY p.product_id
                             ORDER BY p.created_at DESC";
                     $result = $conn->query($sql);
 
                     if ($result->num_rows > 0) {
                         while($row = $result->fetch_assoc()) {
-                            $stock = $row['stock_quantity'] ?? 0;
+                            $stock = intval($row['total_stock']);
                             $stock_status = '';
                             $stock_class = '';
                             
@@ -170,7 +174,7 @@ if (isset($_POST['signup_submit'])) {
                                         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
                                         </svg>
-                                        '.($stock <= 0 ? 'Out of Stock' : 'Add to cart').'
+                                        '.($stock <= 0 ? 'View' : 'Add to cart').'
                                     </a>
                                 </div>
                             </div>';
