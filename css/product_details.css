@@ -282,13 +282,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 60px;
+  min-width: 60px;
   height: 50px;
+  padding: 0 15px;
   border: 2px solid #ddd;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s ease;
+  background: white;
 }
 
 .size-option input[type="radio"]:checked+label {
@@ -298,6 +300,79 @@ body {
 }
 
 .size-option label:hover {
+  border-color: #e91e63;
+}
+
+/* Shoe sizes - Display only EU numbers in grid */
+.size-options.shoe-sizes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: 10px;
+  max-width: 500px;
+}
+
+.size-options.shoe-sizes .size-option {
+  width: 100%;
+}
+
+.size-options.shoe-sizes .size-option label {
+  width: 100%;
+  min-width: 60px;
+  height: 50px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Checked state */
+.size-options.shoe-sizes .size-option input[type="radio"]:checked + label {
+  background: #e91e63;
+  color: white;
+  border-color: #e91e63;
+}
+
+/* Hover state */
+.size-options.shoe-sizes .size-option label:hover {
+  border-color: #e91e63;
+  background: #fff0f5;
+}
+
+/* Regular clothing sizes */
+.size-options:not(.shoe-sizes) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: 12px;
+  max-width: 500px;
+}
+
+.size-options:not(.shoe-sizes) .size-option {
+  position: relative;
+}
+
+.size-options:not(.shoe-sizes) .size-option label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.size-options:not(.shoe-sizes) .size-option input[type="radio"]:checked + label {
+  border-color: #e91e63;
+  background: #e91e63;
+  color: white;
+}
+
+.size-options:not(.shoe-sizes) .size-option label:hover {
   border-color: #e91e63;
 }
 
@@ -480,16 +555,9 @@ body {
   .btn-add-to-cart {
     width: 100%;
   }
-}
 
-/* Existing styles remain unchanged */
-.size-option input:disabled+label {
-  background: #f8f8f8;
-  color: #ccc;
-  border-color: #eee;
-  cursor: not-allowed;
-}
-
-.size-option input:disabled+label:hover {
-  border-color: #eee;
+  .size-options.shoe-sizes,
+  .size-options:not(.shoe-sizes) {
+    max-width: 100%;
+  }
 }
