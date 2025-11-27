@@ -1,0 +1,282 @@
+import React, { useState } from 'react';
+import { Package, Shirt, Info, Download } from 'lucide-react';
+
+const BarcodeSystem = () => {
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+  // Product data from database
+  const products = [
+    { id: 1, name: 'Classic White T-Shirt', category: 'T-Shirts', categoryCode: 'TS', price: 29.99 },
+    { id: 2, name: 'Cozy Oversized Hoodie', category: 'Hoodies', categoryCode: 'HD', price: 69.99 },
+    { id: 3, name: 'Premium Leather Jacket', category: 'Jackets', categoryCode: 'JK', price: 129.99 },
+    { id: 4, name: 'Classic Denim Jeans', category: 'Pants', categoryCode: 'PN', price: 49.99 },
+    { id: 5, name: 'Urban Sneakers', category: 'Shoes', categoryCode: 'SH', price: 89.99 },
+    { id: 6, name: 'Graphic Print T-Shirt', category: 'T-Shirts', categoryCode: 'TS', price: 34.99 }
+  ];
+
+  const sizes = {
+    clothing: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'],
+    shoes: ['6.0', '6.5', '7.0', '7.5', '8.0', '8.5', '9.0', '9.5', '10.0', '10.5', '11.0', '11.5', '12.0']
+  };
+
+  const generateBarcode = (productId, sizeCode) => {
+    // Format: ATL-CCPPPP-SS-CKK
+    // ATL = Atliere brand prefix
+    // CC = Category code (TS, HD, JK, PN, SH, AC)
+    // PPPP = Product ID (zero-padded to 4 digits - supports up to 9999 per category)
+    // SS = Size code
+    // CKK = Check digits (2 digits for additional validation)
+    
+    const product = products.find(p => p.id === productId);
+    const categoryCode = product.categoryCode;
+    const productCode = String(productId).padStart(4, '0');
+    const base = `ATL-${categoryCode}${productCode}-${sizeCode}`;
+    
+    // Enhanced check digit calculation (2 digits)
+    const sum = productId + sizeCode.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const checkDigits = String(sum % 100).padStart(2, '0');
+    
+    return `${base}-${checkDigits}`;
+  };
+
+  const BarcodeDisplay = ({ barcode }) => (
+    <div className="flex flex-col items-center gap-2 p-4 bg-white border-2 border-gray-800 rounded">
+      <div className="font-mono text-2xl font-bold tracking-wider">{barcode}</div>
+      <svg width="200" height="60" className="border-t-2 border-b-2 border-gray-800">
+        {barcode.split('').map((char, idx) => {
+          if (char === '-') return null;
+          const width = char >= '0' && char <= '9' ? 3 : 2;
+          return (
+            <rect
+              key={idx}
+              x={idx * 8}
+              y="5"
+              width={width}
+              height="50"
+              fill={idx % 2 === 0 ? '#000' : '#fff'}
+              stroke="#000"
+              strokeWidth="0.5"
+            />
+          );
+        })}
+      </svg>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-white rounded-lg shadow-xl p-8 mb-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Package className="w-8 h-8 text-indigo-600" />
+            <h1 className="text-3xl font-bold text-gray-800">Atliere Brand Barcode System</h1>
+          </div>
+
+          {/* System Explanation */}
+          <div className="bg-indigo-50 border-l-4 border-indigo-600 p-4 mb-6">
+            <div className="flex items-start gap-2">
+              <Info className="w-5 h-5 text-indigo-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-indigo-900 mb-2">Barcode Format: ATL-CCPPPP-SS-CKK</h3>
+                <ul className="text-sm text-indigo-800 space-y-1">
+                  <li><strong>ATL:</strong> Atliere brand prefix</li>
+                  <li><strong>CC:</strong> Category (TS=T-Shirts, HD=Hoodies, JK=Jackets, PN=Pants, SH=Shoes, AC=Accessories)</li>
+                  <li><strong>PPPP:</strong> Product ID (4 digits - supports 0001-9999 per category)</li>
+                  <li><strong>SS:</strong> Size code (2-3 characters)</li>
+                  <li><strong>CKK:</strong> Check digits for validation (2 digits)</li>
+                </ul>
+                <div className="mt-3 text-sm font-semibold text-indigo-900">
+                  Capacity: 9,999 products per category = 59,994+ total SKUs
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Product Selection */}
+          <div className="grid md:grid-cols-2 gap-4 mb-6">
+            {products.map(product => (
+              <button
+                key={product.id}
+                onClick={() => setSelectedProduct(product)}
+                className={`p-4 border-2 rounded-lg text-left transition-all ${
+                  selectedProduct?.id === product.id
+                    ? 'border-indigo-600 bg-indigo-50'
+                    : 'border-gray-200 hover:border-indigo-300 bg-white'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <Shirt className="w-5 h-5 text-indigo-600 mt-1" />
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-800">{product.name}</div>
+                    <div className="text-sm text-gray-600">{product.category}</div>
+                    <div className="text-sm font-mono text-indigo-600 mt-1">
+                      ID: {String(product.id).padStart(4, '0')} | Code: {product.categoryCode}
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold text-gray-700">${product.price}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Barcode Generation */}
+          {selectedProduct && (
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4 text-gray-800">
+                Generate Barcodes for: {selectedProduct.name}
+              </h2>
+              
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(selectedProduct.categoryCode === 'SH' ? sizes.shoes.slice(0, 9) : sizes.clothing).map(size => {
+                  const sizeCode = size.replace('.', '').substring(0, 3).padEnd(2, '0');
+                  const barcode = generateBarcode(selectedProduct.id, sizeCode);
+                  
+                  return (
+                    <div key={size} className="bg-white p-4 rounded-lg shadow">
+                      <div className="text-center mb-2">
+                        <span className="text-sm font-semibold text-gray-700">Size: {size}</span>
+                      </div>
+                      <BarcodeDisplay barcode={barcode} />
+                      <button className="mt-2 w-full text-xs text-indigo-600 hover:text-indigo-800 flex items-center justify-center gap-1">
+                        <Download className="w-3 h-3" />
+                        Print Label
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Reference Table */}
+          <div className="mt-8 bg-white border rounded-lg overflow-hidden">
+            <div className="bg-gray-800 text-white px-4 py-3 font-semibold">
+              Category Code Reference
+            </div>
+            <div className="grid sm:grid-cols-3 gap-px bg-gray-200">
+              {[
+                { code: 'TS', name: 'T-Shirts' },
+                { code: 'HD', name: 'Hoodies' },
+                { code: 'JK', name: 'Jackets' },
+                { code: 'PN', name: 'Pants' },
+                { code: 'SH', name: 'Shoes' },
+                { code: 'AC', name: 'Accessories' }
+              ].map(cat => (
+                <div key={cat.code} className="bg-white p-3 text-center">
+                  <div className="font-mono font-bold text-indigo-600">{cat.code}</div>
+                  <div className="text-sm text-gray-600">{cat.name}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Implementation Guide */}
+        <div className="bg-white rounded-lg shadow-xl p-8">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800">Implementation Guide</h2>
+          
+          <div className="space-y-4 text-gray-700">
+            <div>
+              <h3 className="font-semibold text-lg mb-2">1. Database Integration</h3>
+              <p className="text-sm">Store barcodes in the <code className="bg-gray-100 px-2 py-1 rounded">product_sizes</code> table. Add a column: <code className="bg-gray-100 px-2 py-1 rounded">barcode VARCHAR(20)</code></p>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-lg mb-2">2. Barcode Printing</h3>
+              <p className="text-sm">Use standard Code 128 or Code 39 barcode format. Print on 2" x 1" labels for price tags.</p>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-lg mb-2">3. Scanning Workflow</h3>
+              <p className="text-sm">Scanner reads barcode → System queries database using barcode → Retrieves product, size, and price → Processes transaction</p>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-lg mb-2">4. Advantages</h3>
+              <ul className="text-sm list-disc list-inside space-y-1">
+                <li>Human-readable format (ATL-TS0001-M0-45)</li>
+                <li>Unique identifier for each product-size combination</li>
+                <li>Category visible at a glance for inventory organization</li>
+                <li>Dual check digits help catch scanning errors</li>
+                <li>Scalable to 9,999 products per category (59,994+ total)</li>
+                <li>Professional brand identifier (ATL)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BarcodeSystem;
+
+
+Atliere Brand Barcode System
+Barcode Format: ATL-CCPPPP-SS-CKK
+ATL: Atliere brand prefix
+CC: Category (TS=T-Shirts, HD=Hoodies, JK=Jackets, PN=Pants, SH=Shoes, AC=Accessories)
+PPPP: Product ID (4 digits - supports 0001-9999 per category)
+SS: Size code (2-3 characters)
+CKK: Check digits for validation (2 digits)
+Capacity: 9,999 products per category = 59,994+ total SKUs
+
+Classic White T-Shirt
+T-Shirts
+ID: 0001 | Code: TS
+$29.99
+
+Cozy Oversized Hoodie
+Hoodies
+ID: 0002 | Code: HD
+$69.99
+
+Premium Leather Jacket
+Jackets
+ID: 0003 | Code: JK
+$129.99
+
+Classic Denim Jeans
+Pants
+ID: 0004 | Code: PN
+$49.99
+
+Urban Sneakers
+Shoes
+ID: 0005 | Code: SH
+$89.99
+
+Graphic Print T-Shirt
+T-Shirts
+ID: 0006 | Code: TS
+$34.99
+Category Code Reference
+TS
+T-Shirts
+HD
+Hoodies
+JK
+Jackets
+PN
+Pants
+SH
+Shoes
+AC
+Accessories
+Implementation Guide
+1. Database Integration
+Store barcodes in the product_sizes table. Add a column: barcode VARCHAR(20)
+
+2. Barcode Printing
+Use standard Code 128 or Code 39 barcode format. Print on 2" x 1" labels for price tags.
+
+3. Scanning Workflow
+Scanner reads barcode → System queries database using barcode → Retrieves product, size, and price → Processes transaction
+
+4. Advantages
+Human-readable format (ATL-TS0001-M0-45)
+Unique identifier for each product-size combination
+Category visible at a glance for inventory organization
+Dual check digits help catch scanning errors
+Scalable to 9,999 products per category (59,994+ total)
+Professional brand identifier (ATL)
