@@ -7,56 +7,101 @@ if (!isset($_SESSION['cart'])) {
   $_SESSION['cart'] = [];
 }
 
-// Handle Add to Cart
-if (isset($_POST['add_to_cart'])) {
-  $product_id = (int) $_POST['product_id'];
-  $quantity = (int) $_POST['quantity'] ?? 1;
-
-  // Get product details
-  $stmt = $conn->prepare("SELECT product_id, product_name, price, stock_quantity FROM products WHERE product_id = ?");
-  $stmt->bind_param("i", $product_id);
-  $stmt->execute();
-  $result = $stmt->get_result();
-
-  if ($result->num_rows > 0) {
-    $product = $result->fetch_assoc();
-
-    // Check if product already in cart
-    if (isset($_SESSION['cart'][$product_id])) {
-      $_SESSION['cart'][$product_id]['quantity'] += $quantity;
+// Handle login
+$login_error = '';
+if (isset($_POST['login_submit'])) {
+    $email = trim($_POST['login_email'] ?? '');
+    $password = $_POST['login_password'] ?? '';
+    
+    if (empty($email) || empty($password)) {
+        $login_error = 'Please fill in all fields.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $login_error = 'Please enter a valid email address.';
     } else {
-      $_SESSION['cart'][$product_id] = [
-        'product_id' => $product['product_id'],
-        'product_name' => $product['product_name'],
-        'price' => $product['price'],
-        'quantity' => $quantity,
-        'stock' => $product['stock_quantity']
-      ];
+        $stmt = $conn->prepare("SELECT user_id, username, email, password_hash, role, is_active FROM users WHERE email = ?");
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows === 1) {
+            $user = $result->fetch_assoc();
+            
+            if (!$user['is_active']) {
+                $login_error = 'Your account has been deactivated. Please contact support.';
+            } elseif (password_verify($password, $user['password_hash'])) {
+                $_SESSION['user_id'] = $user['user_id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['email'] = $user['email'];
+                $_SESSION['role'] = $user['role'];
+                
+                $update_stmt = $conn->prepare("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE user_id = ?");
+                $update_stmt->bind_param("i", $user['user_id']);
+                $update_stmt->execute();
+                
+                header('Location: cart.php');
+                exit();
+            } else {
+                $login_error = 'Invalid email or password.';
+            }
+        } else {
+            $login_error = 'Invalid email or password.';
+        }
+        $stmt->close();
     }
+}
 
-    // Limit to stock quantity
-    if ($_SESSION['cart'][$product_id]['quantity'] > $product['stock_quantity']) {
-      $_SESSION['cart'][$product_id]['quantity'] = $product['stock_quantity'];
+// Handle signup
+$signup_error = '';
+$signup_success = '';
+if (isset($_POST['signup_submit'])) {
+    $username = trim($_POST['signup_username'] ?? '');
+    $email = trim($_POST['signup_email'] ?? '');
+    $password = $_POST['signup_password'] ?? '';
+    $confirm_password = $_POST['signup_confirm_password'] ?? '';
+    
+    if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
+        $signup_error = 'Please fill in all fields.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $signup_error = 'Please enter a valid email address.';
+    } elseif (strlen($password) < 6) {
+        $signup_error = 'Password must be at least 6 characters long.';
+    } elseif ($password !== $confirm_password) {
+        $signup_error = 'Passwords do not match.';
+    } else {
+        $check_stmt = $conn->prepare("SELECT user_id FROM users WHERE email = ? OR username = ?");
+        $check_stmt->bind_param("ss", $email, $username);
+        $check_stmt->execute();
+        $check_result = $check_stmt->get_result();
+        
+        if ($check_result->num_rows > 0) {
+            $signup_error = 'Email or username already exists.';
+        } else {
+            $password_hash = password_hash($password, PASSWORD_DEFAULT);
+            $insert_stmt = $conn->prepare("INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, 'customer')");
+            $insert_stmt->bind_param("sss", $username, $email, $password_hash);
+            
+            if ($insert_stmt->execute()) {
+                $signup_success = 'Account created successfully! You can now login.';
+            } else {
+                $signup_error = 'An error occurred during registration. Please try again.';
+            }
+            $insert_stmt->close();
+        }
+        $check_stmt->close();
     }
-  }
-  $stmt->close();
-
-  header('Location: cart.php');
-  exit();
 }
 
 // Handle Update Quantity
 if (isset($_POST['update_cart'])) {
-  foreach ($_POST['quantity'] as $product_id => $quantity) {
-    $product_id = (int) $product_id;
+  foreach ($_POST['quantity'] as $cart_key => $quantity) {
     $quantity = (int) $quantity;
 
     if ($quantity <= 0) {
-      unset($_SESSION['cart'][$product_id]);
+      unset($_SESSION['cart'][$cart_key]);
     } else {
-      if (isset($_SESSION['cart'][$product_id])) {
-        $max_quantity = $_SESSION['cart'][$product_id]['stock'];
-        $_SESSION['cart'][$product_id]['quantity'] = min($quantity, $max_quantity);
+      if (isset($_SESSION['cart'][$cart_key])) {
+        $max_quantity = $_SESSION['cart'][$cart_key]['stock'];
+        $_SESSION['cart'][$cart_key]['quantity'] = min($quantity, $max_quantity);
       }
     }
   }
@@ -67,8 +112,8 @@ if (isset($_POST['update_cart'])) {
 
 // Handle Remove Item
 if (isset($_GET['remove'])) {
-  $product_id = (int) $_GET['remove'];
-  unset($_SESSION['cart'][$product_id]);
+  $cart_key = $_GET['remove'];
+  unset($_SESSION['cart'][$cart_key]);
 
   header('Location: cart.php');
   exit();
@@ -94,7 +139,7 @@ if ($subtotal >= 50) {
   $shipping = 0;
 }
 
-$tax = $subtotal * 0.12; // 10% tax
+$tax = $subtotal * 0.12; // 12% tax
 $total = $subtotal + $shipping + $tax;
 
 // Get cart count for header
@@ -137,13 +182,13 @@ $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
         <div class="cart-content">
           <form method="POST" action="cart.php" class="cart-form">
             <div class="cart-items">
-              <?php foreach ($_SESSION['cart'] as $product_id => $item): ?>
+              <?php foreach ($_SESSION['cart'] as $cart_key => $item): ?>
                 <div class="cart-item">
                   <div class="item-image">
                     <?php
                     // Get product image
                     $stmt = $conn->prepare("SELECT image_url FROM products WHERE product_id = ?");
-                    $stmt->bind_param("i", $product_id);
+                    $stmt->bind_param("i", $item['product_id']);
                     $stmt->execute();
                     $result = $stmt->get_result();
                     $product = $result->fetch_assoc();
@@ -157,6 +202,14 @@ $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
 
                   <div class="item-details">
                     <h3><?php echo htmlspecialchars($item['product_name']); ?></h3>
+                    <?php if (isset($item['size'])): ?>
+                      <p class="item-size">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                          <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM8 11V7h2v4H8zm4-4h-2v4h2V7z"/>
+                        </svg>
+                        Size: <strong><?php echo htmlspecialchars($item['size']); ?></strong>
+                      </p>
+                    <?php endif; ?>
                     <p class="item-price">₱<?php echo number_format($item['price'], 2); ?></p>
                     <p class="item-stock">
                       <?php if ($item['stock'] > 0): ?>
@@ -168,8 +221,8 @@ $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
                   </div>
 
                   <div class="item-quantity">
-                    <label for="qty-<?php echo $product_id; ?>">Qty:</label>
-                    <input type="number" id="qty-<?php echo $product_id; ?>" name="quantity[<?php echo $product_id; ?>]"
+                    <label for="qty-<?php echo $cart_key; ?>">Qty:</label>
+                    <input type="number" id="qty-<?php echo $cart_key; ?>" name="quantity[<?php echo $cart_key; ?>]"
                       value="<?php echo $item['quantity']; ?>" min="1" max="<?php echo $item['stock']; ?>"
                       class="quantity-input">
                   </div>
@@ -180,7 +233,7 @@ $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
                   </div>
 
                   <div class="item-remove">
-                    <a href="cart.php?remove=<?php echo $product_id; ?>" class="btn-remove"
+                    <a href="cart.php?remove=<?php echo urlencode($cart_key); ?>" class="btn-remove"
                       onclick="return confirm('Remove this item from cart?')">
                       <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -250,7 +303,7 @@ $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
             <?php if (isset($_SESSION['user_id'])): ?>
               <a href="checkout.php" class="btn-checkout">Proceed to Checkout</a>
             <?php else: ?>
-              <button onclick="openModal('loginModal')" class="btn-checkout">Login to Checkout</button>
+              <button onclick="openModal('loginModal')" class="btn-checkout" type="button">Login to Checkout</button>
               <p class="checkout-notice">
                 <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd"
@@ -267,10 +320,126 @@ $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
   </div>
 
 
+  <!-- Login Modal -->
+  <div id="loginModal" class="modal <?php echo $login_error ? 'active' : ''; ?>">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal('loginModal')">&times;</button>
+      <h2>Welcome Back</h2>
+      <p class="modal-subtitle">Login to your TrendyWear account to checkout</p>
+      
+      <?php if ($login_error): ?>
+        <div class="alert alert-error">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+          </svg>
+          <?php echo htmlspecialchars($login_error); ?>
+        </div>
+      <?php endif; ?>
+      
+      <form method="POST" action="cart.php" id="loginForm">
+        <div class="form-group">
+          <label for="login_email">Email Address</label>
+          <input type="email" id="login_email" name="login_email" placeholder="your.email@example.com" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="login_password">Password</label>
+          <input type="password" id="login_password" name="login_password" placeholder="Enter your password" required>
+        </div>
+        
+        <div class="form-options">
+          <label class="checkbox-label">
+            <input type="checkbox" name="remember">
+            <span>Remember me</span>
+          </label>
+          <a href="#" class="forgot-link">Forgot Password?</a>
+        </div>
+        
+        <button type="submit" name="login_submit" class="btn-submit">Login</button>
+      </form>
+      
+      <div class="modal-footer">
+        Don't have an account? <span class="switch-modal" onclick="switchModal('loginModal', 'signupModal')">Sign Up</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signup Modal -->
+  <div id="signupModal" class="modal <?php echo ($signup_error || $signup_success) ? 'active' : ''; ?>">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal('signupModal')">&times;</button>
+      <h2>Create Account</h2>
+      <p class="modal-subtitle">Join TrendyWear today</p>
+      
+      <?php if ($signup_error): ?>
+        <div class="alert alert-error">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+          </svg>
+          <?php echo htmlspecialchars($signup_error); ?>
+        </div>
+      <?php endif; ?>
+      
+      <?php if ($signup_success): ?>
+        <div class="alert alert-success">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+          <?php echo htmlspecialchars($signup_success); ?>
+        </div>
+      <?php endif; ?>
+      
+      <form method="POST" action="cart.php" id="signupForm">
+        <div class="form-group">
+          <label for="signup_username">Username</label>
+          <input type="text" id="signup_username" name="signup_username" placeholder="Choose a username" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="signup_email">Email Address</label>
+          <input type="email" id="signup_email" name="signup_email" placeholder="your.email@example.com" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="signup_password">Password</label>
+          <input type="password" id="signup_password" name="signup_password" placeholder="At least 6 characters" required>
+          <small>Must be at least 6 characters long</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="signup_confirm_password">Confirm Password</label>
+          <input type="password" id="signup_confirm_password" name="signup_confirm_password" placeholder="Confirm your password" required>
+        </div>
+        
+        <button type="submit" name="signup_submit" class="btn-submit">Create Account</button>
+      </form>
+      
+      <div class="modal-footer">
+        Already have an account? <span class="switch-modal" onclick="switchModal('signupModal', 'loginModal')">Login</span>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // Modal functions (for login prompt)
+    // Modal functions
     function openModal(modalId) {
-      window.location.href = 'index.php#' + modalId;
+      document.getElementById(modalId).classList.add('active');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('active');
+    }
+
+    function switchModal(closeId, openId) {
+      closeModal(closeId);
+      setTimeout(() => openModal(openId), 150);
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+      if (event.target.classList.contains('modal')) {
+        event.target.classList.remove('active');
+      }
     }
 
     // Update cart count in header

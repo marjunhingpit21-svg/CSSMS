@@ -1,3 +1,15 @@
 -- add stock_quantity to products table for counting of stocks
 
 ALTER TABLE products ADD COLUMN stock_quantity INT DEFAULT 0 AFTER price;
+
+[DONE AND CHANGED]
+
+-- new table for sizes connect to products
+-- stock_quantity depends on sizes
+-- create gender/product sections (like women mens section) column 
+-- create age (kids, teens, adults)
+-- create shoe sizes tables that connects to category (shoe)
+
+-- [DONE]
+
+
