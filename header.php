@@ -15,8 +15,7 @@
         <div class="container">
             <div class="logo">
                 <a href="index.php">
-                    <img src="images/logo.png" alt="TrendyWear Logo" class="logo-img">
-                    <h1>altière</h1>
+                    <img src="img/a.png" alt="TrendyWear Logo" class="logo-img">
                 </a>
             </div>
 
