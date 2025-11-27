@@ -191,12 +191,20 @@ if (empty($products)) {
                     </div>
                 </div>
                 
-                <button class="btn-scan" onclick="scanProduct()">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M2 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V4zM8 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1H9a1 1 0 01-1-1V4zM15 3a1 1 0 00-1 1v12a1 1 0 001 1h2a1 1 0 001-1V4a1 1 0 00-1-1h-2z"/>
-                    </svg>
-                    Scan
-                </button>
+                <div class="scanner-buttons">
+                    <button class="btn-scan" onclick="scanProduct()">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M2 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V4zM8 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1H9a1 1 0 01-1-1V4zM15 3a1 1 0 00-1 1v12a1 1 0 001 1h2a1 1 0 001-1V4a1 1 0 00-1-1h-2z"/>
+                        </svg>
+                        Scan
+                    </button>
+                    <button class="btn-camera" onclick="openCameraScanner()">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+                        </svg>
+                        Camera
+                    </button>
+                </div>
             </div>
 
             <!-- Number Pad -->
@@ -577,7 +585,7 @@ if (empty($products)) {
                                 <input type="number" class="qty-input" value="${item.quantity}" onchange="setQuantity(${index}, this.value)" min="1" max="${item.stock}">
                                 <button class="qty-btn" onclick="updateQuantity(${index}, 1)">+</button>
                             </div>
-                            <div class="item-quantity-print">Qty: ${item.quantity}</div>
+                            <div class="item-quantity-print">× ${item.quantity}</div>
                         </div>
                         <div>
                             <div class="item-total">₱${(item.price * item.quantity).toFixed(2)}</div>
