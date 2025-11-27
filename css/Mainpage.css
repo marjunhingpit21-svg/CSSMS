@@ -1,30 +1,228 @@
-/* css/MainPage.css */
+/* css/MainPage.css - START */
 .page-wrapper {
-    margin-top: 70px;
-    padding: 40px 0;
+    margin-top: 70px; /* Header height */
+    padding: 0 0 80px; /* Removed top padding, kept bottom for ad banner */
     min-height: 100vh;
 }
 
+/* Brand Logo Marquee Section */
+.brand-marquee-section {
+    background: linear-gradient(135deg, #667eea 0%, #e91e63 100%);
+    padding: 30px 0;
+    overflow: hidden;
+    border-bottom: 1px solid #e5e7eb;
+    position: relative;
+    margin-top: 100px;
+    z-index: 1; /* Below header */
+}
+
+.marquee-container {
+    display: flex;
+    align-items: center;
+    gap: 60px;
+    animation: scroll 30s linear infinite;
+    width: fit-content;
+}
+
+.marquee-container:hover {
+    animation-play-state: paused;
+}
+
+@keyframes scroll {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+.brand-item {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+}
+
+.brand-logo {
+    height: 70px;
+    width: auto;
+    max-width: 150px;
+    object-fit: contain;
+    filter: brightness(0) invert(1); /* Makes logos white */
+    opacity: 0.9;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.brand-logo:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* If logos don't exist, show placeholder */
+.brand-logo[src*="placeholder"],
+.brand-logo:not([src]) {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 20px 40px;
+}
+
+
+.brand-marquee-section.colored-logos .brand-logo {
+    filter: none;
+    background: white;
+    padding: 15px 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Fixed Bottom Ad Banner */
+.fixed-ad-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 12px 20px;
+    z-index: 999;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    height: 70px;
+    display: flex;
+    align-items: center;
+}
+
+.ad-banner-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.ad-text h3 {
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 2px 0;
+}
+
+.ad-text p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.btn-ad-shop {
+    background: #e91e63;
+    color: white;
+    padding: 8px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-ad-shop:hover {
+    background: #c2185b;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(233, 30, 99, 0.3);
+}
+
+.ad-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.ad-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
 .filters-section {
+    position: sticky;
+    top: 70px; /* Height of your header */
     background-color: #fff;
     padding: 20px 0;
     border-bottom: 1px solid #e5e7eb;
     margin-bottom: 40px;
+    margin-top:-40px;
+    z-index: 900; /* Below header but above content */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .filters-bar {
     display: flex;
-    gap: 12px;
+    gap: 20px;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     max-width: 1600px;
     margin: 0 auto;
     padding: 0 40px;
 }
 
+/* Age Group Links Styles */
+.age-group-links {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    margin-right: auto;
+}
+
+.age-group-link {
+    padding: 8px 16px;
+    background: #f8f9fa;
+    color: #374151;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: 1px solid #e5e7eb;
+    white-space: nowrap;
+}
+
+.age-group-link:hover {
+    background: #e91e63;
+    color: white;
+    border-color: #e91e63;
+    transform: translateY(-1px);
+}
+
+.age-group-link.active {
+    background: #e91e63;
+    color: white;
+    border-color: #e91e63;
+}
+
+.search-filters-container {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
 .filter-select {
     padding: 10px 16px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #e91e63;
     border-radius: 8px;
     background: white;
     font-size: 14px;
@@ -45,7 +243,7 @@
 
 .search-input {
     padding: 10px 16px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #e91e63;
     border-radius: 8px;
     width: 280px;
     font-size: 14px;
@@ -77,6 +275,7 @@
     border: 1px solid #f3f4f6;
     transition: transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
+    position: relative;
 }
 
 .product-card:hover {
@@ -98,6 +297,9 @@
     font-weight: 500;
     color: #111;
     line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .price {
@@ -111,17 +313,6 @@
     max-width: 1600px;
     margin: 0 auto;
     padding: 0 40px;
-}
-
-/* Add to Cart Button Styles */
-.product-card {
-    position: relative;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 .product-actions {
@@ -155,26 +346,6 @@
 
 .btn-add-cart:active {
     transform: translateY(0);
-}
-
-.btn-view-details {
-    padding: 12px 16px;
-    background: white;
-    color: #666;
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn-view-details:hover {
-    border-color: #e91e63;
-    color: #e91e63;
 }
 
 .stock-badge {
@@ -227,7 +398,6 @@
         transform: translateX(400px);
         opacity: 0;
     }
-
     to {
         transform: translateX(0);
         opacity: 1;
@@ -250,6 +420,15 @@
     .products-grid {
         grid-template-columns: repeat(4, 1fr);
     }
+    
+    .age-group-links {
+        gap: 10px;
+    }
+    
+    .age-group-link {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
 }
 
 @media (max-width: 992px) {
@@ -261,6 +440,22 @@
     .filters-bar,
     .products-grid {
         padding: 0 30px;
+    }
+    
+    .filters-bar {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .age-group-links {
+        justify-content: center;
+        margin-right: 0;
+        flex-wrap: wrap;
+    }
+    
+    .search-filters-container {
+        width: 100%;
     }
 }
 
@@ -289,10 +484,74 @@
     .container {
         padding: 0 20px;
     }
+
+    .brand-marquee-section {
+        padding: 20px 0;
+    }
+
+    .brand-logo {
+        height: 40px;
+    }
+
+    .fixed-ad-banner {
+        height: 80px;
+        padding: 10px 15px;
+    }
+    
+    .ad-banner-content {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
+    
+    .ad-text h3 {
+        font-size: 1rem;
+    }
+    
+    .ad-text p {
+        font-size: 0.85rem;
+    }
+    
+    .btn-ad-shop {
+        padding: 6px 16px;
+        font-size: 0.85rem;
+    }
+    
+    .page-wrapper {
+        padding: 0 0 90px;
+    }
+    
+    .age-group-links {
+        gap: 8px;
+    }
+    
+    .age-group-link {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+    
+    .search-filters-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .search-input,
+    .filter-select {
+        width: 100%;
+    }
 }
 
 @media (max-width: 480px) {
     .products-grid {
         grid-template-columns: 1fr;
     }
+
+    .fixed-ad-banner {
+        height: 85px;
+    }
+    
+    .page-wrapper {
+        padding: 0 0 95px;
+    }
 }
+/* css/MainPage.css - END */

@@ -10,6 +10,11 @@ if (!isset($_SESSION['cart'])) {
 // Get cart count for header
 $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
 
+// Handle ad banner close
+if (isset($_POST['close_ad'])) {
+    $_SESSION['ad_closed'] = true;
+}
+
 // Handle login
 $login_error = '';
 if (isset($_POST['login_submit'])) {
@@ -108,19 +113,73 @@ if (isset($_POST['signup_submit'])) {
 <body>
     <?php include 'header.php'; ?>
 
-    <div class="page-wrapper">
-        <section class="filters-section">
-            <div class="container">
-                <div class="filters-bar">
+<!-- Brand Logos Marquee Section -->
+<section class="brand-marquee-section">
+    <div class="marquee-container">
+        <!-- First set - Add your own logo images here -->
+        <div class="brand-item"><img src="img/nike.png" alt="Brand 1" class="brand-logo"></div>
+        <div class="brand-item"><img src="img/channel.png" alt="Brand 2" class="brand-logo"></div>
+        <div class="brand-item"><img src="img/lacoste.png" alt="Brand 3" class="brand-logo"></div>
+        <div class="brand-item"><img src="img/lululemon.png" alt="Brand 4" class="brand-logo"></div>
+        <div class="brand-item"><img src="img/gucci.png" alt="Brand 5" class="brand-logo"></div>
+        <div class="brand-item"><img src="img/polo.png" alt="Brand 6" class="brand-logo"></div>
+        
+        <!-- Duplicate set - Copy the same logos for seamless loop -->
+        <div class="brand-item"><img src="img/nike.png" alt="Brand 1" class="brand-logo"></div>
+        <div class="brand-item"><img src="img/channel.png" alt="Brand 2" class="brand-logo"></div>
+        <div class="brand-item"><img src="img/lacoste.png" alt="Brand 3" class="brand-logo"></div>
+        <div class="brand-item"><img src="img/lululemon.png" alt="Brand 4" class="brand-logo"></div>
+        <div class="brand-item"><img src="img/gucci.png" alt="Brand 5" class="brand-logo"></div>
+        <div class="brand-item"><img src="img/polo.png" alt="Brand 6" class="brand-logo"></div>
+
+        <!-- Duplicate set - Copy the same logos for seamless loop -->
+        <div class="brand-item"><img src="img/nike.png" alt="Brand 1" class="brand-logo"></div>
+        <div class="brand-item"><img src="img/channel.png" alt="Brand 2" class="brand-logo"></div>
+        <div class="brand-item"><img src="img/lacoste.png" alt="Brand 3" class="brand-logo"></div>
+        <div class="brand-item"><img src="img/lululemon.png" alt="Brand 4" class="brand-logo"></div>
+        <div class="brand-item"><img src="img/gucci.png" alt="Brand 5" class="brand-logo"></div>
+        <div class="brand-item"><img src="img/polo.png" alt="Brand 6" class="brand-logo"></div>
+    </div>
+</section>
+
+<div class="page-wrapper">
+
+    <section class="filters-section">
+        <div class="container">
+            <div class="filters-bar">
+                <!-- Age Group Links on the left -->
+                <div class="age-group-links">
+                    <a href="#" class="age-group-link active" data-age-group="all">All Ages</a>
+                    <?php
+                    // Fetch age groups from database
+                    $age_sql = "SELECT * FROM age_groups ORDER BY age_group_id";
+                    $age_result = $conn->query($age_sql);
+                    
+                    if ($age_result->num_rows > 0) {
+                        while($age_group = $age_result->fetch_assoc()) {
+                            echo '<a href="#" class="age-group-link" data-age-group="'.$age_group['age_group_id'].'">'.$age_group['age_group_name'].'</a>';
+                        }
+                    }
+                    ?>
+                </div>
+
+                <!-- Search and Filters on the right -->
+                <div class="search-filters-container">
                     <input type="text" id="searchBar" placeholder="Search clothes..." class="search-input">
 
                     <select id="categoryFilter" class="filter-select">
                         <option value="all">All Categories</option>
-                        <option value="1">T-Shirts</option>
-                        <option value="2">Hoodies</option>
-                        <option value="3">Jackets</option>
-                        <option value="4">Pants</option>
-                        <option value="5">Shoes</option>
+                        <?php
+                        // Fetch categories from database
+                        $cat_sql = "SELECT * FROM categories ORDER BY category_id";
+                        $cat_result = $conn->query($cat_sql);
+                        
+                        if ($cat_result->num_rows > 0) {
+                            while($category = $cat_result->fetch_assoc()) {
+                                echo '<option value="'.$category['category_id'].'">'.$category['category_name'].'</option>';
+                            }
+                        }
+                        ?>
                     </select>
 
                     <select id="priceSort" class="filter-select">
@@ -130,63 +189,82 @@ if (isset($_POST['signup_submit'])) {
                     </select>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <section class="products-section">
-            <div class="container">
-                <div class="products-grid" id="productsGrid">
-                    <?php
-                    // Updated query to get total stock from product_sizes table
-                    $sql = "SELECT p.*, c.category_name, 
-                            COALESCE(SUM(ps.stock_quantity), 0) as total_stock
-                            FROM products p 
-                            LEFT JOIN categories c ON p.category_id = c.category_id 
-                            LEFT JOIN product_sizes ps ON p.product_id = ps.product_id
-                            GROUP BY p.product_id
-                            ORDER BY p.created_at DESC";
-                    $result = $conn->query($sql);
+    <section class="products-section">
+        <div class="container">
+            <div class="products-grid" id="productsGrid">
+                <?php
+                // Updated query to get total stock from product_sizes table and include age_group_id
+                $sql = "SELECT p.*, c.category_name, 
+                        COALESCE(SUM(ps.stock_quantity), 0) as total_stock
+                        FROM products p 
+                        LEFT JOIN categories c ON p.category_id = c.category_id 
+                        LEFT JOIN product_sizes ps ON p.product_id = ps.product_id
+                        GROUP BY p.product_id
+                        ORDER BY p.created_at DESC";
+                $result = $conn->query($sql);
 
-                    if ($result->num_rows > 0) {
-                        while($row = $result->fetch_assoc()) {
-                            $stock = intval($row['total_stock']);
-                            $stock_status = '';
-                            $stock_class = '';
-                            
-                            if ($stock > 10) {
-                                $stock_status = 'In Stock';
-                                $stock_class = 'in-stock';
-                            } elseif ($stock > 0) {
-                                $stock_status = 'Only ' . $stock . ' left';
-                                $stock_class = 'low-stock';
-                            } else {
-                                $stock_status = 'Out of Stock';
-                                $stock_class = 'out-of-stock';
-                            }
-                            
-                            echo '
-                            <div class="product-card" data-category="'.$row['category_id'].'" data-price="'.$row['price'].'">
-                                <span class="stock-badge '.$stock_class.'">'.$stock_status.'</span>
-                                <img src="'.$row['image_url'].'" alt="'.$row['product_name'].'" onerror="this.src=\'https://via.placeholder.com/300x400?text=No+Image\'">
-                                <h3>'.htmlspecialchars($row['product_name']).'</h3>
-                                <p class="price">₱'.number_format($row['price'], 2).'</p>
-                                <div class="product-actions">
-                                    <a href="product_details.php?id='.$row['product_id'].'" class="btn-add-cart" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;" '.($stock <= 0 ? 'style="opacity: 0.5; cursor: not-allowed;"' : '').'>
-                                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
-                                        </svg>
-                                        '.($stock <= 0 ? 'View' : 'Add to cart').'
-                                    </a>
-                                </div>
-                            </div>';
+                if ($result->num_rows > 0) {
+                    while($row = $result->fetch_assoc()) {
+                        $stock = intval($row['total_stock']);
+                        $stock_status = '';
+                        $stock_class = '';
+                        
+                        if ($stock > 10) {
+                            $stock_status = 'In Stock';
+                            $stock_class = 'in-stock';
+                        } elseif ($stock > 0) {
+                            $stock_status = 'Only ' . $stock . ' left';
+                            $stock_class = 'low-stock';
+                        } else {
+                            $stock_status = 'Out of Stock';
+                            $stock_class = 'out-of-stock';
                         }
-                    } else {
-                        echo '<p>No products found.</p>';
+                        
+                        echo '
+                        <div class="product-card" data-category="'.$row['category_id'].'" data-price="'.$row['price'].'" data-age-group="'.$row['age_group_id'].'">
+                            <span class="stock-badge '.$stock_class.'">'.$stock_status.'</span>
+                            <img src="'.$row['image_url'].'" alt="'.$row['product_name'].'" onerror="this.src=\'https://via.placeholder.com/300x400?text=No+Image\'">
+                            <h3>'.htmlspecialchars($row['product_name']).'</h3>
+                            <p class="price">₱'.number_format($row['price'], 2).'</p>
+                            <div class="product-actions">
+                                <a href="product_details.php?id='.$row['product_id'].'" class="btn-add-cart" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;" '.($stock <= 0 ? 'style="opacity: 0.5; cursor: not-allowed;"' : '').'>
+                                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                                    </svg>
+                                    '.($stock <= 0 ? 'View' : 'Add to cart').'
+                                </a>
+                            </div>
+                        </div>';
                     }
-                    ?>
-                </div>
+                } else {
+                    echo '<p>No products found.</p>';
+                }
+                ?>
             </div>
-        </section>
+        </div>
+    </section>
+</div>
+
+    <!-- Fixed Bottom Ad Banner -->
+    <?php if (!isset($_SESSION['ad_closed'])): ?>
+    <div class="fixed-ad-banner" id="fixedAdBanner">
+        <button class="ad-close-btn" onclick="closeAdBanner()">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+        </button>
+        <div class="ad-banner-content">
+            <div class="ad-text">
+                <h3>Summer Sale! 🎉</h3>
+                <p>Up to 50% off on selected items</p>
+            </div>
+            <a href="#productsGrid" class="btn-ad-shop">Shop Now</a>
+        </div>
     </div>
+    <?php endif; ?>
 
     <!-- Success Toast -->
     <div id="successToast" class="toast">
@@ -318,6 +396,23 @@ if (isset($_POST['signup_submit'])) {
             }
         }
 
+        // Ad Banner functions
+        function closeAdBanner() {
+            const adBanner = document.getElementById('fixedAdBanner');
+            if (adBanner) {
+                adBanner.style.display = 'none';
+                
+                // Send AJAX request to remember the close state
+                fetch('index.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'close_ad=1'
+                });
+            }
+        }
+
         // Show success toast if redirected from cart
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('added') === '1') {
@@ -353,6 +448,28 @@ if (isset($_POST['signup_submit'])) {
         const productsGrid = document.getElementById('productsGrid');
         const products = document.querySelectorAll('.product-card');
 
+        // Age Group Filtering
+        const ageGroupLinks = document.querySelectorAll('.age-group-link');
+        let currentAgeGroup = 'all';
+
+        ageGroupLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Remove active class from all links
+                ageGroupLinks.forEach(l => l.classList.remove('active'));
+                
+                // Add active class to clicked link
+                this.classList.add('active');
+                
+                // Update current age group
+                currentAgeGroup = this.dataset.ageGroup;
+                
+                // Filter products
+                filterProducts();
+            });
+        });
+
         function filterProducts() {
             const searchText = searchBar.value.toLowerCase();
             const selectedCategory = categoryFilter.value;
@@ -363,9 +480,13 @@ if (isset($_POST['signup_submit'])) {
             productArray = productArray.filter(product => {
                 const title = product.querySelector('h3').textContent.toLowerCase();
                 const category = product.getAttribute('data-category');
+                const ageGroup = product.getAttribute('data-age-group');
+                
                 const matchesSearch = title.includes(searchText);
                 const matchesCategory = selectedCategory === 'all' || category === selectedCategory;
-                return matchesSearch && matchesCategory;
+                const matchesAgeGroup = currentAgeGroup === 'all' || ageGroup === currentAgeGroup;
+                
+                return matchesSearch && matchesCategory && matchesAgeGroup;
             });
 
             if (sortOrder === 'low') {
