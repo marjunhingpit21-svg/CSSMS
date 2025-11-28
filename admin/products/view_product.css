@@ -1,0 +1,319 @@
+.view-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+/* First Row Container - Image, Details, Info Card */
+.top-row {
+    display: flex;
+    gap: 2rem;
+    width: 100%;
+    align-items: center;
+}
+
+/* Card Base */
+.card {
+    background: rgba(17, 24, 39, 1);
+    border: 1px solid rgba(31, 41, 55, 1);
+    border-radius: 1rem;
+    backdrop-filter: blur(40px);
+}
+
+/* Image Container */
+.product-image-container {
+    height: 400px;
+    width: 400px;
+    background: rgba(17, 24, 39, 1);
+    border: 1px solid rgba(31, 41, 55, 1);
+    border-radius: 1rem;
+    overflow: hidden;
+    backdrop-filter: blur(40px);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.product-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Details Section - Takes up remaining space */
+.details-section {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-content: flex-start;
+}
+
+.detail-card {
+    flex: 0 0 calc(50% - 0.75rem);
+    max-width: calc(50% - 0.75rem);
+    background: rgba(17, 24, 39, 1);
+    border: 1px solid rgba(31, 41, 55, 1);
+    border-radius: 1rem;
+    padding: 1.09rem;
+    backdrop-filter: blur(40px);
+}
+
+.detail-card .label {
+    color: rgba(156, 163, 175, 1);
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.detail-card .value {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+    color: white;
+}
+
+/* Info Card - Remove this entire section, it's now a detail card */
+
+/* Color variations */
+.text-green {
+    color: rgba(74, 222, 128, 1);
+}
+
+.text-orange {
+    color: rgba(251, 146, 60, 1);
+}
+
+.text-red {
+    color: rgba(248, 113, 113, 1);
+}
+
+/* Description Card - Full width */
+.description-card {
+    flex: 1 1 100%;
+    background: rgba(17, 24, 39, 1);
+    border: 1px solid rgba(31, 41, 55, 1);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    backdrop-filter: blur(40px);
+}
+
+.description-card h2 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 1rem;
+}
+
+.description-card p {
+    color: rgba(209, 213, 219, 1);
+    line-height: 1.625;
+}
+
+/* Size Variants Table Container - Full width */
+.size-table-container {
+    flex: 1 1 100%;
+    background: rgba(17, 24, 39, 1);
+    border: 1px solid rgba(31, 41, 55, 1);
+    border-radius: 1rem;
+    overflow: hidden;
+    backdrop-filter: blur(40px);
+}
+
+.size-table-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(31, 41, 55, 1);
+}
+
+.size-table-header h2 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 700;
+    color: white;
+}
+
+/* Size Table Styles */
+.size-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.size-table thead tr {
+    text-align: left;
+    color: rgba(156, 163, 175, 1);
+    font-size: 0.875rem;
+    border-bottom: 1px solid rgba(31, 41, 55, 1);
+}
+
+.size-table th {
+    padding: 1rem 2rem;
+    font-weight: 500;
+}
+
+.size-table tbody tr {
+    border-bottom: 1px solid rgba(31, 41, 55, 1);
+    transition: background-color 0.3s;
+}
+
+.size-table tbody tr:hover {
+    background: rgba(31, 41, 55, 0.5);
+}
+
+.size-table td {
+    padding: 1.5rem 2rem;
+}
+
+/* Size Badge */
+.size-badge {
+    display: inline-block;
+    padding: 0.5rem 1.25rem;
+    background: rgba(31, 41, 55, 1);
+    color: white;
+    border-radius: 0.5rem;
+    font-weight: 700;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+}
+
+/* Stock Text */
+.stock-value {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 700;
+    color: white;
+}
+
+/* Empty State */
+.empty-state {
+    padding: 4rem;
+    text-align: center;
+    color: rgba(107, 114, 128, 1);
+}
+
+.empty-state .material-icons {
+    font-size: 4rem;
+    line-height: 1;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+/* Additional spacing utilities */
+.mb-2 {
+    margin-bottom: 0.5rem;
+}
+
+.mb-4 {
+    margin-bottom: 1rem;
+}
+
+.mt-2 {
+    margin-top: 0.5rem;
+}
+
+/* Text utilities */
+.text-4xl {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+}
+
+.text-2xl {
+    font-size: 1.5rem;
+    line-height: 2rem;
+}
+
+.text-xl {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+}
+
+.text-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.font-bold {
+    font-weight: 700;
+}
+
+.font-semibold {
+    font-weight: 600;
+}
+
+/* Alignment */
+.align-middle {
+    vertical-align: middle;
+}
+
+.text-white {
+    color: white;
+}
+
+.text-gray-300 {
+    color: rgba(209, 213, 219, 1);
+}
+
+.text-gray-400 {
+    color: rgba(156, 163, 175, 1);
+}
+
+.text-gray-500 {
+    color: rgba(107, 114, 128, 1);
+}
+
+/* Responsive: Tablet */
+@media (max-width: 1280px) {
+    .view-grid {
+        gap: 1.5rem;
+    }
+    
+    .top-row {
+        flex-wrap: wrap;
+    }
+    
+    .product-image-container {
+        width: 100%;
+        max-width: 400px;
+        height: auto;
+        aspect-ratio: 1;
+    }
+    
+    .details-section {
+        flex: 1 1 100%;
+    }
+}
+
+/* Responsive: Mobile */
+@media (max-width: 768px) {
+    .view-grid {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .top-row {
+        flex-direction: column;
+    }
+    
+    .product-image-container {
+        width: 100%;
+        max-width: 300px;
+        margin: 0 auto;
+    }
+    
+    .details-section {
+        flex: 1 1 100%;
+    }
+    
+    .detail-card {
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+}
