@@ -2,70 +2,98 @@
 include '../database/db.php';
 session_start();
 
-// Redirect if already logged in
-if (isset($_SESSION['cashier_id'])) {
+// Redirect if already logged in as cashier
+if (isset($_SESSION['employee_id']) && $_SESSION['role'] === 'cashier') {
     header('Location: cashier_dashboard.php');
     exit();
 }
 
-// Include database connection
-require_once '../database/db.php';
-
 $error = '';
-$success = '';
 
-// Handle cashier login form submission
+// Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $employee_number = trim($_POST['employee_number'] ?? '');
     $password = $_POST['password'] ?? '';
-    $branch = trim($_POST['branch'] ?? '');
-    
-    // Validation
-    if (empty($employee_number) || empty($password) || empty($branch)) {
+    $branch_name = trim($_POST['branch'] ?? '');
+
+    // Basic validation
+    if (empty($employee_number) || empty($password) || empty($branch_name)) {
         $error = 'Please fill in all fields.';
     } else {
         try {
-            // Query cashier by employee number and branch
-            $stmt = $conn->prepare("SELECT cashier_id, employee_number, name, password_hash, branch, is_active FROM cashiers WHERE employee_number = ? AND branch = ?");
-            $stmt->bind_param("ss", $employee_number, $branch);
+            // Query: Find active cashier with matching employee_number and branch_name
+            $stmt = $conn->prepare("
+                SELECT 
+                    e.employee_id,
+                    e.employee_number,
+                    e.first_name,
+                    e.last_name,
+                    e.password_hash,
+                    e.position,
+                    e.branch_id,
+                    e.is_active,
+                    b.branch_name
+                FROM employees e
+                INNER JOIN branches b ON e.branch_id = b.branch_id
+                WHERE e.employee_number = ?
+                  AND b.branch_name = ?
+                  AND e.position = 'cashier'
+                LIMIT 1
+            ");
+            $stmt->bind_param("ss", $employee_number, $branch_name);
             $stmt->execute();
             $result = $stmt->get_result();
-            
+
             if ($result->num_rows === 1) {
-                $cashier = $result->fetch_assoc();
-                
+                $user = $result->fetch_assoc();
+
                 // Check if account is active
-                if (!$cashier['is_active']) {
+                if (!$user['is_active']) {
                     $error = 'Your account has been deactivated. Please contact your manager.';
-                } elseif (password_verify($password, $cashier['password_hash'])) {
-                    // Password is correct, start session
-                    $_SESSION['cashier_id'] = $cashier['cashier_id'];
-                    $_SESSION['employee_number'] = $cashier['employee_number'];
-                    $_SESSION['cashier_name'] = $cashier['name'];
-                    $_SESSION['branch'] = $cashier['branch'];
+                }
+                // Verify password
+                elseif (password_verify($password, $user['password_hash'])) {
+                    // Success! Create session
+                    $_SESSION['employee_id'] = $user['employee_id'];
+                    $_SESSION['employee_number'] = $user['employee_number'];
+                    $_SESSION['cashier_name'] = $user['first_name'] . ' ' . $user['last_name'];
+                    $_SESSION['branch_id'] = $user['branch_id'];
+                    $_SESSION['branch_name'] = $user['branch_name'];
                     $_SESSION['role'] = 'cashier';
-                    
-                    // Update last login
-                    $update_stmt = $conn->prepare("UPDATE cashiers SET last_login = CURRENT_TIMESTAMP WHERE cashier_id = ?");
-                    $update_stmt->bind_param("i", $cashier['cashier_id']);
-                    $update_stmt->execute();
-                    
+
+                    // Update last login timestamp
+                    $update = $conn->prepare("UPDATE employees SET last_login = NOW() WHERE employee_id = ?");
+                    $update->bind_param("i", $user['employee_id']);
+                    $update->execute();
+                    $update->close();
+
                     // Redirect to cashier dashboard
                     header('Location: cashier_dashboard.php');
                     exit();
                 } else {
-                    $error = 'Invalid credentials. Please check your information.';
+                    $error = 'Invalid password. Please try again.';
                 }
             } else {
-                $error = 'Invalid credentials. Please check your information.';
+                $error = 'Invalid Employee ID or Branch. Only cashiers can log in here.';
             }
-            
+
             $stmt->close();
         } catch (Exception $e) {
-            $error = 'An error occurred. Please try again later.';
-            error_log($e->getMessage());
+            error_log("Login error: " . $e->getMessage());
+            $error = 'System error. Please try again later.';
         }
     }
+}
+
+// Fetch active branches for dropdown
+try {
+    $branches_result = $conn->query("SELECT branch_name FROM branches WHERE is_active = 1 ORDER BY branch_name");
+    $branches = [];
+    while ($row = $branches_result->fetch_assoc()) {
+        $branches[] = $row['branch_name'];
+    }
+} catch (Exception $e) {
+    $branches = [];
 }
 ?>
 
@@ -80,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
     <div class="login-landscape">
-        <!-- Left Panel - Branding Section -->
+        <!-- Left Panel - Branding -->
         <div class="branding-panel">
             <div class="branding-overlay"></div>
             <div class="branding-content">
@@ -97,35 +125,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div class="feature-list-compact">
                     <div class="feature-item-compact">
-                        <svg viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                        </svg>
-                        <span>Real-time Inventory</span>
+                        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        <span>Real-time Sales</span>
                     </div>
                     <div class="feature-item-compact">
-                        <svg viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                        </svg>
-                        <span>Secure Access</span>
+                        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        <span>Secure Login</span>
                     </div>
                     <div class="feature-item-compact">
-                        <svg viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                        </svg>
-                        <span>Multi-branch Support</span>
+                        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        <span>Multi-branch</span>
                     </div>
-                </div>
-
-                <div class="support-info">
-                    <p>24/7 Support Available</p>
                 </div>
             </div>
         </div>
 
-        <!-- Right Panel - Form Section -->
+        <!-- Right Panel - Form -->
         <div class="form-panel">
             <div class="form-content">
-                <!-- Header -->
                 <div class="login-header">
                     <div class="brand-mini">
                         <div class="brand-icon">
@@ -136,19 +153,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         <div class="brand-text">
                             <span class="brand-name">TrendyWear</span>
-                            <span class="brand-subtitle">Stock Management</span>
+                            <span class="brand-subtitle">Cashier Portal</span>
                         </div>
                     </div>
-                    <span class="portal-tag">Cashier Portal</span>
                 </div>
 
-                <!-- Welcome Section -->
                 <div class="welcome-section">
                     <h1>Welcome Back</h1>
-                    <p>Sign in to your cashier account to continue</p>
+                    <p>Sign in to start your shift</p>
                 </div>
 
-                <!-- Alerts -->
                 <?php if ($error): ?>
                     <div class="alert alert-error">
                         <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
@@ -158,16 +172,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <?php if ($success): ?>
-                    <div class="alert alert-success">
-                        <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                        </svg>
-                        <span><?php echo htmlspecialchars($success); ?></span>
-                    </div>
-                <?php endif; ?>
-
-                <!-- Login Form -->
                 <form method="POST" action="cashier_login.php" class="login-form">
                     <div class="form-row">
                         <div class="input-group">
@@ -183,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     value="<?php echo htmlspecialchars($employee_number ?? ''); ?>"
                                     placeholder="EMP-XXXX"
                                     required
-                                    autocomplete="off"
+                                    autocomplete="username"
                                 >
                             </div>
                         </div>
@@ -196,11 +200,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </svg>
                                 <select id="branch" name="branch" required>
                                     <option value="">Select branch</option>
-                                    <option value="Cebu Main">Cebu Main</option>
-                                    <option value="Cebu IT Park">Cebu IT Park</option>
-                                    <option value="Cebu Ayala">Cebu Ayala</option>
-                                    <option value="Mandaue">Mandaue</option>
-                                    <option value="Lapu-Lapu">Lapu-Lapu</option>
+                                    <?php foreach ($branches as $b): ?>
+                                        <option value="<?php echo htmlspecialchars($b); ?>" 
+                                            <?php echo (isset($_POST['branch']) && $_POST['branch'] === $b) ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($b); ?>
+                                        </option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
                         </div>
@@ -216,8 +221,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 type="password" 
                                 id="password" 
                                 name="password"
-                                placeholder="Enter password"
+                                placeholder="Enter your password"
                                 required
+                                autocomplete="current-password"
                             >
                         </div>
                     </div>
@@ -239,11 +245,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </button>
                 </form>
 
-                <!-- Footer Links -->
                 <div class="form-footer">
-                    <p>Need assistance? <a href="contact_support.php" class="link-secondary">Contact Support</a></p>
+                    <p>Need help? <a href="contact_support.php" class="link-secondary">Contact Support</a></p>
                     <p class="divider-text">or</p>
-                    <p>Customer account? <a href="../login.php" class="link-secondary">Login here</a></p>
+                    <p>Manager/Supervisor login? <a href="../admin/login.php" class="link-secondary">Go to Admin Portal</a></p>
                 </div>
             </div>
         </div>
