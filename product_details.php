@@ -241,7 +241,7 @@ $has_stock = ($sizes_result->num_rows > 0);
                     <form method="POST" action="" id="addToCartForm">
                         <!-- Size Selection -->
                         <div class="size-selector">
-                            <label class="size-label">Select Size (in EU):</label>
+                            <label class="size-label">Select Size:</label>
                             <div class="size-options <?php 
                                 // Check if first size is a shoe to add shoe class
                                 $sizes_result->data_seek(0);
@@ -269,6 +269,8 @@ $has_stock = ($sizes_result->num_rows > 0);
                                         $size_label = $size['clothing_size'];
                                     }
                                 ?>
+                                
+                                
                                     <div class="size-option">
                                         <input type="radio" name="size"
                                             id="<?php echo $size_id; ?>"
