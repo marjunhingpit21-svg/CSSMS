@@ -1,4 +1,8 @@
-/* Cart Container */
+.page-wrapper-cart {
+    margin-top: 80px; /* Header height */
+    padding: 0 0 80px; /* Removed top padding, kept bottom for ad banner */
+    min-height: 100vh;
+}
 .cart-container {
     max-width: 1400px;
     margin: 40px auto;
@@ -6,15 +10,20 @@
     min-height: 60vh;
 }
 
+
 .cart-header {
+    margin-top:50px;
     margin-bottom: 30px;
     padding-bottom: 20px;
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 2px solid #e91e63;
+    
 }
+
+
 
 .cart-header h1 {
     font-size: 2rem;
-    color: #222;
+    color: #e91e63;
     margin-bottom: 5px;
 }
 
