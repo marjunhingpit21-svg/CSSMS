@@ -37,13 +37,24 @@ if ($result->num_rows === 0) {
 $product = $result->fetch_assoc();
 $stmt->close();
 
-// Fetch available sizes (assuming clothing for this example; adjust for shoes if needed)
+// Fetch available sizes - ONLY sizes with stock > 0, GROUP by EU size to avoid duplicates
 $sizes_stmt = $conn->prepare("
-    SELECT ps.product_size_id, cs.size_name, ps.stock_quantity
+    SELECT 
+        ps.product_size_id, 
+        cs.size_name as clothing_size,
+        ss.size_eu,
+        ps.stock_quantity,
+        COALESCE(cs.size_order, ss.size_eu) as sort_order,
+        CASE 
+            WHEN cs.size_name IS NOT NULL THEN 'clothing'
+            ELSE 'shoe'
+        END as size_type
     FROM product_sizes ps
     LEFT JOIN clothing_sizes cs ON ps.clothing_size_id = cs.clothing_size_id
-    WHERE ps.product_id = ? AND ps.is_available = 1
-    ORDER BY cs.size_order
+    LEFT JOIN shoe_sizes ss ON ps.shoe_size_id = ss.shoe_size_id
+    WHERE ps.product_id = ? AND ps.is_available = 1 AND ps.stock_quantity > 0
+    GROUP BY COALESCE(cs.size_name, ss.size_eu)
+    ORDER BY sort_order
 ");
 $sizes_stmt->bind_param("i", $product_id);
 $sizes_stmt->execute();
@@ -73,14 +84,27 @@ if (isset($_POST['add_to_cart'])) {
     $size = $_POST['size'] ?? null;
 
     if ($size) {
-        // Fetch stock for this size
-        $size_stmt = $conn->prepare("
-            SELECT ps.stock_quantity, ps.product_size_id 
-            FROM product_sizes ps
-            LEFT JOIN clothing_sizes cs ON ps.clothing_size_id = cs.clothing_size_id
-            WHERE ps.product_id = ? AND cs.size_name = ?
-        ");
-        $size_stmt->bind_param("is", $product_id, $size);
+        // Check if it's a shoe size (EU number) or clothing size
+        if (is_numeric($size)) {
+            // It's a shoe size (EU)
+            $size_stmt = $conn->prepare("
+                SELECT ps.stock_quantity, ps.product_size_id 
+                FROM product_sizes ps
+                LEFT JOIN shoe_sizes ss ON ps.shoe_size_id = ss.shoe_size_id
+                WHERE ps.product_id = ? AND ss.size_eu = ?
+            ");
+            $size_stmt->bind_param("ii", $product_id, $size);
+        } else {
+            // It's a clothing size
+            $size_stmt = $conn->prepare("
+                SELECT ps.stock_quantity, ps.product_size_id 
+                FROM product_sizes ps
+                LEFT JOIN clothing_sizes cs ON ps.clothing_size_id = cs.clothing_size_id
+                WHERE ps.product_id = ? AND cs.size_name = ?
+            ");
+            $size_stmt->bind_param("is", $product_id, $size);
+        }
+        
         $size_stmt->execute();
         $size_result = $size_stmt->get_result();
         $size_data = $size_result->fetch_assoc();
@@ -88,7 +112,7 @@ if (isset($_POST['add_to_cart'])) {
         $size_stmt->close();
 
         if ($stock > 0) {
-            $cart_key = $product_id . '_' . $size; // Unique key per size
+            $cart_key = $product_id . '_' . $size;
             if (isset($_SESSION['cart'][$cart_key])) {
                 $_SESSION['cart'][$cart_key]['quantity'] += $quantity;
             } else {
@@ -117,16 +141,8 @@ if (isset($_POST['add_to_cart'])) {
     }
 }
 
-// Determine if any stock available (for initial add button state)
-$has_stock = false;
-$sizes_result->data_seek(0); // Reset result pointer
-while ($size = $sizes_result->fetch_assoc()) {
-    if ($size['stock_quantity'] > 0) {
-        $has_stock = true;
-        break;
-    }
-}
-$sizes_result->data_seek(0); // Reset again for later use
+// Determine if any stock available
+$has_stock = ($sizes_result->num_rows > 0);
 ?>
 
 <!DOCTYPE html>
@@ -139,7 +155,6 @@ $sizes_result->data_seek(0); // Reset again for later use
     <link rel="stylesheet" href="css/Header.css">
     <link rel="stylesheet" href="css/product_details.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-
 </head>
 
 <body>
@@ -161,7 +176,7 @@ $sizes_result->data_seek(0); // Reset again for later use
 
         <div class="product-container">
             <div class="product-detail">
-                <!-- Image Gallery (unchanged) -->
+                <!-- Image Gallery -->
                 <div class="product-gallery">
                     <div class="main-image" id="mainImage">
                         <img src="<?php echo htmlspecialchars($product['image_url']); ?>"
@@ -175,7 +190,6 @@ $sizes_result->data_seek(0); // Reset again for later use
                             onclick="changeImage('<?php echo htmlspecialchars($product['image_url']); ?>', this)">
                             <img src="<?php echo htmlspecialchars($product['image_url']); ?>" alt="View 1">
                         </div>
-                        <!-- Additional images can be added here -->
                         <div class="thumbnail"
                             onclick="changeImage('<?php echo htmlspecialchars($product['image_url']); ?>', this)">
                             <img src="<?php echo htmlspecialchars($product['image_url']); ?>" alt="View 2">
@@ -228,23 +242,44 @@ $sizes_result->data_seek(0); // Reset again for later use
                         <!-- Size Selection -->
                         <div class="size-selector">
                             <label class="size-label">Select Size:</label>
-                            <div class="size-options">
+                            <div class="size-options <?php 
+                                // Check if first size is a shoe to add shoe class
+                                $sizes_result->data_seek(0);
+                                $first_size = $sizes_result->fetch_assoc();
+                                echo ($first_size && $first_size['size_type'] == 'shoe') ? 'shoe-sizes' : '';
+                                $sizes_result->data_seek(0);
+                            ?>">
                                 <?php
                                 $default_set = false;
                                 while ($size = $sizes_result->fetch_assoc()):
-                                    $disabled = ($size['stock_quantity'] <= 0) ? 'disabled' : '';
                                     $checked = '';
-                                    if (!$default_set && empty($disabled)) {
+                                    if (!$default_set) {
                                         $checked = 'checked';
                                         $default_set = true;
                                     }
-                                    ?>
+                                    
+                                    // Determine size display value - ONLY EU for shoes
+                                    if ($size['size_type'] == 'shoe') {
+                                        $size_value = $size['size_eu'];
+                                        $size_id = 'size-eu-' . $size['size_eu'];
+                                        $size_label = $size['size_eu'];
+                                    } else {
+                                        $size_value = $size['clothing_size'];
+                                        $size_id = 'size-' . strtolower($size['clothing_size']);
+                                        $size_label = $size['clothing_size'];
+                                    }
+                                ?>
+                                
+                                
                                     <div class="size-option">
                                         <input type="radio" name="size"
-                                            id="size-<?php echo strtolower($size['size_name']); ?>"
-                                            value="<?php echo $size['size_name']; ?>" <?php echo $checked; ?>     <?php echo $disabled; ?>>
-                                        <label
-                                            for="size-<?php echo strtolower($size['size_name']); ?>"><?php echo $size['size_name']; ?></label>
+                                            id="<?php echo $size_id; ?>"
+                                            value="<?php echo htmlspecialchars($size_value); ?>" 
+                                            data-stock="<?php echo $size['stock_quantity']; ?>"
+                                            <?php echo $checked; ?>>
+                                        <label for="<?php echo $size_id; ?>">
+                                            <?php echo htmlspecialchars($size_label); ?>
+                                        </label>
                                     </div>
                                 <?php endwhile; ?>
                             </div>
@@ -284,7 +319,7 @@ $sizes_result->data_seek(0); // Reset again for later use
                 </div>
             </div>
 
-            <!-- Related Products (unchanged) -->
+            <!-- Related Products -->
             <?php if ($related_result->num_rows > 0): ?>
                 <div class="related-products">
                     <h2 class="section-title">You May Also Like</h2>
@@ -306,7 +341,7 @@ $sizes_result->data_seek(0); // Reset again for later use
         </div>
     </div>
 
-    <!-- Zoom Overlay (unchanged) -->
+    <!-- Zoom Overlay -->
     <div class="zoom-overlay" id="zoomOverlay" onclick="closeZoom()">
         <img id="zoomedImage" src="" alt="Zoomed product">
     </div>
@@ -317,7 +352,12 @@ $sizes_result->data_seek(0); // Reset again for later use
             <?php
             $sizes_result->data_seek(0);
             while ($size = $sizes_result->fetch_assoc()):
-                echo "'{$size['size_name']}': {$size['stock_quantity']},";
+                if ($size['size_type'] == 'shoe') {
+                    $key = $size['size_eu'];
+                } else {
+                    $key = $size['clothing_size'];
+                }
+                echo "'" . addslashes($key) . "': {$size['stock_quantity']},";
             endwhile;
             ?>
         };
@@ -340,19 +380,18 @@ $sizes_result->data_seek(0); // Reset again for later use
             }
         }
 
-        // Image gallery (unchanged)
+        // Image gallery
         function changeImage(src, element) {
             const mainImg = document.querySelector('#mainImage img');
             mainImg.src = src;
 
-            // Update active thumbnail
             document.querySelectorAll('.thumbnail').forEach(thumb => {
                 thumb.classList.remove('active');
             });
             element.classList.add('active');
         }
 
-        // Zoom functionality (unchanged)
+        // Zoom functionality
         function zoomImage(src) {
             const overlay = document.getElementById('zoomOverlay');
             const zoomedImg = document.getElementById('zoomedImage');
@@ -364,7 +403,7 @@ $sizes_result->data_seek(0); // Reset again for later use
             document.getElementById('zoomOverlay').classList.remove('active');
         }
 
-        // Update cart badge (unchanged)
+        // Update cart badge
         function updateCartBadge() {
             const cartBadge = document.getElementById('cart-count');
             if (cartBadge) {
@@ -374,7 +413,7 @@ $sizes_result->data_seek(0); // Reset again for later use
             }
         }
 
-        // Hide success message after 5 seconds (unchanged)
+        // Hide success message after 5 seconds
         <?php if ($message): ?>
             setTimeout(() => {
                 const msg = document.getElementById('successMessage');
@@ -396,7 +435,7 @@ $sizes_result->data_seek(0); // Reset again for later use
                 let stockStatus = '';
                 let stockClass = '';
                 if (stock > 10) {
-                    stockStatus = `In-stock ${stock}`;
+                    stockStatus = `In stock: ${stock}`;
                     stockClass = 'in-stock';
                 } else if (stock > 0) {
                     stockStatus = 'Only ' + stock + ' left';
@@ -416,6 +455,8 @@ $sizes_result->data_seek(0); // Reset again for later use
 
                 // Update quantity max and add button
                 qtyInput.max = stock;
+                qtyInput.value = 1;
+                
                 if (stock <= 0) {
                     addButton.disabled = true;
                     addButton.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg> Out of Stock';
