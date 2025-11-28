@@ -98,14 +98,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
                 
                 // Find or create inventory record
                 // First, try to find matching product_size_id based on product_id and size
+                // Check BOTH clothing sizes AND shoe sizes
                 $size_stmt = $conn->prepare("
                     SELECT ps.product_size_id, ps.stock_quantity 
                     FROM product_sizes ps
                     LEFT JOIN clothing_sizes cs ON ps.clothing_size_id = cs.clothing_size_id
-                    WHERE ps.product_id = ? AND cs.size_name = ?
+                    LEFT JOIN shoe_sizes ss ON ps.shoe_size_id = ss.shoe_size_id
+                    WHERE ps.product_id = ? 
+                    AND (cs.size_name = ? OR ss.size_us = ? OR ss.size_eu = ?)
                     LIMIT 1
                 ");
-                $size_stmt->bind_param("is", $item['product_id'], $item['size']);
+                $size_value = $item['size'];
+                $size_stmt->bind_param("isss", $item['product_id'], $size_value, $size_value, $size_value);
                 $size_stmt->execute();
                 $size_result = $size_stmt->get_result();
                 
