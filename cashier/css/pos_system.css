@@ -121,6 +121,17 @@ body {
     box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.1);
 }
 
+.search-item {
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: rgba(25, 118, 210, 0.1);
+}
+
+.search-item:active {
+    transform: scale(0.98);
+    background: #f0f7ff !important;
+}
+
 /* Product Preview */
 .product-preview {
     background: white;
@@ -258,12 +269,6 @@ body {
 
 .btn-scan:active {
     transform: translateY(0);
-}
-
-.scanner-buttons {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
 }
 
 .btn-camera {
