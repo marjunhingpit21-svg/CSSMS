@@ -10,6 +10,14 @@ if (!isset($_SESSION['cart'])) {
 // Get cart count for header
 $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
 
+// Get orders count for header
+$orders_count = 0;
+if (isset($_SESSION['user_id'])) 
+{
+    include 'orders_count.php';
+    $orders_count = getOrdersCount($conn, $_SESSION['user_id']);
+}
+
 // Handle ad banner close
 if (isset($_POST['close_ad'])) {
     $_SESSION['ad_closed'] = true;
