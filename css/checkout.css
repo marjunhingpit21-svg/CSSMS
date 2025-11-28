@@ -153,6 +153,10 @@
     border-color: #e91e63;
 }
 
+.form-group input:invalid {
+    border-color: #ff0000;
+}
+
 /* Payment Methods */
 .payment-methods {
     display: grid;
@@ -301,6 +305,53 @@
 .summary-total span:last-child {
     color: #e91e63;
     font-size: 1.5rem;
+}
+
+/* .saved-addresses */
+.saved-addresses { 
+    margin-bottom: 20px; 
+    transition: opacity 0.3s ease;
+}
+
+.address-option { 
+    display: block; 
+    margin-bottom: 12px; 
+    cursor: pointer; 
+}
+
+.address-option input[type="radio"] { 
+    display: none; 
+}
+
+.address-card {
+    padding: 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    transition: all 0.3s;
+}
+
+.address-option input[type="radio"]:checked + .address-card {
+    border-color: #e91e63;
+    background: #fce4ec;
+}
+
+.address-card.default { 
+    border-color: #e91e63; 
+    background: #fff0f5; 
+}
+
+#address-form-container { 
+    margin-top: 20px; 
+}
+
+#add-new-address {
+    color: #e91e63;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+#add-new-address:hover {
+    text-decoration: underline;
 }
 
 /* Place Order Button */

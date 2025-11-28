@@ -1,7 +1,13 @@
 <?php
 include 'Database/db.php';
 session_start();
-
+// Get orders count for header
+  $orders_count = 0;
+  if (isset($_SESSION['user_id'])) {
+      include 'orders_count.php';
+      $orders_count = getOrdersCount($conn, $_SESSION['user_id']);
+  }
+  
 // Initialize cart if not exists
 if (!isset($_SESSION['cart'])) {
     $_SESSION['cart'] = [];

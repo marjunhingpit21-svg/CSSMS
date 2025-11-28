@@ -1,3 +1,20 @@
+<?php
+// header.php - Add this at the top
+if (!isset($cart_count)) {
+    $cart_count = 0;
+    if (isset($_SESSION['cart'])) {
+        $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
+    }
+}
+
+if (!isset($orders_count)) {
+    $orders_count = 0;
+    if (isset($_SESSION['user_id'])) {
+        // If we don't have database connection, we'll set a default
+        // You might want to include your database connection here if needed
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -20,16 +37,24 @@
             </div>
 
             <nav class="main-nav">
-                <!-- <a href="#">Men</a>
-                <a href="#">Women</a>
-                <a href="#">Kids</a>
-                <a href="#">Accessories</a>
-                <a href="#">Sale</a> -->
+                <!-- Navigation links -->
             </nav>
 
             <div class="header-actions">
                 <?php if (isset($_SESSION['user_id'])): ?>
-                    <!-- Cart Icon (for logged in users) -->
+                    <!-- Orders Icon (for logged in users) -->
+                    <a href="orders.php" class="orders-icon" title="My Orders">
+                        <svg width="26" height="26" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <span id="orders-count" class="orders-badge" 
+                              style="display: <?php echo $orders_count > 0 ? 'flex' : 'flex'; ?>;">
+                            <?php echo $orders_count; ?>
+                        </span>
+                    </a>
+                    
+                    <!-- Rest of your header code remains the same -->
                     <a href="cart.php" class="cart-icon">
                         <svg width="26" height="26" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -51,7 +76,7 @@
                     <?php endif; ?>
                     <a href="logout.php" class="btn-logout">Logout</a>
                 <?php else: ?>
-                    <!-- Cart Icon with Badge -->
+                    <!-- For non-logged in users -->
                     <a href="cart.php" class="cart-icon">
                         <svg width="26" height="26" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
