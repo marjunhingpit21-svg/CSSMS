@@ -35,10 +35,7 @@ body.sidebar-collapsed main {
     margin-bottom: 30px;
     padding-bottom: 20px;
     border-bottom: 2px solid #e91e63;
-    position: sticky;
-    top: 80px;
     background: #f8f9fa;
-    z-index: 40;
     padding-top: 20px;
 }
 
@@ -120,7 +117,7 @@ body.sidebar-collapsed main {
 /* Filters Container - Sticky wrapper */
 .filters-container {
     position: sticky;
-    top: 210px;
+    top: 80px;
     z-index: 35;
     margin-bottom: 30px;
 }
@@ -461,12 +458,12 @@ input[type="checkbox"]:focus {
     }
 
     .header-section {
-        top: 60px;
         padding-top: 10px;
     }
 
     .filters-container {
-        top: 140px;
+        position: static;
+        top: auto;
     }
 
     .stats-grid,
