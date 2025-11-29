@@ -707,3 +707,28 @@ td input[type="number"]:focus {
         grid-column: span 1;
     }
 }
+
+/* Category indicator styling */
+.category-indicator {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.clothing-category {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.shoe-category {
+    background-color: #10b981;
+    color: white;
+}
+
+.size-select {
+    min-width: 120px;
+}

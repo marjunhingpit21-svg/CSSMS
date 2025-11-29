@@ -42,10 +42,6 @@
                     ?>
                 </p>
             </div>
-            <div class="stat-card red-rose">
-                <p class="stat-label">Pending Reviews</p>
-                <p class="stat-value red">0</p>
-            </div>
         </div>
 
         <!-- Filters -->
@@ -55,19 +51,6 @@
                     <span class="material-icons search-icon">search</span>
                     <input type="text" placeholder="Search suppliers..." class="search-input" id="searchInput">
                 </div>
-                <select class="filter-select" id="categoryFilter">
-                    <option value="">All Categories</option>
-                    <option value="Fabric">Fabric</option>
-                    <option value="Accessories">Accessories</option>
-                    <option value="Printing">Printing</option>
-                    <option value="Packaging">Packaging</option>
-                </select>
-                <select class="filter-select" id="performanceFilter">
-                    <option value="">All Performance</option>
-                    <option value="excellent">Excellent (95%+)</option>
-                    <option value="good">Good (90–94%)</option>
-                    <option value="needs_review">Needs Review (<90%)</option>
-                </select>
                 <select class="filter-select" id="sortFilter">
                     <option value="name_asc">Sort by: Name A-Z</option>
                     <option value="name_desc">Name Z-A</option>
@@ -111,17 +94,6 @@
                 <!-- Header: Name + Rating -->
                 <div class="card-header">
                     <h3 class="supplier-name"><?= htmlspecialchars($s['supplier_name']) ?></h3>
-                    <div class="rating">
-                        <span class="star">★</span>
-                        <span class="rating-value"><?= number_format($rating, 1) ?></span>
-                    </div>
-                </div>
-
-                <!-- Contact Info -->
-                <div class="card-contact">
-                    <p class="contact-person"><?= htmlspecialchars($s['contact_person']) ?></p>
-                    <p class="contact-email"><?= htmlspecialchars($s['email']) ?></p>
-                    <p class="contact-phone"><?= htmlspecialchars($s['phone']) ?></p>
                 </div>
 
                 <!-- Stats -->
@@ -130,22 +102,10 @@
                         <span class="stat-label-text">Products Supplied</span>
                         <span class="stat-value-text"><?= $s['product_count'] ?></span>
                     </div>
-                    <div class="stat-row">
-                        <span class="stat-label-text">Avg Lead Time</span>
-                        <span class="stat-value-text"><?= $lead_time ?> days</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label-text">On-Time Rate</span>
-                        <span class="stat-value-text on-time"><?= $on_time_rate ?>%</span>
-                    </div>
                 </div>
 
                 <!-- Footer: Status Badge + Button -->
-                <div class="card-footer">
-                    <span class="status-badge <?= $stock_status ?>">
-                        <?= $stock_status === 'in-stock' ? 'Active' : 'Needs Review' ?>
-                    </span>
-                    
+                <div class="card-footer">   
                     <a href="supplier_details.php?id=<?= $s['supplier_id'] ?>">
                         <button class="view-details-btn">View Details</button>
                     </a>
