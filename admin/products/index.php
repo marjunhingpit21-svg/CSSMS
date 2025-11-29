@@ -72,6 +72,7 @@ $products = $conn->query("
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="products.css">
+    <link rel="stylesheet" href="index.css">
 </head>
 <body>
     <?php include '../sidebar.php'; ?>
@@ -99,9 +100,16 @@ $products = $conn->query("
         <?php endif; ?>
 
         <div class="header-section">
-            <h1 class="page-title">Products & Stock</h1>
-            <a href="add_product.php" class="add-btn">+ Add New Product</a>
+            <div>
+                <h1 class="page-title">Products & Stock</h1>
+                <p class="header-subtitle">Manage your product inventory and stock levels</p>
+            </div>
+            <a href="add_product.php" class="add-btn">
+                <span class="material-icons">add</span>
+                Add New Product
+            </a>
         </div>
+
         <div class="stats-grid">
             <div class="stat-card violet-pink">
                 <p class="stat-label">Total Products</p>
@@ -109,69 +117,69 @@ $products = $conn->query("
             </div>
             <div class="stat-card emerald-teal">
                 <p class="stat-label">In Stock</p>
-                <p class="stat-value green"><?= $inStockQ ?></p>
+                <p class="stat-value"><?= $inStockQ ?></p>
             </div>
             <div class="stat-card amber-orange">
                 <p class="stat-label">Low Stock</p>
-                <p class="stat-value orange"><?= $lowStockQ ?></p>
+                <p class="stat-value"><?= $lowStockQ ?></p>
             </div>
             <div class="stat-card red-rose">
                 <p class="stat-label">Out of Stock</p>
-                <p class="stat-value red"><?= $outStockQ ?></p>
+                <p class="stat-value"><?= $outStockQ ?></p>
             </div>
         </div>
 
-        <div class="filters-section">
-            <div class="filters-grid">
-                <div class="search-wrapper">
-                    <span class="material-icons search-icon">search</span>
-                    <input type="text" placeholder="Search products..." class="search-input">
+        <div class="filters-container">
+            <div class="filters-section">
+                <div class="filters-grid">
+                    <div class="search-wrapper">
+                        <span class="material-icons search-icon">search</span>
+                        <input type="text" placeholder="Search products..." class="search-input">
+                    </div>
+                    <select class="filter-select" id="category-filter">
+                        <option value="All Categories">All Categories</option>
+                        <?php
+                            $categories = $conn->query("SELECT category_name FROM categories ORDER BY category_name");
+                            while ($cat = $categories->fetch_assoc()): 
+                        ?>
+                        <option value="<?= htmlspecialchars($cat['category_name']) ?>">
+                            <?= htmlspecialchars($cat['category_name']) ?>
+                        </option>
+                        <?php endwhile; ?>
+                    </select>
+                    <select class="filter-select" id="stock-filter">
+                        <option value="All Stock Status">All Stock Status</option>
+                        <option value="In Stock">In Stock</option>
+                        <option value="Low Stock">Low Stock</option>
+                        <option value="Out of Stock">Out of Stock</option>
+                    </select>
+                    <select class="filter-select" id="sort-filter">
+                        <option value="Sort by: Name A-Z">Sort by: Name A-Z</option>
+                        <option value="Sort by: Newest">Sort by: Date Added</option>
+                        <option value="Sort by: Price Low-High">Sort by: Price Low-High</option>
+                        <option value="Sort by: Stock Level">Sort by: Stock Level</option>
+                    </select>
                 </div>
-                <select class="filter-select" id="category-filter">
-                    <option value="All Categories">All Categories</option>
-                    <?php
-                        $categories = $conn->query("SELECT category_name FROM categories ORDER BY category_name");
-                        while ($cat = $categories->fetch_assoc()): 
-                    ?>
-                    <option value="<?= htmlspecialchars($cat['category_name']) ?>">
-                        <?= htmlspecialchars($cat['category_name']) ?>
-                    </option>
-                     <?php endwhile; ?>
-                </select>
-                <select class="filter-select" id="stock-filter">
-                    <option value="All Stock Status">All Stock Status</option>
-                    <option value="In Stock">In Stock</option>
-                    <option value="Low Stock">Low Stock</option>
-                    <option value="Out of Stock">Out of Stock</option>
-                </select>
-                <select class="filter-select" id="sort-filter">
-                    <option value="Sort by: Name A-Z">Sort by: Name A-Z</option>
-                    <option value="Sort by: Newest">Sort by: Date Added</option>
-                    <option value="Sort by: Price Low-High">Sort by: Price Low-High</option>
-                    <option value="Sort by: Stock Level">Sort by: Stock Level</option>
-                </select>
             </div>
         </div>
-
 
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
-                        <th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Status</th>
                         <th> 
                             <div class="actions-cell" id="header-actions">
-                                <!-- View -->
                                 <button class="action-btn view disabled" title="View" id="btn-view">
                                     <span class="material-icons">visibility</span>
                                 </button>
-
-                                <!-- Edit -->
                                 <button class="action-btn edit disabled" title="Edit" id="btn-edit">
                                     <span class="material-icons">edit</span>
                                 </button>
-
-                                <!-- Delete -->
                                 <button class="action-btn delete disabled" title="Delete" id="btn-delete">
                                     <span class="material-icons">delete</span>
                                 </button>
@@ -192,14 +200,24 @@ $products = $conn->query("
                                     class="product-icon" 
                                     style="background-image: url('<?= htmlspecialchars($img) ?>');">
                                 </div>
-                                <div><p class="product-name"><?= htmlspecialchars($p['product_name']) ?></p></div>
+                                <div>
+                                    <p class="product-name"><?= htmlspecialchars($p['product_name']) ?></p>
+                                </div>
                             </div>
                         </td>
                         <td class="category-text"><?= htmlspecialchars($p['category_name']) ?></td>
                         <td class="price-text">₱<?= number_format($p['price'], 2) ?></td>
-                        <td><span class="stock-text <?= $p['total_stock'] > 20 ? 'green' : 'orange' ?>"><?= $p['total_stock'] ?> units</span></td>
-                        <td><span class="status-badge <?= $status ?>"><?= $statusText ?></span></td>
-                        <td><input type="checkbox" class="select-product"></td>
+                        <td>
+                            <span class="stock-text <?= $p['total_stock'] > 20 ? 'green' : ($p['total_stock'] > 0 ? 'orange' : 'red') ?>">
+                                <?= $p['total_stock'] ?> units
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge <?= $status ?>"><?= $statusText ?></span>
+                        </td>
+                        <td>
+                            <input type="checkbox" class="select-product">
+                        </td>
                     </tr>
                     <?php endwhile; ?>
                 </tbody>
@@ -207,12 +225,10 @@ $products = $conn->query("
 
             <div class="pagination-section">
                 <?php
-                // Pagination variables
                 $current_page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
                 $products_per_page = 10;
                 $total_pages = ceil($totalQ / $products_per_page);
                 
-                // Calculate showing range
                 $start_item = (($current_page - 1) * $products_per_page) + 1;
                 $end_item = min($current_page * $products_per_page, $totalQ);
                 ?>
@@ -223,14 +239,12 @@ $products = $conn->query("
                 
                 <?php if ($total_pages > 1): ?>
                 <div>
-                    <!-- Previous Button -->
                     <button class="pagination-btn <?= $current_page == 1 ? 'disabled' : '' ?>" 
                             <?= $current_page == 1 ? 'disabled' : '' ?>
                             onclick="changePage(<?= $current_page - 1 ?>)">
                         Previous
                     </button>
                     
-                    <!-- Page Numbers -->
                     <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                         <?php if ($i == $current_page): ?>
                             <button class="pagination-btn active"><?= $i ?></button>
@@ -239,7 +253,6 @@ $products = $conn->query("
                         <?php endif; ?>
                     <?php endfor; ?>
                     
-                    <!-- Next Button -->
                     <button class="pagination-btn <?= $current_page == $total_pages ? 'disabled' : '' ?>" 
                             <?= $current_page == $total_pages ? 'disabled' : '' ?>
                             onclick="changePage(<?= $current_page + 1 ?>)">
@@ -251,28 +264,28 @@ $products = $conn->query("
         </div>
     </main>
     
-    <!-- ====================== DELETE CONFIRMATION MODAL ====================== -->
+    <!-- Delete Confirmation Modal -->
     <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-8 max-w-md w-full mx-4 backdrop-blur-xl">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-white">Confirm Delete</h2>
-                <button onclick="closeModal('deleteModal')" class="text-gray-400 hover:text-white">
+                <h2 class="text-2xl font-bold text-gray-900">Confirm Delete</h2>
+                <button onclick="closeModal('deleteModal')" class="text-gray-400 hover:text-gray-600">
                     <span class="material-icons">close</span>
                 </button>
             </div>
 
             <div class="mb-8">
-                <div class="flex items-center justify-center w-16 h-16 bg-red-900 bg-opacity-20 rounded-full mx-auto mb-4">
+                <div class="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mx-auto mb-4">
                     <span class="material-icons text-red-500 text-3xl">delete_forever</span>
                 </div>
-                <p id="deleteMessage" class="text-gray-300 text-center text-lg"></p>
+                <p id="deleteMessage" class="text-gray-600 text-center text-lg"></p>
             </div>
 
             <div class="flex justify-end gap-4">
-                <button onclick="closeModal('deleteModal')" class="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-medium">
+                <button onclick="closeModal('deleteModal')" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium">
                     Cancel
                 </button>
-                <button id="confirmDelete" class="px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-lg font-semibold hover:opacity-90 transition">
+                <button id="confirmDelete" class="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">
                     Delete
                 </button>
             </div>
@@ -283,10 +296,8 @@ $products = $conn->query("
     <script>
         // Auto-hide flash messages after 3 seconds with fade-out
         document.querySelectorAll('.flash-message.show').forEach(msg => {
-            // Remove "show" class after 3 seconds → triggers fade-out
             setTimeout(() => {
                 msg.classList.remove('show');
-                // Remove from DOM after transition ends
                 msg.addEventListener('transitionend', () => msg.remove());
             }, 3000);
         });
@@ -297,12 +308,37 @@ $products = $conn->query("
             window.location.href = '?' + urlParams.toString();
         }
 
-        // Auto-hide flash messages after 3 seconds with fade-out
-        document.querySelectorAll('.flash-message.show').forEach(msg => {
-            setTimeout(() => {
-                msg.classList.remove('show');
-                msg.addEventListener('transitionend', () => msg.remove());
-            }, 3000);
+        // Close modal function
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        // Sidebar collapse handling
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('adminSidebar');
+            const body = document.body;
+
+            // Check initial sidebar state
+            if (sidebar && sidebar.classList.contains('collapsed')) {
+                body.classList.add('sidebar-collapsed');
+            }
+
+            // Observe sidebar for changes
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.attributeName === 'class') {
+                        if (sidebar.classList.contains('collapsed')) {
+                            body.classList.add('sidebar-collapsed');
+                        } else {
+                            body.classList.remove('sidebar-collapsed');
+                        }
+                    }
+                });
+            });
+
+            if (sidebar) {
+                observer.observe(sidebar, { attributes: true });
+            }
         });
     </script>
 </body>
