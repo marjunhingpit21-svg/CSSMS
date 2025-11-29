@@ -1,8 +1,14 @@
 <!-- sidebar.php -->
 <link rel="stylesheet" href="../css/sidebar.css">
 
-<aside class="admin-sidebar">
+<aside class="admin-sidebar" id="adminSidebar">
 
+    <!-- Sidebar Header -->
+    <div class="sidebar-header">
+        <button class="sidebar-toggle" id="sidebarToggle">
+            ←
+        </button>
+    </div>
 
     <!-- Navigation -->
     <nav class="sidebar-nav">
@@ -61,6 +67,49 @@
     </div>
 </aside>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('adminSidebar');
+    const toggleBtn = document.getElementById('sidebarToggle');
+    
+    // Check if sidebar state is saved in localStorage
+    const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    
+    if (isCollapsed) {
+        sidebar.classList.add('collapsed');
+        toggleBtn.innerHTML = '→';
+    }
+    
+    toggleBtn.addEventListener('click', function() {
+        sidebar.classList.toggle('collapsed');
+        
+        if (sidebar.classList.contains('collapsed')) {
+            toggleBtn.innerHTML = '→';
+            localStorage.setItem('sidebarCollapsed', 'true');
+        } else {
+            toggleBtn.innerHTML = '←';
+            localStorage.setItem('sidebarCollapsed', 'false');
+        }
+    });
+    
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(event) {
+        if (window.innerWidth <= 768 && 
+            !sidebar.contains(event.target) && 
+            !event.target.classList.contains('mobile-menu-toggle') &&
+            sidebar.classList.contains('mobile-open')) {
+            sidebar.classList.remove('mobile-open');
+        }
+    });
+});
+
+// Function to toggle mobile menu (call this from your header toggle button)
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('adminSidebar');
+    sidebar.classList.toggle('mobile-open');
+}
+</script>
+
 <!-- Mobile menu toggle button (add to your admin header if needed) -->
 <style>
 .mobile-menu-toggle {
@@ -85,6 +134,10 @@
     
     .admin-sidebar.mobile-open + .admin-main-content {
         margin-left: 220px;
+    }
+    
+    .admin-sidebar.mobile-open.collapsed + .admin-main-content {
+        margin-left: 60px;
     }
 }
 </style>
