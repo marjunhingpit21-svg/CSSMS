@@ -1,12 +1,14 @@
-[file name]: login.php
-[file content begin]
 <?php
 include 'Database/db.php';
 session_start();
 
 // Redirect if already logged in
 if (isset($_SESSION['user_id'])) {
-    header('Location: index.php');
+    if ($_SESSION['role'] === 'admin') {
+        header('Location: admin/products/index.php');
+    } else {
+        header('Location: index.php');
+    }
     exit();
 }
 
@@ -51,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     // Redirect based on role
                     if ($user['role'] === 'admin') {
-                        header('Location: admin_dashboard.php');
+                        header('Location: admin/products/index.php');
                     } else {
                         header('Location: index.php');
                     }

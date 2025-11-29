@@ -90,7 +90,7 @@ $sizes_result = $sizes_stmt->get_result();
 </head>
 <body>
     <?php include '../sidebar.php'; ?>
-    <?php include '../header.php'; ?>
+    <?php include '../adminheader.php'; ?>
 
     <main>
         <div class="header-section">

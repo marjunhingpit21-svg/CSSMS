@@ -32,7 +32,7 @@ $products = $conn->query("
 </head>
 <body>
     <?php include '../sidebar.php'; ?>
-    <?php include '../header.php'; ?>
+    <?php include '../adminheader.php'; ?>
 
     <main>
         <div class="header-section">

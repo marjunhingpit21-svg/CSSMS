@@ -72,7 +72,7 @@ if (!isset($orders_count)) {
                         <span class="user-greeting">Hello, <?php echo htmlspecialchars($_SESSION['username']); ?></span>
                     </div>
                     <?php if ($_SESSION['role'] === 'admin'): ?>
-                        <a href="admin_dashboard.php" class="btn-admin">Dashboard</a>
+                        <a href="admin/products/index.php" class="btn-admin">Dashboard</a>
                     <?php endif; ?>
                     <a href="logout.php" class="btn-logout">Logout</a>
                 <?php else: ?>
