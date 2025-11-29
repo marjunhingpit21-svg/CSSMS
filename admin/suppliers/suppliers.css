@@ -406,3 +406,34 @@ main {
         align-items: flex-start;
     }
 }
+
+.status-badge.out-of-stock {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.stat-label-text {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.stat-value-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.stat-value-text.on-time {
+    color: #059669;
+}
+
+.stat-value-text.last-transaction {
+    color: #4b5563;
+}
