@@ -21,7 +21,7 @@ $age_groups = $conn->query("SELECT age_group_id, age_group_name FROM age_groups 
 </head>
 <body>
     <?php include '../sidebar.php'; ?>
-    <?php include '../header.php'; ?>
+    <?php include '../adminheader.php'; ?>
 
     <main>
         <div class="header-section">
