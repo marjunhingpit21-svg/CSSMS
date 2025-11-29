@@ -1,5 +1,5 @@
 <?php include '../includes/auth.php'; ?>
-<?php include '../includes/db.php'; ?>
+<?php include '../db.php'; ?>
 
 <?php
 // Get supplier ID from URL
@@ -59,7 +59,7 @@ try {
 </head>
 <body>
     <?php include '../sidebar.php'; ?>
-    <?php include '../header.php'; ?>
+    <?php include '../adminheader.php'; ?>
 
     <main>
         <!-- Header -->

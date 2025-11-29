@@ -61,44 +61,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $quantities = $_POST['quantities'] ?? [];
             $price_adjustments = $_POST['price_adjustments'] ?? [];
             $is_available = $_POST['is_available'] ?? [];
-
-            // Get clothing size IDs based on size names
-            $size_map = [];
-            $size_stmt = $conn->prepare("SELECT clothing_size_id, size_name FROM clothing_sizes WHERE size_name = ?");
             
-            for ($i = 0; $i < count($sizes); $i++) {
-                $size_name = $sizes[$i];
-                if (empty($size_name)) continue;
+            // Check if this is a shoe product
+            $is_shoe_product = false;
+            $category_stmt = $conn->prepare("SELECT category_name FROM categories WHERE category_id = ?");
+            $category_stmt->bind_param("i", $category_id);
+            $category_stmt->execute();
+            $category_result = $category_stmt->get_result();
+            if ($category_row = $category_result->fetch_assoc()) {
+                $category_name = strtolower($category_row['category_name']);
+                $is_shoe_product = (strpos($category_name, 'shoe') !== false || strpos($category_name, 'footwear') !== false);
+            }
+            $category_stmt->close();
 
-                // Get or create size mapping
-                if (!isset($size_map[$size_name])) {
-                    $size_stmt->bind_param("s", $size_name);
-                    $size_stmt->execute();
-                    $result = $size_stmt->get_result();
-                    if ($row = $result->fetch_assoc()) {
-                        $size_map[$size_name] = $row['clothing_size_id'];
-                    } else {
-                        // If size doesn't exist, skip this variant
-                        continue;
+            // Prepare statements based on product type
+            if ($is_shoe_product) {
+                // Handle shoe sizes
+                $shoe_size_stmt = $conn->prepare("
+                    SELECT shoe_size_id FROM shoe_sizes 
+                    WHERE size_us = ? AND (gender_id = ? OR ? IS NULL) AND (age_group_id = ? OR ? IS NULL)
+                    LIMIT 1
+                ");
+                
+                $size_insert_stmt = $conn->prepare("
+                    INSERT INTO product_sizes (barcode, product_id, shoe_size_id, stock_quantity, price_adjustment, is_available)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ");
+            } else {
+                // Handle clothing sizes
+                $clothing_size_stmt = $conn->prepare("SELECT clothing_size_id FROM clothing_sizes WHERE size_name = ?");
+                $size_insert_stmt = $conn->prepare("
+                    INSERT INTO product_sizes (barcode, product_id, clothing_size_id, stock_quantity, price_adjustment, is_available)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ");
+            }
+
+            for ($i = 0; $i < count($sizes); $i++) {
+                $size_value = $sizes[$i];
+                if (empty($size_value)) continue;
+
+                $barcode = !empty($barcodes[$i]) ? $barcodes[$i] : generateBarcode($product_id, $size_value, $is_shoe_product);
+                $quantity = (int)($quantities[$i] ?? 0);
+                $price_adjustment = (float)($price_adjustments[$i] ?? 0);
+                $available = isset($is_available[$i]) ? 1 : 0;
+
+                if ($is_shoe_product) {
+                    // Handle shoe sizes
+                    $shoe_size_stmt->bind_param("diiii", $size_value, $gender_id, $gender_id, $age_group_id, $age_group_id);
+                    $shoe_size_stmt->execute();
+                    $shoe_result = $shoe_size_stmt->get_result();
+                    
+                    if ($shoe_row = $shoe_result->fetch_assoc()) {
+                        $shoe_size_id = $shoe_row['shoe_size_id'];
+                        
+                        $size_insert_stmt->bind_param("siiidi", $barcode, $product_id, $shoe_size_id, $quantity, $price_adjustment, $available);
+                        $size_insert_stmt->execute();
+                    }
+                } else {
+                    // Handle clothing sizes
+                    $clothing_size_stmt->bind_param("s", $size_value);
+                    $clothing_size_stmt->execute();
+                    $clothing_result = $clothing_size_stmt->get_result();
+                    
+                    if ($clothing_row = $clothing_result->fetch_assoc()) {
+                        $clothing_size_id = $clothing_row['clothing_size_id'];
+                        
+                        $size_insert_stmt->bind_param("siiidi", $barcode, $product_id, $clothing_size_id, $quantity, $price_adjustment, $available);
+                        $size_insert_stmt->execute();
                     }
                 }
-
-                if (isset($size_map[$size_name])) {
-                    $barcode = !empty($barcodes[$i]) ? $barcodes[$i] : generateBarcode($product_id, $size_name);
-                    $quantity = (int)($quantities[$i] ?? 0);
-                    $price_adjustment = (float)($price_adjustments[$i] ?? 0);
-                    $available = isset($is_available[$i]) ? 1 : 0;
-
-                    $size_stmt2 = $conn->prepare("
-                        INSERT INTO product_sizes (barcode, product_id, clothing_size_id, stock_quantity, price_adjustment, is_available)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    ");
-                    $size_stmt2->bind_param("siiidi", $barcode, $product_id, $size_map[$size_name], $quantity, $price_adjustment, $available);
-                    $size_stmt2->execute();
-                    $size_stmt2->close();
-                }
             }
-            $size_stmt->close();
+
+            // Close prepared statements
+            if ($is_shoe_product) {
+                $shoe_size_stmt->close();
+            } else {
+                $clothing_size_stmt->close();
+            }
+            $size_insert_stmt->close();
+
         }
 
         $conn->commit();
@@ -118,12 +159,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-function generateBarcode($product_id, $size_name) {
+function generateBarcode($product_id, $size_value, $is_shoe_product) {
     $prefix = 'ATL';
     $product_code = str_pad($product_id, 4, '0', STR_PAD_LEFT);
-    $size_code = substr(strtoupper($size_name), 0, 2);
+    
+    if ($is_shoe_product) {
+        $size_code = str_replace('.', '', $size_value);
+        $type_code = 'SH';
+    } else {
+        $size_code = substr(strtoupper($size_value), 0, 2);
+        $type_code = 'CL';
+    }
+    
     $random = str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT);
     
-    return $prefix . '-' . $product_code . '-' . $size_code . '-' . $random;
+    return $prefix . '-' . $type_code . $product_code . '-' . $size_code . '-' . $random;
 }
 ?>

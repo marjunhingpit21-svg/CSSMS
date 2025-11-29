@@ -56,6 +56,89 @@ function handleImage(file) {
     reader.readAsDataURL(file);
 }
 
+// Add this function to detect shoe category
+function isShoeCategory() {
+    const categorySelect = document.querySelector('[name="category_id"]');
+    const selectedCategory = categorySelect.options[categorySelect.selectedIndex].text.toLowerCase();
+    return selectedCategory.includes('shoe') || selectedCategory.includes('footwear');
+}
+
+// Update the getSizeOptions function
+function getSizeOptions() {
+    if (isShoeCategory()) {
+        return `
+            <option value="">Select shoe size...</option>
+            <option value="6.0">6.0 US</option>
+            <option value="6.5">6.5 US</option>
+            <option value="7.0">7.0 US</option>
+            <option value="7.5">7.5 US</option>
+            <option value="8.0">8.0 US</option>
+            <option value="8.5">8.5 US</option>
+            <option value="9.0">9.0 US</option>
+            <option value="9.5">9.5 US</option>
+            <option value="10.0">10.0 US</option>
+            <option value="10.5">10.5 US</option>
+            <option value="11.0">11.0 US</option>
+            <option value="11.5">11.5 US</option>
+            <option value="12.0">12.0 US</option>
+            <option value="13.0">13.0 US</option>
+        `;
+    } else {
+        return `
+            <option value="">Select size...</option>
+            <option value="XS">XS</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="XL">XL</option>
+            <option value="XXL">XXL</option>
+            <option value="XXXL">XXXL</option>
+        `;
+    }
+}
+
+// Add this function to detect shoe category
+function isShoeCategory() {
+    const categorySelect = document.querySelector('[name="category_id"]');
+    const selectedCategory = categorySelect.options[categorySelect.selectedIndex].text.toLowerCase();
+    return selectedCategory.includes('shoe') || selectedCategory.includes('footwear');
+}
+
+// Update the getSizeOptions function
+function getSizeOptions() {
+    if (isShoeCategory()) {
+        return `
+            <option value="">Select shoe size...</option>
+            <option value="6.0">6.0 US</option>
+            <option value="6.5">6.5 US</option>
+            <option value="7.0">7.0 US</option>
+            <option value="7.5">7.5 US</option>
+            <option value="8.0">8.0 US</option>
+            <option value="8.5">8.5 US</option>
+            <option value="9.0">9.0 US</option>
+            <option value="9.5">9.5 US</option>
+            <option value="10.0">10.0 US</option>
+            <option value="10.5">10.5 US</option>
+            <option value="11.0">11.0 US</option>
+            <option value="11.5">11.5 US</option>
+            <option value="12.0">12.0 US</option>
+            <option value="13.0">13.0 US</option>
+        `;
+    } else {
+        return `
+            <option value="">Select size...</option>
+            <option value="XS">XS</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="XL">XL</option>
+            <option value="XXL">XXL</option>
+            <option value="XXXL">XXXL</option>
+        `;
+    }
+}
+
+// Update addSizeRow function to use the new detection
 function addSizeRow() {
     const tbody = document.getElementById('sizesTableBody');
     const table = tbody.closest('table');
@@ -71,15 +154,8 @@ function addSizeRow() {
     row.className = 'border-b border-gray-800 hover:bg-gray-800/50 transition new-size-row';
     row.innerHTML = `
         <td class="px-8 py-4">
-            <select name="sizes[]" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white w-full" required>
-                <option value="">Select size...</option>
-                <option value="XS">XS</option>
-                <option value="S">S</option>
-                <option value="M">M</option>
-                <option value="L">L</option>
-                <option value="XL">XL</option>
-                <option value="XXL">XXL</option>
-                <option value="XXXL">XXXL</option>
+            <select name="sizes[]" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white w-full size-select" required>
+                ${getSizeOptions()}
             </select>
         </td>
         <td class="px-8 py-4">
@@ -109,6 +185,56 @@ function addSizeRow() {
     
     tbody.appendChild(row);
 }
+
+// Add category change listener to update size options
+document.querySelector('[name="category_id"]').addEventListener('change', function() {
+    // Update existing size rows when category changes
+    const sizeSelects = document.querySelectorAll('.size-select');
+    sizeSelects.forEach(select => {
+        const currentValue = select.value;
+        select.innerHTML = getSizeOptions();
+        select.value = currentValue; // Try to maintain current selection
+    });
+    
+    // Update the table header for size type
+    const sizeHeader = document.querySelector('table thead th:first-child');
+    if (sizeHeader) {
+        sizeHeader.textContent = isShoeCategory() ? 'Shoe Size (US)' : 'Size';
+    }
+});
+
+// Add visual indicator for shoe products
+function updateCategoryIndicator() {
+    const categorySelect = document.querySelector('[name="category_id"]');
+    const indicator = document.getElementById('categoryIndicator') || createCategoryIndicator();
+    
+    if (isShoeCategory()) {
+        indicator.textContent = 'Shoe Sizes';
+        indicator.className = 'category-indicator shoe-category';
+    } else {
+        indicator.textContent = 'Clothing Sizes';
+        indicator.className = 'category-indicator clothing-category';
+    }
+}
+
+function createCategoryIndicator() {
+    const indicator = document.createElement('span');
+    indicator.id = 'categoryIndicator';
+    indicator.className = 'category-indicator';
+    
+    const sizesHeader = document.querySelector('.sizes-header h2');
+    if (sizesHeader) {
+        sizesHeader.appendChild(indicator);
+    }
+    
+    return indicator;
+}
+
+// Initialize category indicator
+document.addEventListener('DOMContentLoaded', function() {
+    updateCategoryIndicator();
+    document.querySelector('[name="category_id"]').addEventListener('change', updateCategoryIndicator);
+});
 
 function deleteSizeRow(btn) {
     const row = btn.closest('tr');

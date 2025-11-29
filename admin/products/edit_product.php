@@ -48,6 +48,8 @@ if (!$product) {
 
 // Fetch categories
 $categories = $conn->query("SELECT category_id, category_name FROM categories ORDER BY category_name");
+$current_category = $conn->query("SELECT category_name FROM categories WHERE category_id = " . $product['category_id'])->fetch_assoc();
+$is_shoe_product = stripos($current_category['category_name'], 'shoe') !== false || stripos($current_category['category_name'], 'footwear') !== false;
 
 // Fetch genders
 $genders = $conn->query("SELECT gender_id, gender_name FROM gender_sections ORDER BY gender_name");
@@ -104,6 +106,7 @@ $sizes_result = $sizes_stmt->get_result();
 
         <form id="editForm" method="POST" action="update_product.php" enctype="multipart/form-data">
             <input type="hidden" name="product_id" value="<?= $product_id ?>">
+            <input type="hidden" id="isShoeProduct" value="<?= $is_shoe_product ? 'true' : 'false' ?>">
 
             <div class="form-grid">
                 <div>
@@ -204,7 +207,9 @@ $sizes_result = $sizes_stmt->get_result();
                     <!-- Size Variants & Stock -->
                     <div class="card sizes-card">
                         <div class="sizes-header">
-                            <h2>Size Variants & Stock</h2>
+                            <h2>Size Variants & Stock <span id="categoryIndicator" class="category-indicator <?= $is_shoe_product ? 'shoe-category' : 'clothing-category' ?>">
+                                <?= $is_shoe_product ? 'Shoe Sizes' : 'Clothing Sizes' ?>
+                            </span></h2>
                             <button type="button" onclick="addSizeRow()" class="btn-add">
                                 <span class="material-icons" style="font-size:1rem;">add</span> Add Size
                             </button>
@@ -214,7 +219,7 @@ $sizes_result = $sizes_stmt->get_result();
                         <table id="sizesTable" style="<?= $sizes_result->num_rows == 0 ? 'display:none;' : '' ?>">
                             <thead>
                                 <tr>
-                                    <th>Size</th>
+                                    <th id="sizeHeader"><?= $is_shoe_product ? 'Shoe Size (US)' : 'Size' ?></th>
                                     <th>Barcode</th>
                                     <th>Stock Quantity</th>
                                     <th>Price Adjustment</th>
