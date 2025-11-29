@@ -47,7 +47,7 @@ $noSizeQ = $conn->query("
 $outStockQ += $noSizeQ;
 
 $current_page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
-$products_per_page = 6; // Changed from 8 to 6
+$products_per_page = 5; // Changed from 8 to 6
 $offset = ($current_page - 1) * $products_per_page;
 
 $products = $conn->query("

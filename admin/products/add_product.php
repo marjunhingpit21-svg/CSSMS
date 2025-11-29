@@ -25,11 +25,13 @@ $age_groups = $conn->query("SELECT age_group_id, age_group_name FROM age_groups 
 
     <main>
         <div class="header-section">
-            <div>
-                <a href="index.php" class="back-button">
-                    <span class="material-icons text-lg" style="font-size:1.25rem;">arrow_back</span> Back to Products
-                </a>
+            <div class="header-left">
                 <h1 class="page-title">Add New Product</h1>
+            </div>
+            <div class="header-right">
+                <a href="index.php" class="back-button">
+                    <span class="material-icons text-lg" style="font-size:1.25rem;">arrow_back</span> Back to Product
+                </a>
             </div>
         </div>
 
