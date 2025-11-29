@@ -1,18 +1,18 @@
 <?php include '../includes/auth.php'; ?>
+<?php include '../db.php'; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Suppliers • TrendyWear Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../products/products.css">
+    <link rel="stylesheet" href="suppliers.css">
 </head>
 <body>
     <?php include '../sidebar.php'; ?>
-    <?php include '../header.php'; ?>
+    <?php include '../adminheader.php'; ?>
 
     <main>
         <!-- Header -->
@@ -22,117 +22,188 @@
         </div>
 
         <!-- Stats -->
-        <div class="stats-grid grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="stats-grid">
             <div class="stat-card violet-pink">
                 <p class="stat-label">Total Suppliers</p>
-                <p class="stat-value">28</p>
+                <p class="stat-value">
+                    <?php
+                    $result = $conn->query("SELECT COUNT(*) as total FROM suppliers");
+                    $row = $result->fetch_assoc();
+                    echo $row['total'];
+                    ?>
+                </p>
             </div>
             <div class="stat-card emerald-teal">
                 <p class="stat-label">Active Suppliers</p>
-                <p class="stat-value green">24</p>
+                <p class="stat-value green">
+                    <?php
+                    // Assuming all suppliers are active for now
+                    echo $row['total'];
+                    ?>
+                </p>
             </div>
             <div class="stat-card red-rose">
                 <p class="stat-label">Pending Reviews</p>
-                <p class="stat-value red">3</p>
+                <p class="stat-value red">0</p>
             </div>
         </div>
 
         <!-- Filters -->
-        <div class="filters-section mb-12">
+        <div class="filters-section">
             <div class="filters-grid">
                 <div class="search-wrapper">
                     <span class="material-icons search-icon">search</span>
-                    <input type="text" placeholder="Search suppliers..." class="search-input">
+                    <input type="text" placeholder="Search suppliers..." class="search-input" id="searchInput">
                 </div>
-                <select class="filter-select">
-                    <option>All Categories</option>
-                    <option>Fabric</option>
-                    <option>Accessories</option>
-                    <option>Printing</option>
-                    <option>Packaging</option>
+                <select class="filter-select" id="categoryFilter">
+                    <option value="">All Categories</option>
+                    <option value="Fabric">Fabric</option>
+                    <option value="Accessories">Accessories</option>
+                    <option value="Printing">Printing</option>
+                    <option value="Packaging">Packaging</option>
                 </select>
-                <select class="filter-select">
-                    <option>All Performance</option>
-                    <option>Excellent (95%+)</option>
-                    <option>Good (90–94%)</option>
-                    <option>Needs Review (<90%)</option>
+                <select class="filter-select" id="performanceFilter">
+                    <option value="">All Performance</option>
+                    <option value="excellent">Excellent (95%+)</option>
+                    <option value="good">Good (90–94%)</option>
+                    <option value="needs_review">Needs Review (<90%)</option>
                 </select>
-                <select class="filter-select">
-                    <option>Sort by: Name A-Z</option>
-                    <option>Rating High-Low</option>
-                    <option>Lead Time</option>
-                    <option>Products Supplied</option>
+                <select class="filter-select" id="sortFilter">
+                    <option value="name_asc">Sort by: Name A-Z</option>
+                    <option value="name_desc">Name Z-A</option>
+                    <option value="recent">Most Recent</option>
                 </select>
             </div>
         </div>
 
         <!-- Suppliers Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+        <div class="suppliers-grid" id="suppliersGrid">
             <?php 
-            $suppliers = [
-                ['name' => 'Urban Threads Co.',      'items' => 142, 'rating' => 4.9, 'lead' => '7 days',  'on_time' => '98.2%', 'stock' => 'in-stock'],
-                ['name' => 'Luxe Fabric Mills',      'items' => 98,  'rating' => 4.7, 'lead' => '12 days', 'on_time' => '98.2%', 'stock' => 'in-stock'],
-                ['name' => 'Vintage Denim Supply',   'items' => 67,  'rating' => 4.5, 'lead' => '10 days', 'on_time' => '98.2%', 'stock' => 'low-stock'],
-                ['name' => 'EcoCotton Partners',     'items' => 89,  'rating' => 4.8, 'lead' => '9 days',  'on_time' => '97.8%', 'stock' => 'in-stock'],
-                ['name' => 'SilkRoad Textiles',      'items' => 54,  'rating' => 4.3, 'lead' => '15 days', 'on_time' => '89.1%', 'stock' => 'low-stock'],
-                ['name' => 'Prime Stitch Factory',   'items' => 201, 'rating' => 5.0, 'lead' => '5 days',  'on_time' => '99.5%', 'stock' => 'in-stock'],
-            ];
-            foreach($suppliers as $s): ?>
-            <div class="bg-gray-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 hover:scale-105 transition-all duration-300 shadow-2xl">
+            try {
+                // Get suppliers from database
+                $sql = "
+                    SELECT 
+                        s.supplier_id,
+                        s.supplier_name,
+                        s.contact_person,
+                        s.email,
+                        s.phone,
+                        s.address,
+                        s.created_at,
+                        COUNT(DISTINCT p.product_id) as product_count
+                    FROM suppliers s
+                    LEFT JOIN products p ON s.supplier_id = p.product_id
+                    GROUP BY s.supplier_id
+                    ORDER BY s.supplier_name ASC
+                ";
+                
+                $result = $conn->query($sql);
+                
+                if ($result->num_rows > 0) {
+                    while($s = $result->fetch_assoc()) {
+                        // Calculate some mock performance metrics for demonstration
+                        $rating = rand(40, 50) / 10; // Random rating between 4.0 and 5.0
+                        $lead_time = rand(5, 15); // Random lead time between 5-15 days
+                        $on_time_rate = rand(85, 100); // Random on-time rate between 85-100%
+                        $stock_status = $on_time_rate > 90 ? 'in-stock' : 'low-stock';
+            ?>
+            <div class="supplier-card" data-name="<?= htmlspecialchars($s['supplier_name']) ?>" data-rating="<?= $rating ?>" data-performance="<?= $on_time_rate >= 95 ? 'excellent' : ($on_time_rate >= 90 ? 'good' : 'needs_review') ?>">
                 <!-- Header: Name + Rating -->
-                <div class="flex justify-between items-center mb-8">
-                    <h3 class="text-2xl font-extrabold text-white"><?=$s['name']?></h3>
-                    <div class="flex items-center gap-1">
-                        <span class="text-yellow-400 text-2xl">★</span>
-                        <span class="text-xl font-bold text-white"><?=$s['rating']?></span>
+                <div class="card-header">
+                    <h3 class="supplier-name"><?= htmlspecialchars($s['supplier_name']) ?></h3>
+                    <div class="rating">
+                        <span class="star">★</span>
+                        <span class="rating-value"><?= number_format($rating, 1) ?></span>
                     </div>
+                </div>
+
+                <!-- Contact Info -->
+                <div class="card-contact">
+                    <p class="contact-person"><?= htmlspecialchars($s['contact_person']) ?></p>
+                    <p class="contact-email"><?= htmlspecialchars($s['email']) ?></p>
+                    <p class="contact-phone"><?= htmlspecialchars($s['phone']) ?></p>
                 </div>
 
                 <!-- Stats -->
-                <div class="space-y-5 text-left mb-10">
-                    <div class="flex justify-between">
-                        <span class="text-gray-400 text-sm">Products Supplied</span>
-                        <span class="text-white font-semibold text-lg"><?=$s['items']?></span>
+                <div class="card-stats">
+                    <div class="stat-row">
+                        <span class="stat-label-text">Products Supplied</span>
+                        <span class="stat-value-text"><?= $s['product_count'] ?></span>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400 text-sm">Avg Lead Time</span>
-                        <span class="text-white font-semibold text-lg"><?=$s['lead']?></span>
+                    <div class="stat-row">
+                        <span class="stat-label-text">Avg Lead Time</span>
+                        <span class="stat-value-text"><?= $lead_time ?> days</span>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400 text-sm">On-Time Rate</span>
-                        <span class="text-green-400 font-bold text-lg"><?=$s['on_time']?></span>
+                    <div class="stat-row">
+                        <span class="stat-label-text">On-Time Rate</span>
+                        <span class="stat-value-text on-time"><?= $on_time_rate ?>%</span>
                     </div>
                 </div>
 
-                <!-- Footer: Stock Badge + Button -->
-                <div class="flex items-center justify-between">
-                    <span class="status-badge <?=$s['stock'] === 'in-stock' ? 'in-stock' : 'low-stock'?>">
-                        <?= $s['stock'] === 'in-stock' ? 'In Stock' : 'Low Stock' ?>
+                <!-- Footer: Status Badge + Button -->
+                <div class="card-footer">
+                    <span class="status-badge <?= $stock_status ?>">
+                        <?= $stock_status === 'in-stock' ? 'Active' : 'Needs Review' ?>
                     </span>
                     
-                    <a href="supplier_details.php">
-                        <button class="bg-gradient-to-r from-violet-600 to-pink-600 px-6 py-3 rounded-xl font-bold hover:scale-110 transition text-sm">
-                            View Details
-                        </button>
+                    <a href="supplier_details.php?id=<?= $s['supplier_id'] ?>">
+                        <button class="view-details-btn">View Details</button>
                     </a>
                 </div>
             </div>
-            <?php endforeach; ?>
+            <?php 
+                    }
+                } else {
+                    echo "<div class='no-suppliers'>No suppliers found</div>";
+                }
+            } catch (Exception $e) {
+                echo "<div class='error-message'>Error loading suppliers: " . $e->getMessage() . "</div>";
+            }
+            ?>
         </div>
 
         <!-- Pagination -->
-        <div class="table-container !rounded-b-3xl">
+        <div class="table-container">
             <div class="pagination-section">
-                <p class="pagination-info">Showing <span>1-12</span> of <span>28</span> suppliers</p>
-                <div>
-                    <button class="pagination-btn">Previous</button>
+                <p class="pagination-info">
+                    <?php
+                    $total_suppliers = $conn->query("SELECT COUNT(*) as total FROM suppliers")->fetch_assoc()['total'];
+                    ?>
+                    Showing <span>1-<?= $total_suppliers ?></span> of <span><?= $total_suppliers ?></span> suppliers
+                </p>
+                <div class="pagination-buttons">
+                    <button class="pagination-btn" disabled>Previous</button>
                     <button class="pagination-btn active">1</button>
-                    <button class="pagination-btn">2</button>
-                    <button class="pagination-btn">3</button>
-                    <button class="pagination-btn">Next</button>
+                    <button class="pagination-btn" disabled>Next</button>
                 </div>
             </div>
         </div>
     </main>
+
+    <script>
+        // Simple filtering functionality
+        document.getElementById('searchInput').addEventListener('input', filterSuppliers);
+        document.getElementById('performanceFilter').addEventListener('change', filterSuppliers);
+        
+        function filterSuppliers() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const performanceFilter = document.getElementById('performanceFilter').value;
+            const suppliers = document.querySelectorAll('.supplier-card');
+            
+            suppliers.forEach(supplier => {
+                const name = supplier.getAttribute('data-name').toLowerCase();
+                const performance = supplier.getAttribute('data-performance');
+                
+                const matchesSearch = name.includes(searchTerm);
+                const matchesPerformance = !performanceFilter || performance === performanceFilter;
+                
+                if (matchesSearch && matchesPerformance) {
+                    supplier.style.display = 'block';
+                } else {
+                    supplier.style.display = 'none';
+                }
+            });
+        }
+    </script>
 </body>
 </html>
