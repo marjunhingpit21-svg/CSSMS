@@ -14,7 +14,6 @@ $stats = [
     'days_since_last'   => 'Never',
     'is_active'         => false
 ];
-$supplied_products = [];
 
 try {
     // 1. Get supplier info
@@ -28,90 +27,47 @@ try {
 
     if (!$supplier) die("Supplier not found");
 
-    // 2. Get performance stats (safe version)
+    // 2. FIXED: Get performance stats without GROUP BY
     $perf_sql = "
         SELECT 
-            COUNT(ps.purchase_id) as tx_count,
-            COALESCE(SUM(ps.total_amount), 0) as total_spent,
+            COUNT(DISTINCT st.transaction_id) as tx_count,
+            COALESCE(SUM(ps.total_cost), 0) as total_spent,
             AVG(ps.supplier_rating) as avg_rating,
             MAX(st.transaction_date) as last_tx_date
         FROM stock_transactions st
         LEFT JOIN purchase_stock ps ON st.transaction_id = ps.transaction_id
-        WHERE st.supplier_id = ?
-        GROUP BY st.supplier_id
+        WHERE st.supplier_id = ? AND st.transaction_type = 'purchase'
     ";
 
     $stmt = $conn->prepare($perf_sql);
     if (!$stmt) {
-        // Fallback if tables/columns don't exist yet
-        $stats = array_merge($stats, [
-            'transaction_count' => 0,
-            'total_spent' => 0.00,
-            'avg_rating' => null,
-            'last_transaction' => null,
-            'is_active' => false
-        ]);
-    } else {
-        $stmt->bind_param("i", $supplier_id);
-        $stmt->execute();
-        $res = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
-
-        if ($res) {
-            $stats['transaction_count'] = (int)$res['tx_count'];
-            $stats['total_spent']       = (float)$res['total_spent'];
-            $stats['avg_rating']        = $res['avg_rating'] ? round($res['avg_rating'], 1) : null;
-
-            if ($res['last_tx_date']) {
-                $lastDate = new DateTime($res['last_tx_date']);
-                $now = new DateTime();
-                $interval = $now->diff($lastDate);
-                $days = $interval->days;
-                $stats['days_since_last'] = $days == 0 ? 'Today' : "$days day" . ($days > 1 ? 's' : '') . " ago";
-                $stats['last_transaction'] = $lastDate->format('M d, Y');
-                $stats['is_active'] = $days <= 90;
-            }
-        }
+        error_log("Stats query failed: " . $conn->error);
+        throw new Exception("Failed to prepare stats query");
     }
+    
+    $stmt->bind_param("i", $supplier_id);
+    $stmt->execute();
+    $res = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
 
-    // 3. Get products ever purchased from this supplier (safe fallback)
-    $products_sql = "
-        SELECT DISTINCT
-            p.product_id,
-            p.product_name,
-            c.category_name,
-            p.price,
-            p.cost_price,
-            COALESCE(SUM(i.quantity), 0) as current_stock
-        FROM stock_transactions st
-        JOIN inventory inv ON st.inventory_id = inv.inventory_id
-        JOIN products p ON inv.product_id = p.product_id
-        LEFT JOIN categories c ON p.category_id = c.category_id
-        LEFT JOIN inventory i ON p.product_id = i.product_id
-        WHERE st.supplier_id = ?
-        GROUP BY p.product_id
-        ORDER BY p.product_name
-    ";
+    if ($res) {
+        $stats['transaction_count'] = (int)$res['tx_count'];
+        $stats['total_spent']       = (float)$res['total_spent'];
+        $stats['avg_rating']        = $res['avg_rating'] ? round($res['avg_rating'], 1) : null;
 
-    $stmt = $conn->prepare($products_sql);
-    if (!$stmt) {
-        // If query fails (likely no data or column issue), just show empty list
-        $supplied_products = [];
-    } else {
-        $stmt->bind_param("i", $supplier_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        while ($row = $result->fetch_assoc()) {
-            $stock = (int)$row['current_stock'];
-            $row['stock_status'] = $stock > 20 ? 'In Stock' : ($stock > 0 ? 'Low Stock' : 'Out of Stock');
-            $supplied_products[] = $row;
+        if ($res['last_tx_date']) {
+            $lastDate = new DateTime($res['last_tx_date']);
+            $now = new DateTime();
+            $interval = $now->diff($lastDate);
+            $days = $interval->days;
+            $stats['days_since_last'] = $days == 0 ? 'Today' : "$days day" . ($days > 1 ? 's' : '') . " ago";
+            $stats['last_transaction'] = $lastDate->format('M d, Y');
+            $stats['is_active'] = $days <= 90;
         }
-        $stmt->close();
     }
 
 } catch (Exception $e) {
     error_log("Supplier details error: " . $e->getMessage());
-    // Don't crash the page — just show basic info
 }
 ?>
 
@@ -123,13 +79,6 @@ try {
     <title><?= htmlspecialchars($supplier['supplier_name'] ?? 'Supplier') ?> • TrendyWear Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <style>
-        .performance-bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); }
-        .performance-fill { height: 100%; border-radius: 4px; }
-        .excellent { background: linear-gradient(to right, #10b981, #34d399); }
-        .good { background: linear-gradient(to right, #f59e0b, #fbbf24); }
-        .poor { background: linear-gradient(to right, #ef4444, #f87171); }
-    </style>
 </head>
 <body class="bg-gray-950 text-white">
     <?php include '../sidebar.php'; ?>
@@ -211,54 +160,62 @@ try {
             </div>
         </div>
 
+        <!-- Purchase History -->
         <div class="mt-12">
             <h2 class="text-2xl font-bold mb-6">
                 Purchase History 
                 <span class="text-lg font-normal text-gray-400">(<?= $stats['transaction_count'] ?> transaction<?= $stats['transaction_count'] == 1 ? '' : 's' ?>)</span>
             </h2>
 
-            <?php if ($stats['transaction_count'] == 0): ?>
+            <?php
+            // FIXED QUERY
+            $tx_sql = "
+                SELECT 
+                    st.transaction_id,
+                    st.transaction_date,
+                    st.quantity,
+                    st.notes,
+                    COALESCE(ps.total_cost, 0) as total_cost,
+                    ps.supplier_rating,
+                    ps.defective_products,
+                    ps.expected_delivery,
+                    ps.actual_delivery,
+                    p.product_name,
+                    c.category_name,
+                    COALESCE(s.size_name, 'One Size') as size_name
+                FROM stock_transactions st
+                LEFT JOIN purchase_stock ps ON st.transaction_id = ps.transaction_id
+                LEFT JOIN inventory inv ON st.inventory_id = inv.inventory_id
+                LEFT JOIN products p ON inv.product_id = p.product_id
+                LEFT JOIN categories c ON p.category_id = c.category_id
+                LEFT JOIN sizes s ON inv.size_id = s.size_id
+                WHERE st.supplier_id = ? AND st.transaction_type = 'purchase'
+                ORDER BY st.transaction_date DESC
+            ";
+
+            $transactions = [];
+            $stmt = $conn->prepare($tx_sql);
+            
+            if ($stmt) {
+                $stmt->bind_param("i", $supplier_id);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                
+                while ($row = $result->fetch_assoc()) {
+                    $transactions[] = $row;
+                }
+                $stmt->close();
+            } else {
+                error_log("Transaction query failed: " . $conn->error);
+            }
+            ?>
+
+            <?php if (empty($transactions)): ?>
                 <div class="bg-gray-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-16 text-center text-gray-500">
-                    <p class="text-xl">No purchase transactions recorded yet.</p>
+                    <p class="text-xl">No purchase transactions found.</p>
                     <p class="text-sm mt-3">When you receive stock from this supplier, transactions will appear here.</p>
                 </div>
             <?php else: ?>
-                <?php
-                // Fetch actual transaction records
-                $tx_sql = "
-                    SELECT 
-                        st.transaction_id,
-                        st.transaction_date,
-                        st.quantity_received,
-                        ps.total_amount,
-                        ps.supplier_rating,
-                        p.product_name,
-                        c.category_name,
-                        inv.size_id,
-                        cs.size_name
-                    FROM stock_transactions st
-                    LEFT JOIN purchase_stock ps ON st.transaction_id = ps.transaction_id
-                    LEFT JOIN inventory inv ON st.inventory_id = inv.inventory_id
-                    LEFT JOIN products p ON inv.product_id = p.product_id
-                    LEFT JOIN categories c ON p.category_id = c.category_id
-                    LEFT JOIN clothing_sizes cs ON inv.size_id = cs.clothing_size_id
-                    WHERE st.supplier_id = ?
-                    ORDER BY st.transaction_date DESC
-                ";
-
-                $transactions = [];
-                $stmt = $conn->prepare($tx_sql);
-                if ($stmt) {
-                    $stmt->bind_param("i", $supplier_id);
-                    $stmt->execute();
-                    $result = $stmt->get_result();
-                    while ($row = $result->fetch_assoc()) {
-                        $transactions[] = $row;
-                    }
-                    $stmt->close();
-                }
-                ?>
-
                 <div class="bg-gray-900/60 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden">
                     <table class="w-full">
                         <thead class="bg-white/5">
@@ -266,9 +223,11 @@ try {
                                 <th class="text-left p-4">Date</th>
                                 <th class="text-left p-4">Product</th>
                                 <th class="text-left p-4">Size</th>
-                                <th class="text-left p-4">Qty Received</th>
+                                <th class="text-left p-4">Qty Ordered</th>
+                                <th class="text-left p-4">Defective</th>
                                 <th class="text-left p-4">Amount Paid</th>
                                 <th class="text-left p-4">Rating</th>
+                                <th class="text-left p-4">Notes</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -280,21 +239,26 @@ try {
                                     </td>
                                     <td class="p-4">
                                         <div>
-                                            <div class="font-medium"><?= htmlspecialchars($tx['product_name'] ?? '—') ?></div>
-                                            <div class="text-xs text-gray-400"><?= htmlspecialchars($tx['category_name'] ?? '') ?></div>
+                                            <div class="font-medium"><?= htmlspecialchars($tx['product_name'] ?? 'Unknown Product') ?></div>
+                                            <?php if (!empty($tx['category_name'])): ?>
+                                                <div class="text-xs text-gray-400"><?= htmlspecialchars($tx['category_name']) ?></div>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                     <td class="p-4 text-gray-300">
-                                        <?= htmlspecialchars($tx['size_name'] ?? '—') ?>
+                                        <?= htmlspecialchars($tx['size_name']) ?>
                                     </td>
                                     <td class="p-4 font-semibold text-green-400">
-                                        +<?= number_format($tx['quantity_received']) ?>
+                                        +<?= number_format($tx['quantity']) ?>
                                     </td>
-                                    <td class="p-4 font-medium">
-                                        $<?= number_format($tx['total_amount'] ?? 0, 2) ?>
+                                    <td class="p-4 font-semibold <?= ($tx['defective_products'] ?? 0) > 0 ? 'text-red-400' : 'text-gray-500' ?>">
+                                        <?= $tx['defective_products'] ? number_format($tx['defective_products']) : '0' ?>
+                                    </td>
+                                    <td class="p-4 font-medium text-lg">
+                                        $<?= number_format($tx['total_cost'], 2) ?>
                                     </td>
                                     <td class="p-4">
-                                        <?php if ($tx['supplier_rating']): ?>
+                                        <?php if (!empty($tx['supplier_rating'])): ?>
                                             <div class="flex items-center gap-1">
                                                 <span class="text-yellow-400 text-lg">★</span>
                                                 <span class="font-bold"><?= number_format($tx['supplier_rating'], 1) ?></span>
@@ -302,6 +266,9 @@ try {
                                         <?php else: ?>
                                             <span class="text-gray-500 text-sm">Not rated</span>
                                         <?php endif; ?>
+                                    </td>
+                                    <td class="p-4 text-sm text-gray-400 max-w-xs">
+                                        <?= htmlspecialchars($tx['notes'] ?? '—') ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -324,7 +291,7 @@ try {
             }
         }
         function editSupplier() {
-            alert('Coming soon!');
+            alert('Edit functionality coming soon!');
         }
     </script>
 </body>
