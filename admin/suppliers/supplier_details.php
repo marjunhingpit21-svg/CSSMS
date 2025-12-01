@@ -115,7 +115,7 @@ try {
             </div>
             <div class="bg-gray-900/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
                 <p class="text-gray-400 text-sm">Total Spent</p>
-                <p class="text-3xl font-bold text-green-400">$<?= number_format($stats['total_spent'], 2) ?></p>
+                <p class="text-3xl font-bold text-green-400">₱<?= number_format($stats['total_spent'], 2) ?></p>
             </div>
             <div class="bg-gray-900/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
                 <p class="text-gray-400 text-sm">Status</p>
