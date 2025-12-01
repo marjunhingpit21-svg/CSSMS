@@ -1,0 +1,771 @@
+/* ============== GLOBAL RESET & BASE ============== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: #f8f9fa;
+    color: #333;
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.3s ease;
+}
+
+input, select, textarea, button {
+    font-family: inherit;
+    outline: none;
+    transition: all 0.3s ease;
+    padding: 10px;
+}
+
+/* ============== LAYOUT ============== */
+main {
+    margin-left: 280px;
+    padding: 100px 40px 40px;
+    background: #f8f9fa;
+    transition: margin-left 0.3s ease;
+}
+
+/* Adjust main content when sidebar is collapsed */
+body.sidebar-collapsed main {
+    margin-left: 70px;
+}
+
+@media (max-width: 768px) {
+    main {
+        margin-left: 0;
+        padding: 80px 20px 20px;
+    }
+
+    body.sidebar-collapsed main {
+        margin-left: 0;
+    }
+}
+
+/* ============== HEADER SECTION - Match index.php exactly ============== */
+.header-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e91e63;
+    background: #f8f9fa;
+    padding-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.header-left {
+    flex: 1;
+}
+
+.header-right {
+    flex-shrink: 0;
+}
+
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: #e91e63;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.back-button:hover {
+    background: #c2185b;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(233, 30, 99, 0.3);
+}
+
+.back-button .material-icons { 
+    font-size: 20px; 
+    line-height: 1; 
+}
+
+.page-title {
+    font-size: 2rem;
+    color: #e91e63;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+/* ============== FORM GRID ============== */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ============== CARD CONTAINER - Match index.php card style ============== */
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 30px;
+    border: 1px solid #f0f0f0;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+}
+
+.card h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #e91e63;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.01em;
+}
+
+/* ============== FORM ELEMENTS ============== */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .form-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .form-row .full {
+        grid-column: span 2;
+    }
+}
+
+label {
+    display: block;
+    color: #666;
+    font-weight: 500;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.01em;
+}
+
+label .required {
+    color: #ef4444;
+}
+
+input[type="text"],
+input[type="number"],
+select,
+textarea {
+    width: 100%;
+    background: #f8f9fa;
+    border: 1px solid #e91e63;
+    border-radius: 8px;
+    padding: 12px 16px !important;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus,
+textarea:focus {
+    border-color: #e91e63;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.1);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #999;
+}
+
+select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 1.25rem;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* ============== INPUT WITH PREFIX ============== */
+.input-with-prefix {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-prefix span {
+    position: absolute;
+    left: 16px;
+    color: #666;
+    font-weight: 500;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.input-with-prefix input {
+    padding-left: 2.5rem !important;
+    width: 100%;
+}
+
+/* ============== IMAGE UPLOAD HEADER ============== */
+.image-upload-header {
+    text-align: left;
+    margin-bottom: 1.5rem;
+}
+
+.image-upload-header h2 {
+    text-align: left;
+    margin-top: 15px;
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #e91e63;
+}
+
+.image-upload-header p {
+    color: #666;
+    font-size: 0.875rem;
+    margin: 0;
+    text-align: left;
+}
+
+/* ============== IMAGE UPLOAD ============== */
+#dropZone {
+    border: 2px dashed #e91e63;
+    border-radius: 12px;
+    padding: 3rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 300px;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+#dropZone:hover {
+    border-color: #c2185b;
+    background: rgba(233, 30, 99, 0.05);
+}
+
+#imagePreview {
+    max-height: 20rem;
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 0 auto;
+    display: block;
+    object-fit: cover;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+#uploadPlaceholder {
+    color: #666;
+}
+
+#uploadPlaceholder .material-icons {
+    font-size: 3.75rem;
+    margin-bottom: 1rem;
+    color: #e91e63;
+}
+
+#uploadPlaceholder p {
+    margin-top: 0.5rem;
+}
+
+.image-instructions {
+    text-align: center;
+    color: #666;
+    font-size: 0.875rem;
+    margin-top: 1rem;
+}
+
+/* ============== PROFIT BOX ============== */
+.profit-box {
+    background: rgba(233, 30, 99, 0.1);
+    border: 1px solid #e91e63;
+    border-radius: 8px;
+    padding: 1rem;
+    color: #e91e63;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.profit-box .material-icons {
+    font-size: 1rem;
+}
+
+/* ============== SIZE TABLE ============== */
+.sizes-card {
+    overflow: hidden;
+    padding: 0;
+}
+
+.sizes-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+}
+
+.sizes-header h2 {
+    margin-bottom: 0;
+    color: #e91e63;
+}
+
+.btn-add {
+    background: #e91e63;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+}
+
+.btn-add:hover {
+    background: #c2185b;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(233, 30, 99, 0.3);
+}
+
+.btn-add:active {
+    transform: translateY(0);
+}
+
+/* ============== TABLE STYLES ============== */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    text-align: left;
+    padding: 16px 24px;
+    color: #666;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #f0f0f0;
+    background: #f8f9fa;
+}
+
+td {
+    padding: 16px 24px;
+    vertical-align: middle;
+    position: relative;
+    background: white;
+}
+
+td .input-with-prefix input {
+    padding-left: 2.5rem;
+    width: 7.5rem;
+}
+
+td:nth-child(4) {
+    min-width: 120px;
+}
+
+tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s ease;
+}
+
+tbody tr:hover {
+    background: #f8f9fa;
+}
+
+tbody tr:last-child {
+    border-bottom: none;
+}
+
+td input[type="text"],
+td input[type="number"] {
+    background: white;
+    border: 1px solid #e0e0e0;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    border-radius: 8px;
+}
+
+td input[type="text"]:focus,
+td input[type="number"]:focus {
+    background: white;
+    border-color: #e91e63;
+    box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.1);
+}
+
+.size-tag {
+    display: inline-block;
+    background: #e91e63;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.02em;
+}
+
+/* ============== TOGGLE SWITCH ============== */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #ccc;
+    border-radius: 34px;
+    transition: 0.4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 2px;
+    bottom: 2px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.4s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.switch input:checked + .slider {
+    background: #e91e63;
+}
+
+.switch input:checked + .slider:before {
+    transform: translateX(20px);
+}
+
+.switch:hover .slider {
+    opacity: 0.9;
+}
+
+/* ============== DELETE BUTTON ============== */
+.delete-btn {
+    color: #ef4444;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+}
+
+.delete-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+/* ============== EMPTY STATE ============== */
+.empty-state {
+    padding: 4rem 2rem;
+    text-align: center;
+    color: #666;
+    background: white;
+}
+
+.empty-state .material-icons {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    display: block;
+    color: #e91e63;
+}
+
+.empty-state p {
+    font-size: 0.95rem;
+}
+
+/* ============== ACTION BUTTONS ============== */
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 20px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.btn-cancel {
+    background: #666;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-block;
+    text-decoration: none;
+    text-align: center;
+}
+
+.btn-cancel:hover {
+    background: #555;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-save {
+    background: #e91e63;
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px -1px rgba(233, 30, 99, 0.4);
+}
+
+.btn-save:hover {
+    background: #c2185b;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(233, 30, 99, 0.4);
+}
+
+.btn-save:active,
+.btn-cancel:active {
+    transform: translateY(0);
+}
+
+/* Ensure new size rows match existing styling */
+.new-size-row select,
+.new-size-row input[type="text"],
+.new-size-row input[type="number"] {
+    background: white !important;
+    border: 1px solid #e0e0e0 !important;
+    padding: 12px 16px !important;
+    font-size: 0.95rem !important;
+    color: #333 !important;
+    border-radius: 8px !important;
+}
+
+.new-size-row select:focus,
+.new-size-row input[type="text"]:focus,
+.new-size-row input[type="number"]:focus {
+    background: white !important;
+    border-color: #e91e63 !important;
+    box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.1) !important;
+}
+
+.new-size-row .input-with-prefix {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.new-size-row .input-with-prefix span {
+    position: absolute;
+    left: 16px;
+    color: #666;
+    font-weight: 500;
+    pointer-events: none;
+    z-index: 10;
+    font-size: 0.95rem;
+}
+
+.new-size-row .input-with-prefix input {
+    padding-left: 2.5rem !important;
+}
+
+/* Ensure the switch styling is consistent */
+.new-size-row .switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.new-size-row .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.new-size-row .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #ccc;
+    border-radius: 34px;
+    transition: 0.4s;
+}
+
+.new-size-row .slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 2px;
+    bottom: 2px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.4s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.new-size-row .switch input:checked + .slider {
+    background: #e91e63;
+}
+
+.new-size-row .switch input:checked + .slider:before {
+    transform: translateX(20px);
+}
+
+/* ============== RESPONSIVE ADJUSTMENTS ============== */
+@media (max-width: 768px) {
+    main {
+        padding: 80px 20px 20px;
+        margin-left: 0;
+    }
+    
+    .header-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    
+    .header-right {
+        align-self: flex-start;
+    }
+    
+    .card {
+        padding: 1.5rem;
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+    }
+    
+    table {
+        font-size: 0.875rem;
+    }
+    
+    th, td {
+        padding: 12px 16px;
+    }
+    
+    .actions {
+        flex-direction: column;
+    }
+    
+    .btn-cancel,
+    .btn-save {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .sizes-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+    }
+    
+    .btn-add {
+        align-self: flex-start;
+    }
+}
+
+/* ============== UTILITY CLASSES ============== */
+.full {
+    grid-column: span 2;
+}
+
+@media (max-width: 767px) {
+    .full {
+        grid-column: span 1;
+    }
+}
+
+/* Category indicator styling */
+.category-indicator {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.clothing-category {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.shoe-category {
+    background-color: #10b981;
+    color: white;
+}
+
+.size-select {
+    min-width: 120px;
+}

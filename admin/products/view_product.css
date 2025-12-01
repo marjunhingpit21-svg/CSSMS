@@ -1,0 +1,424 @@
+body {
+    font-family: 'Inter', sans-serif;
+    background: #f8f9fa;
+    color: #333;
+    min-height: 100vh;
+}
+
+main {
+    margin-left: 280px;
+    padding: 100px 40px 40px;
+    background: #f8f9fa;
+    transition: margin-left 0.3s ease;
+}
+
+/* ============== HEADER SECTION - Consistent with edit product ============== */
+.header-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e91e63;
+    background: #f8f9fa;
+    padding-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.header-left {
+    flex: 1;
+}
+
+.header-right {
+    flex-shrink: 0;
+}
+
+.page-title {
+    font-size: 2rem;
+    color: #e91e63;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: #e91e63;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.back-button:hover {
+    background: #c2185b;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(233, 30, 99, 0.3);
+}
+
+.back-button .material-icons { 
+    font-size: 20px; 
+    line-height: 1; 
+}
+
+/* ============== MAIN CONTENT LAYOUT ============== */
+.view-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ============== CARD STYLES - Match edit product ============== */
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 30px;
+    border: 1px solid #f0f0f0;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+}
+
+.card h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #e91e63;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.01em;
+}
+
+/* ============== TOP ROW LAYOUT ============== */
+.top-row {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+/* ============== PRODUCT IMAGE ============== */
+.product-image-container {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 463px;
+    overflow: hidden;
+}
+
+.product-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+/* ============== DETAILS SECTION ============== */
+.details-section {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    align-content: start;
+}
+
+.detail-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f0f0f0;
+    transition: all 0.3s ease;
+}
+
+.detail-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+}
+
+.detail-card .label {
+    color: #666;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.01em;
+}
+
+.detail-card .value {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #333;
+    line-height: 1.4;
+}
+
+/* ============== COLOR VARIATIONS ============== */
+.text-green {
+    color: #10b981;
+}
+
+.text-orange {
+    color: #f59e0b;
+}
+
+.text-red {
+    color: #ef4444;
+}
+
+/* ============== DESCRIPTION CARD ============== */
+.description-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f0f0f0;
+    transition: all 0.3s ease;
+}
+
+.description-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+}
+
+.description-card h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #e91e63;
+    margin-bottom: 1rem;
+    letter-spacing: -0.01em;
+}
+
+.description-card p {
+    color: #666;
+    line-height: 1.625;
+    font-size: 0.95rem;
+}
+
+/* ============== SIZE TABLE CONTAINER ============== */
+.size-table-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f0f0f0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.size-table-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+}
+
+.size-table-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #f0f0f0;
+    background: white;
+}
+
+.size-table-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #e91e63;
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+/* ============== TABLE STYLES ============== */
+.size-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.size-table thead tr {
+    border-bottom: 1px solid #f0f0f0;
+    background: #f8f9fa;
+}
+
+.size-table th {
+    text-align: left;
+    padding: 16px 24px;
+    color: #666;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.size-table tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s ease;
+}
+
+.size-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.size-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.size-table td {
+    padding: 16px 24px;
+    vertical-align: middle;
+    background: white;
+}
+
+/* ============== SIZE BADGE ============== */
+.size-badge {
+    display: inline-block;
+    background: #e91e63;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.02em;
+}
+
+/* ============== STOCK VALUE ============== */
+.stock-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+/* ============== STATUS BADGE ============== */
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.status-badge.in-stock {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.status-badge.low-stock {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.status-badge.out-of-stock {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* ============== EMPTY STATE ============== */
+.empty-state {
+    padding: 4rem 2rem;
+    text-align: center;
+    color: #666;
+    background: white;
+}
+
+.empty-state .material-icons {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    display: block;
+    color: #e91e63;
+}
+
+.empty-state p {
+    font-size: 0.95rem;
+}
+
+/* ============== RESPONSIVE ADJUSTMENTS ============== */
+@media (max-width: 1024px) {
+    .top-row {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .product-image-container {
+        width: 100%;
+        max-width: 400px;
+        height: 400px;
+        margin: 0 auto;
+    }
+    
+    .details-section {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .view-grid {
+        gap: 1.5rem;
+    }
+    
+    .top-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .product-image-container {
+        height: 300px;
+        max-width: 100%;
+    }
+    
+    .details-section {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .header-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    
+    .header-right {
+        align-self: flex-start;
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+    }
+    
+    .card {
+        padding: 1.5rem;
+    }
+    
+    .size-table-header {
+        padding: 1rem 1.5rem;
+    }
+    
+    .size-table th,
+    .size-table td {
+        padding: 12px 16px;
+    }
+    
+    .size-table {
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .size-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+}
