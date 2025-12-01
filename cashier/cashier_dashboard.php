@@ -64,18 +64,62 @@ $branch_id     = $_SESSION['branch_id'] ?? 1;
         <!-- Numpad -->
         <div class="numpad-container">
             <div class="numpad-grid">
+                <!-- ROW 1 -->
+                <button class="numpad-btn fn-btn" onclick="applyDiscount()" title="Apply Discount">
+                    <span class="fn-key">F2</span>
+                    <span class="fn-label">Discount</span>
+                </button>
+                <button class="numpad-btn fn-btn" onclick="viewTransactions()" title="View Transactions">
+                    <span class="fn-key">F3</span>
+                    <span class="fn-label">Transactions</span>
+                </button>
                 <button class="numpad-btn" onclick="appendNumber('7')">7</button>
                 <button class="numpad-btn" onclick="appendNumber('8')">8</button>
                 <button class="numpad-btn" onclick="appendNumber('9')">9</button>
+
+                <!-- ROW 2 -->
+                <button class="numpad-btn fn-btn" onclick="skuLookup()" title="SKU Lookup">
+                    <span class="fn-key">F5</span>
+                    <span class="fn-label">SKU Lookup</span>
+                </button>
+                <button class="numpad-btn fn-btn" onclick="changePrice()" title="Change Price">
+                    <span class="fn-key">F7</span>
+                    <span class="fn-label">Change Price</span>
+                </button>
                 <button class="numpad-btn" onclick="appendNumber('4')">4</button>
                 <button class="numpad-btn" onclick="appendNumber('5')">5</button>
                 <button class="numpad-btn" onclick="appendNumber('6')">6</button>
+
+                <!-- ROW 3 -->
+                <button class="numpad-btn fn-btn" onclick="changeTax()" title="Change Tax">
+                    <span class="fn-key">F8</span>
+                    <span class="fn-label">Change Tax</span>
+                </button>
+                <button class="numpad-btn fn-btn" onclick="changeQuantity()" title="Change Quantity">
+                    <span class="fn-key">F9</span>
+                    <span class="fn-label">Change Qty</span>
+                </button>
                 <button class="numpad-btn" onclick="appendNumber('1')">1</button>
                 <button class="numpad-btn" onclick="appendNumber('2')">2</button>
                 <button class="numpad-btn" onclick="appendNumber('3')">3</button>
+
+                <!-- ROW 4 -->
+                <button class="numpad-btn fn-btn" onclick="changeClerk()" title="Change Clerk">
+                    <span class="fn-key">F10</span>
+                    <span class="fn-label">Change Clerk</span>
+                </button>
+                <button class="numpad-btn fn-btn" onclick="deleteSelectedItem()" title="Delete Item">
+                    <span class="fn-key">F11</span>
+                    <span class="fn-label">Delete Item</span>
+                </button>
                 <button class="numpad-btn numpad-clear" onclick="clearNumber()">C</button>
                 <button class="numpad-btn" onclick="appendNumber('0')">0</button>
-                <button class="numpad-btn numpad-backspace" onclick="backspaceNumber()">⌫</button>
+                <button class="numpad-btn numpad-backspace" onclick="backspaceNumber()">×</button>
+                <!-- ROW 6 - Logout Button (Bottom, Full Width) -->
+                <button class="numpad-btn fn-btn fn-logout" onclick="logoutCashier()" title="Logout">
+                    <span class="fn-key">ESC</span>
+                    <span class="fn-label">Logout</span>
+                </button>
             </div>
         </div>
     </div>
@@ -218,7 +262,7 @@ $branch_id     = $_SESSION['branch_id'] ?? 1;
                                 </div>
                                 <div style="font-size:12px;color:#555;margin-top:4px;">
                                     <strong>${p.size_name}</strong>
-                                    ${p.barcode ? ` • ${p.barcode.slice(-8)}` : ''}
+                                    ${p.barcode ? ` • ${p.barcode}` : ''}  
                                     <br>Stock: <span style="color:${p.stock_quantity<5?'#d32f2f':'#2e7d32'}">${p.stock_quantity}</span>
                                 </div>
                             </div>
