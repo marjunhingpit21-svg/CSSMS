@@ -67,8 +67,10 @@ if (!isset($orders_count)) {
                     </a>
                     
                     <div class="user-profile">
-                        <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($_SESSION['username']); ?>&background=e91e63&color=fff&bold=true"
+                        <a href="profile.php">
+                            <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($_SESSION['username']); ?>&background=e91e63&color=fff&bold=true"
                             alt="Profile" class="profile-pic">
+                        </a>
                         <span class="user-greeting">Hello, <?php echo htmlspecialchars($_SESSION['username']); ?></span>
                     </div>
                     <?php if ($_SESSION['role'] === 'admin'): ?>
