@@ -79,6 +79,37 @@ try {
     <title><?= htmlspecialchars($supplier['supplier_name'] ?? 'Supplier') ?> • TrendyWear Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        main {
+            margin-left: 300px !important;
+            margin-top: 50px !important;
+        }
+
+        .add-transaction-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+            color: white;
+            font-weight: 600;
+            font-size: 15px;
+            border-radius: 12px;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .add-transaction-btn:hover {
+            background: linear-gradient(135deg, #7c3aed, #9333ea);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.5);
+        }
+
+        .add-transaction-btn:active {
+            transform: translateY(0);
+        }
+    </style>
 </head>
 <body class="bg-gray-950 text-white">
     <?php include '../sidebar.php'; ?>
@@ -98,12 +129,18 @@ try {
                 </p>
             </div>
             <div class="flex gap-4">
-                <button onclick="contactSupplier()" class="px-8 py-4 bg-violet-600 hover:bg-violet-700 rounded-xl font-semibold">
-                    Contact
-                </button>
-                <button onclick="editSupplier()" class="px-8 py-4 bg-white/10 border border-white/20 hover:bg-white/20 rounded-xl font-semibold">
-                    Edit
-                </button>
+                
+                <a href="https://mail.google.com/mail/?view=cm&fs=1&to=<?= urlencode($supplier['email'] ?? '') ?>&su=Inquiry%20from%20Altière%20Clothing&body=Hi%20<?= urlencode($supplier['contact_person'] ?? $supplier['supplier_name']) ?>%2C%0A%0AI%20hope%20this%20email%20finds%20you%20well.%0A%0AI'm%20reaching%20out%20regarding...%0A%0ABest%20regards%2C%0A[Your%20Name]%0AAltière%20Admin%20Team" 
+                    target="_blank" 
+                    class="inline-block">
+                        <button class="px-8 py-4 bg-violet-600 hover:bg-violet-700 rounded-xl font-semibold transition">
+                            Contact Through Email
+                        </button>
+                </a>
+
+                <a href="edit_supplier.php?id=<?= $supplier_id ?>">
+                    <button class="px-8 py-4 bg-white/10 border border-white/20 hover:bg-white/20 rounded-xl font-semibold">Edit</button>
+                </a>
             </div>
         </div>
 
@@ -162,10 +199,19 @@ try {
 
         <!-- Purchase History -->
         <div class="mt-12">
-            <h2 class="text-2xl font-bold mb-6">
-                Purchase History 
-                <span class="text-lg font-normal text-gray-400">(<?= $stats['transaction_count'] ?> transaction<?= $stats['transaction_count'] == 1 ? '' : 's' ?>)</span>
-            </h2>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">
+                    Purchase History 
+                    <span class="text-lg font-normal text-gray-400">
+                        (<?= $stats['transaction_count'] ?> transaction<?= $stats['transaction_count'] == 1 ? '' : 's' ?>)
+                    </span>
+                </h2>
+
+                <!-- Add Transaction Button -->
+                <a href="add_transaction.php?supplier_id=<?= $supplier_id ?>" class="add-transaction-btn">
+                    + Add Transaction
+                </a>
+            </div>
 
             <?php
             // FIXED QUERY
@@ -255,7 +301,7 @@ try {
                                         <?= $tx['defective_products'] ? number_format($tx['defective_products']) : '0' ?>
                                     </td>
                                     <td class="p-4 font-medium text-lg">
-                                        $<?= number_format($tx['total_cost'], 2) ?>
+                                        ₱<?= number_format($tx['total_cost'], 2) ?>
                                     </td>
                                     <td class="p-4">
                                         <?php if (!empty($tx['supplier_rating'])): ?>
