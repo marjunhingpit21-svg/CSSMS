@@ -1,8 +1,7 @@
 <?php
 session_start();
 
-// UNCOMMENT WHEN LOGIN IS READY
-// if (!isset($_SESSION['employee_id'])) { header('Location: login.php'); exit(); }
+if (!isset($_SESSION['employee_id'])) { header('Location: cashier_login.php'); exit(); }
 
 require_once '../database/db.php';
 
@@ -93,7 +92,7 @@ $branch_id     = $_SESSION['branch_id'] ?? 1;
                 <!-- ROW 3 -->
                 <button class="numpad-btn fn-btn" onclick="changeTax()" title="Change Tax">
                     <span class="fn-key">F8</span>
-                    <span class="fn-label">Change Tax</span>
+                    <span class="fn-label">Add Notes</span>
                 </button>
                 <button class="numpad-btn fn-btn" onclick="changeQuantity()" title="Change Quantity">
                     <span class="fn-key">F9</span>
@@ -139,6 +138,7 @@ $branch_id     = $_SESSION['branch_id'] ?? 1;
 
        <div class="receipt-summary">
             <div class="summary-row"><span>Subtotal:</span><span id="subtotal">₱0.00</span></div>
+            <div class="summary-row"><span>Tax (12%):</span><span id="tax">₱0.00</span></div>
             <div class="summary-row"><span>Discount:</span><span id="discount">₱0.00</span></div>
             <div class="summary-row total"><span>TOTAL:</span><span id="total">₱0.00</span></div>
         </div>
@@ -149,7 +149,16 @@ $branch_id     = $_SESSION['branch_id'] ?? 1;
                 <button class="btn-payment btn-card" onclick="openPaymentModal('card')">Card</button>
                 <button class="btn-payment btn-ewallet" onclick="openPaymentModal('ewallet')">E-Wallet</button>
             </div>
-            <button class="btn btn-secondary" onclick="clearCart()">Clear Cart</button>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn btn-secondary" onclick="printReceipt()" style="flex: 1;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="vertical-align: middle; margin-right: 5px;">
+                        <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <rect x="6" y="14" width="12" height="8" stroke-width="2"/>
+                    </svg>
+                    Print Receipt
+                </button>
+                <button class="btn btn-secondary" onclick="clearCart()">Clear Cart</button>
+            </div>
         </div>
     </div>
 </div>
@@ -389,14 +398,33 @@ $branch_id     = $_SESSION['branch_id'] ?? 1;
         updateTotals();
     }
 
-   function updateTotals() {
-        const subtotal = cart.reduce((s,i) => s + i.final_price * i.quantity, 0);
-        const total = subtotal; // No tax added
+        function updateTotals() {
+            console.log('🔥 updateTotals() CALLED');
+            
+            // Calculate subtotal from cart
+            const subtotal = cart.reduce((s,i) => s + i.final_price * i.quantity, 0);
+            
+            // Calculate 12% tax
+            const tax = subtotal * 0.12;
+            
+            // Discount (set to 0 for now)
+            const discount = 0;
+            
+            // Calculate final total
+            const total = subtotal + tax - discount;
 
-        document.getElementById('subtotal').textContent = '₱' + subtotal.toFixed(2);
-        document.getElementById('discount').textContent = '₱0.00';
-        document.getElementById('total').textContent = '₱' + total.toFixed(2);
-    }
+            // Log calculations
+            console.log('Subtotal: ₱' + subtotal.toFixed(2));
+            console.log('Tax (12%): ₱' + tax.toFixed(2));
+            console.log('Discount: ₱' + discount.toFixed(2));
+            console.log('TOTAL: ₱' + total.toFixed(2));
+
+            // Update DOM elements
+            document.getElementById('subtotal').textContent = '₱' + subtotal.toFixed(2);
+            document.getElementById('tax').textContent = '₱' + tax.toFixed(2);
+            document.getElementById('discount').textContent = '₱' + discount.toFixed(2);
+            document.getElementById('total').textContent = '₱' + total.toFixed(2);
+        }
 
     function clearCart() {
         if (cart.length && confirm('Clear cart?')) {
@@ -425,88 +453,223 @@ $branch_id     = $_SESSION['branch_id'] ?? 1;
             searchInput.dispatchEvent(new Event('input'));
         }
 
-    // === PAYMENT ===
-    function openPaymentModal(mode) {
-        if (cart.length === 0) return alert('Cart is empty');
+       // === PAYMENT MODAL FUNCTIONS ===
+function openPaymentModal(mode) {
+    if (cart.length === 0) return alert('Cart is empty');
 
-        const total = cart.reduce((s,i) => s + i.final_price * i.quantity, 0);
-        document.getElementById('paymentModal').style.display = 'block';
+    const subtotal = cart.reduce((s,i) => s + i.final_price * i.quantity, 0);
+    const tax = subtotal * 0.12;
+    const total = subtotal + tax;
+    const receiptNum = document.getElementById('receiptNumber').textContent;
+    
+    document.getElementById('paymentModal').style.display = 'block';
 
-        let html = `<div style="text-align:center;font-size:22px;font-weight:700;margin:20px 0;color:#1976d2;">
-                        ₱${total.toFixed(2)}
-                    </div>`;
+    let html = `
+        <div style="text-align:center;font-size:16px;font-weight:600;margin:10px 0;color:#666;">
+            Receipt #${receiptNum}
+        </div>
+        <div style="text-align:center;font-size:22px;font-weight:700;margin:20px 0;color:#1976d2;">
+            ₱${total.toFixed(2)}
+        </div>`;
 
-        if (mode === 'cash') {
-            html += `
-                <div style="margin:20px 0;">
-                    <label>Cash Received:</label>
-                    <input type="number" id="cashInput" style="font-size:20px;padding:10px;width:100%;margin-top:8px;" autofocus>
-                </div>
-                <div id="changeBox" style="font-size:18px;margin:15px 0;display:none;">
-                    Change: ₱<span id="changeAmount">0.00</span>
-                </div>
-            `;
-        } else {
-            html += `<p style="text-align:center;margin:30px 0;">Processing ${mode.toUpperCase()} payment...</p>`;
-        }
-
+    if (mode === 'cash') {
         html += `
-            <div style="display:flex;gap:10px;margin-top:20px;">
-                <button onclick="processPayment('${mode}')" class="btn btn-primary" style="flex:1;">Complete</button>
-                <button onclick="closePaymentModal()" class="btn btn-secondary">Cancel</button>
-            </div>`;
-
-        document.getElementById('modalBody').innerHTML = html;
-
-        if (mode === 'cash') {
-            document.getElementById('cashInput').addEventListener('input', function() {
-                const change = this.value - total;
-                const box = document.getElementById('changeBox');
-                const amt = document.getElementById('changeAmount');
-                if (change >= 0) {
-                    box.style.display = 'block';
-                    amt.textContent = change.toFixed(2);
-                } else box.style.display = 'none';
-            });
-        }
+            <div style="margin:20px 0;">
+                <label style="font-weight:600;">Cash Received:</label>
+                <input type="number" id="cashInput" 
+                    style="font-size:20px;padding:10px;width:100%;margin-top:8px;border:2px solid #ddd;border-radius:8px;" 
+                    placeholder="Enter amount received"
+                    step="0.01"
+                    autofocus>
+            </div>
+            <div id="changeBox" style="font-size:18px;margin:15px 0;padding:15px;background:#f0f9ff;border-radius:8px;display:none;">
+                <strong>Change:</strong> ₱<span id="changeAmount">0.00</span>
+            </div>
+            <div id="cashError" style="color:#d32f2f;margin:10px 0;display:none;"></div>
+        `;
+    } else if (mode === 'ewallet') {
+        html += `
+            <div style="margin:20px 0;">
+                <label style="font-weight:600;">Amount Received:</label>
+                <input type="number" id="cashInput" 
+                    style="font-size:20px;padding:10px;width:100%;margin-top:8px;border:2px solid #ddd;border-radius:8px;" 
+                    value="${total.toFixed(2)}"
+                    step="0.01"
+                    autofocus>
+            </div>
+            <div style="margin:20px 0;">
+                <label style="font-weight:600;">E-Wallet Reference Number:</label>
+                <input type="text" id="refInput" 
+                    style="font-size:16px;padding:10px;width:100%;margin-top:8px;border:2px solid #ddd;border-radius:8px;" 
+                    placeholder="Enter GCash/PayMaya/GrabPay reference number"
+                    maxlength="50">
+            </div>
+            <p style="text-align:center;margin:20px 0;color:#666;font-size:14px;">
+                <strong>E-Wallet Payment</strong><br>
+                Verify amount and reference number before completing
+            </p>
+        `;
+    } else if (mode === 'card') {
+        html += `
+            <div style="margin:20px 0;">
+                <label style="font-weight:600;">Card Terminal Reference:</label>
+                <input type="text" id="refInput" 
+                    style="font-size:16px;padding:10px;width:100%;margin-top:8px;border:2px solid #ddd;border-radius:8px;" 
+                    placeholder="Enter card authorization/reference number"
+                    maxlength="50"
+                    autofocus>
+            </div>
+            <p style="text-align:center;margin:20px 0;color:#666;font-size:14px;">
+                <strong>Card Payment</strong><br>
+                Enter the authorization code from the card terminal
+            </p>
+        `;
     }
 
-    function closePaymentModal() {
-        document.getElementById('paymentModal').style.display = 'none';
-    }
+    html += `
+        <div style="display:flex;gap:10px;margin-top:20px;">
+            <button onclick="processPayment('${mode}')" class="btn btn-primary" style="flex:1;">Complete Payment</button>
+            <button onclick="closePaymentModal()" class="btn btn-secondary">Cancel</button>
+        </div>`;
 
-    function processPayment(method) {
-        const saleData = {
-            branch_id: <?php echo $branch_id; ?>,
-            employee_id: <?php echo $employee_id; ?>,
-            items: cart,
-            subtotal: cart.reduce((s,i)=>s + i.final_price*i.quantity, 0),
-            tax: 0, // No tax
-            total_amount: cart.reduce((s,i)=>s + i.final_price*i.quantity, 0),
-            payment_method: method,
-            discount: 0
-        };
+    document.getElementById('modalBody').innerHTML = html;
 
-        fetch('process_sale.php', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(saleData)
-        })
-        .then(r => r.json())
-        .then(res => {
-            if (res.success) {
-                alert('Sale completed! Receipt #' + res.sale_id);
-                cart = [];
-                renderCart();
-                receiptCounter++;
-                document.getElementById('receiptNumber').textContent = String(receiptCounter).padStart(5,'0');
-                closePaymentModal();
-                searchInput.focus();
-            } else {
-                alert('Error: ' + res.message);
+    // Add event listeners for cash/ewallet input
+    if (mode === 'cash' || mode === 'ewallet') {
+        const cashInput = document.getElementById('cashInput');
+        
+        cashInput.addEventListener('input', function() {
+            const received = parseFloat(this.value) || 0;
+            const change = received - total;
+            
+            if (mode === 'cash') {
+                const changeBox = document.getElementById('changeBox');
+                const changeAmount = document.getElementById('changeAmount');
+                const errorBox = document.getElementById('cashError');
+                
+                if (received < total) {
+                    changeBox.style.display = 'none';
+                    errorBox.textContent = 'Amount received is less than total';
+                    errorBox.style.display = 'block';
+                } else {
+                    errorBox.style.display = 'none';
+                    changeBox.style.display = 'block';
+                    changeAmount.textContent = change.toFixed(2);
+                }
             }
         });
+        
+        // Auto-focus and select input
+        setTimeout(() => {
+            cashInput.focus();
+            cashInput.select();
+        }, 100);
+    } else if (mode === 'card') {
+        // Auto-focus reference input for card
+        setTimeout(() => {
+            document.getElementById('refInput').focus();
+        }, 100);
     }
+}
+
+function closePaymentModal() {
+    document.getElementById('paymentModal').style.display = 'none';
+}
+
+function processPayment(method) {
+    const subtotal = cart.reduce((s,i) => s + i.final_price * i.quantity, 0);
+    const tax = subtotal * 0.12;
+    const total = subtotal + tax;
+    const receiptNum = document.getElementById('receiptNumber').textContent;
+    let cashReceived = null;
+    let transactionRef = null;
+    
+    // Validate cash/ewallet payment
+    if (method === 'cash' || method === 'ewallet') {
+        const cashInput = document.getElementById('cashInput');
+        cashReceived = parseFloat(cashInput.value) || 0;
+        
+        if (method === 'cash' && cashReceived < total) {
+            alert('Cash received must be greater than or equal to total amount!');
+            return;
+        }
+        
+        if (cashReceived <= 0) {
+            alert('Please enter a valid amount!');
+            return;
+        }
+    }
+    
+    // Get transaction reference for card/ewallet
+    if (method === 'card' || method === 'ewallet') {
+        const refInput = document.getElementById('refInput');
+        transactionRef = refInput ? refInput.value.trim() : null;
+        
+        // Optional: Make reference mandatory for card/ewallet
+        if (!transactionRef) {
+            const confirmProceed = confirm('No reference number entered. Continue anyway?');
+            if (!confirmProceed) return;
+        }
+    }
+    
+    const saleData = {
+        branch_id: <?php echo $branch_id; ?>,
+        employee_id: <?php echo $employee_id; ?>,
+        items: cart,
+        subtotal: subtotal,
+        tax: tax,
+        total_amount: total,
+        payment_method: method,
+        discount: 0,
+        cash_received: cashReceived,
+        transaction_reference: transactionRef,
+        receipt_number: receiptNum
+    };
+
+    fetch('process_sale.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(saleData)
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            // Show success message with change if applicable
+            let message = `Sale completed!\nReceipt #${res.receipt_number}`;
+            
+            if (method === 'cash' && cashReceived) {
+                const change = cashReceived - total;
+                if (change > 0) {
+                    message += `\n\nChange: ₱${change.toFixed(2)}`;
+                }
+            }
+            
+            if (transactionRef) {
+                message += `\n\nReference: ${transactionRef}`;
+            }
+            
+            alert(message);
+            
+            // Clear cart and update receipt number
+            cart = [];
+            renderCart();
+            receiptCounter++;
+            document.getElementById('receiptNumber').textContent = String(receiptCounter).padStart(5,'0');
+            closePaymentModal();
+            searchInput.focus();
+        } else {
+            alert('Error: ' + res.message);
+        }
+    })
+    .catch(err => {
+        console.error('Payment error:', err);
+        alert('Payment failed. Please try again.');
+    });
+
+    
+}
+
+
 
     // Focus on load
     window.onload = () => searchInput.focus();
