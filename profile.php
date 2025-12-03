@@ -229,25 +229,6 @@ if ($user_data['customer_id']) {
                                 value="<?php echo htmlspecialchars($user_data['phone'] ?? ''); ?>">
                         </div>
 
-                        <div class="form-group">
-                            <label for="address">Address</label>
-                            <input type="text" id="address" name="address"
-                                value="<?php echo htmlspecialchars($user_data['address'] ?? ''); ?>">
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="city">City</label>
-                                <input type="text" id="city" name="city"
-                                    value="<?php echo htmlspecialchars($user_data['city'] ?? ''); ?>">
-                            </div>
-                            <div class="form-group">
-                                <label for="postal_code">Postal Code</label>
-                                <input type="text" id="postal_code" name="postal_code"
-                                    value="<?php echo htmlspecialchars($user_data['postal_code'] ?? ''); ?>">
-                            </div>
-                        </div>
-
                         <button type="submit" name="update_profile" class="btn-primary">
                             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
