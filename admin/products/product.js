@@ -87,15 +87,24 @@ function sortProducts(sortValue) {
     visibleRows.forEach(row => tableBody.appendChild(row));
 }
 
+
 function updatePaginationInfo(visibleCount) {
-    const totalRows = tableBody.querySelectorAll('tr').length;
     const paginationInfo = document.querySelector('.pagination-info');
     
-    if (paginationInfo) {
+    // Only update if we're actively filtering (not on initial page load)
+    if (paginationInfo && isFiltering()) {
+        const totalRows = tableBody.querySelectorAll('tr').length;
         const start = visibleCount > 0 ? 1 : 0;
         const end = visibleCount;
         paginationInfo.innerHTML = `Showing <span>${start}-${end}</span> of <span>${totalRows}</span> products`;
     }
+}
+
+function isFiltering() {
+    return searchInput.value.trim() !== '' ||
+           categoryFilter.value !== 'All Categories' ||
+           stockFilter.value !== 'All Stock Status' ||
+           sortFilter.value !== 'Sort by: Date Added';
 }
 
 // Event listeners for filters
@@ -104,8 +113,7 @@ categoryFilter.addEventListener('change', filterProducts);
 stockFilter.addEventListener('change', filterProducts);
 sortFilter.addEventListener('change', filterProducts);
 
-// Initialize
-updatePaginationInfo(tableBody.querySelectorAll('tr').length);
+
 
 const checkboxes = document.querySelectorAll('.select-product');
 const btnView    = document.getElementById('btn-view');
