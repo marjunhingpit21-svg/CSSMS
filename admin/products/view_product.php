@@ -117,7 +117,6 @@ $sizes_result = $sizes_stmt->get_result();
 ?>
 
 <!DOCTYPE html>
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -135,15 +134,17 @@ $sizes_result = $sizes_stmt->get_result();
 
     <main>
         <div class="header-section">
-            <div>
+            <div class="header-left">
+                <h1 class="page-title"><?= htmlspecialchars($product['product_name']) ?></h1>
                 <a href="index.php" class="back-button">
-                    <span class="material-icons text-lg">arrow_back</span> Back to Products
+                    <span class="material-icons text-lg" style="font-size:1.25rem;">arrow_back</span> Back to Products
                 </a>
-                <h1 class="page-title text-4xl"><?= htmlspecialchars($product['product_name']) ?></h1>
             </div>
-            <a href="edit_product.php?id=<?= $product_id ?>" class="add-btn">
-                <span class="material-icons align-middle">edit</span> Edit Product
-            </a>
+            <div class="header-right">
+                <a href="edit_product.php?id=<?= $product_id ?>" class="back-button">
+                    <span class="material-icons text-lg" style="font-size:1.25rem;">edit</span> Edit Product
+                </a>
+            </div>
         </div>
 
         <div class="view-grid">
@@ -195,11 +196,7 @@ $sizes_result = $sizes_stmt->get_result();
                         <p class="value">₱<?= number_format($product['cost_price'], 2) ?></p>
                     </div>
                 </div>
-
-                
             </div>
-
-            
 
             <?php if (!empty($product['description'])): ?>
             <div class="description-card">

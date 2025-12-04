@@ -95,12 +95,15 @@ $sizes_result = $sizes_stmt->get_result();
     <?php include '../adminheader.php'; ?>
 
     <main>
+        <!-- Updated header-section with back button on the right -->
         <div class="header-section">
-            <div>
+            <div class="header-left">
+                <h1 class="page-title">Edit Product</h1>
+            </div>
+            <div class="header-right">
                 <a href="view_product.php?id=<?= $product_id ?>" class="back-button">
                     <span class="material-icons text-lg" style="font-size:1.25rem;">arrow_back</span> Back to Product
                 </a>
-                <h1 class="page-title">Edit Product</h1>
             </div>
         </div>
 
