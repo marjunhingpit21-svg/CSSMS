@@ -1,23 +1,24 @@
 <?php
-include '../../db.php';
-$product_id = (int)($_GET['product_id'] ?? 0);
-$size_id = (int)($_GET['size_id'] ?? 0);
+ob_start();
+include '../../includes/db.php';
+ob_end_clean();
 
-if ($product_id && $size_id) {
-    $stmt = $conn->prepare("
-        SELECT unit_cost FROM product_sizes 
-        WHERE product_id = ? AND clothing_size_id = ? 
-        LIMIT 1
-    ");
-    $stmt->bind_param("ii", $product_id, $size_id);
+header('Content-Type: application/json');
+
+$product_id = (int)($_GET['product_id'] ?? 0);
+
+$unit_cost = '';
+
+if ($product_id > 0) {
+    $stmt = $conn->prepare("SELECT cost_price FROM products WHERE product_id = ?");
+    $stmt->bind_param("i", $product_id);
     $stmt->execute();
-    $stmt->bind_result($cost);
+    $stmt->bind_result($unit_cost);
     if ($stmt->fetch()) {
-        echo json_encode(['unit_cost' => number_format($cost, 2)]);
-    } else {
-        echo json_encode(['unit_cost' => '']);
+        $unit_cost = $unit_cost !== null ? number_format((float)$unit_cost, 2, '.', '') : '';
     }
-} else {
-    echo json_encode(['unit_cost' => '']);
+    $stmt->close();
 }
+
+echo json_encode(['unit_cost' => $unit_cost]);
 ?>

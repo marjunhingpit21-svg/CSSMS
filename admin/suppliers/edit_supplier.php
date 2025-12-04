@@ -1,6 +1,6 @@
 <?php
 include '../includes/auth.php';
-include '../db.php';
+include '../includes/db.php';
 
 $supplier_id = $_GET['id'] ?? 0;
 $supplier_id = (int)$supplier_id;

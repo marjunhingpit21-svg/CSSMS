@@ -1,6 +1,6 @@
 <?php
 include '../includes/auth.php';
-include '../db.php';
+include '../includes/db.php';
 
 // Fetch total suppliers count
 $totalSuppliers = 0;

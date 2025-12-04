@@ -1,6 +1,6 @@
 <?php 
 include '../includes/auth.php';
-include '../db.php';
+include dirname(__DIR__, 2) . '/includes/db.php';
 ?>
 
 <!DOCTYPE html>

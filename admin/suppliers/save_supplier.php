@@ -1,6 +1,6 @@
 <?php
 include '../includes/auth.php';
-include '../db.php';
+include '../includes/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $supplier_name = trim($_POST['supplier_name']);

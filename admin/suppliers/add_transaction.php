@@ -1,6 +1,6 @@
 <?php
 include '../includes/auth.php';
-include '../db.php';
+include '../includes/db.php';
 
 $supplier_id = isset($_GET['supplier_id']) ? (int)$_GET['supplier_id'] : 0;
 if ($supplier_id <= 0) {
@@ -125,22 +125,23 @@ $stmt->close();
                                     <option value="">-- Select Existing Product --</option>
                                     <?php
                                     $products = $conn->query("
-                                        SELECT p.product_id, p.product_name, c.category_name 
+                                        SELECT p.product_id, p.product_name, c.category_name, c.category_id
                                         FROM products p 
                                         JOIN categories c ON p.category_id = c.category_id 
                                         ORDER BY p.product_name
                                     ");
                                     while ($p = $products->fetch_assoc()) {
-                                        $isShoe = ($p['category_name'] === 'Shoes');
-                                        echo "<option value='{$p['product_id']}' data-is-shoe='" . ($isShoe ? '1' : '0') . "'>" . 
-                                             htmlspecialchars($p['product_name']) . " (" . htmlspecialchars($p['category_name']) . ")</option>";
+                                        $isShoeCategory = ($p['category_id'] == 5); // 5 = Shoes
+                                        echo "<option value='{$p['product_id']}' 
+                                                data-is-shoe='" . ($isShoeCategory ? '1' : '0') . "'
+                                                data-category-id='{$p['category_id']}'>" . 
+                                            htmlspecialchars($p['product_name']) . "</option>";
                                     }
                                     ?>
                                     <option value="new">➕ Add New Product (Not in list)</option>
                                 </select>
                             </div>
 
-                            <!-- Replace the existing <div class="new-product-fields"> block with this enhanced version -->
                             <div class="new-product-fields" id="newProductFields0">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div class="form-group">
@@ -155,8 +156,9 @@ $stmt->close();
                                             <?php
                                             $cats = $conn->query("SELECT category_id, category_name FROM categories ORDER BY category_name");
                                             while ($c = $cats->fetch_assoc()) {
-                                                $isShoe = in_array($c['category_name'], ['Shoes', 'Footwear']);
-                                                echo "<option value='{$c['category_id']}' data-is-shoe='" . ($isShoe ? '1' : '0') . "'>{$c['category_name']}</option>";
+                                                $isShoeCategory = ($c['category_id'] == 5); // Shoes category
+                                                echo "<option value='{$c['category_id']}' 
+                                                        data-is-shoe='" . ($isShoeCategory ? '1' : '0') . "'>{$c['category_name']}</option>";
                                             }
                                             ?>
                                         </select>
@@ -203,43 +205,9 @@ $stmt->close();
                                         <textarea name="items[0][new_description]" rows="2" placeholder="Optional product description..."></textarea>
                                     </div>
 
-                                    <!-- Image Upload (Optional but recommended) -->
                                     <div class="form-group col-span-2">
                                         <label>Product Image <small class="text-gray-400">(Optional, max 5MB)</small></label>
                                         <input type="file" name="items[0][new_product_image]" accept="image/*">
-                                    </div>
-
-                                    <!-- Size Variants Section -->
-                                    <div class="col-span-2 mt-4 p-4 bg-gray-800 rounded-lg border border-gray-700">
-                                        <h4 class="text-lg font-semibold mb-3 flex items-center gap-2">
-                                            <i class="fas fa-ruler"></i> Size Variants (Add at least one)
-                                        </h4>
-                                        <div class="new-size-variants space-y-3">
-                                            <div class="variant-row grid grid-cols-12 gap-3 items-end">
-                                                <div class="col-span-4">
-                                                    <label>Size</label>
-                                                    <select name="items[0][new_sizes][0][size]" class="new-size-select w-full" required>
-                                                        <option value="">Select size...</option>
-                                                    </select>
-                                                </div>
-                                                <div class="col-span-3">
-                                                    <label>Qty Received</label>
-                                                    <input type="number" name="items[0][new_sizes][0][quantity]" min="1" value="1" required>
-                                                </div>
-                                                <div class="col-span-4">
-                                                    <label>Price Adjustment (±₱)</label>
-                                                    <input type="number" step="0.01" name="items[0][new_sizes][0][price_adj]" value="0.00">
-                                                </div>
-                                                <div class="col-span-1 text-center">
-                                                    <button type="button" class="text-red-400 hover:text-red-300 remove-variant" title="Remove">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button type="button" class="text-sm text-violet-400 hover:text-violet-300 mt-3 add-new-variant">
-                                            <i class="fas fa-plus"></i> Add Another Size
-                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -247,7 +215,7 @@ $stmt->close();
                             <div class="form-group">
                                 <label>Size / Variant</label>
                                 <select name="items[0][size_id]" class="size-select" required>
-                                    <option value="">-- Select Size --</option>
+                                    <option value="">-- Select Product First --</option>
                                 </select>
                             </div>
 
@@ -258,7 +226,7 @@ $stmt->close();
 
                             <div class="form-group">
                                 <label>Unit Cost (₱)</label>
-                                <input type="number" step="0.01" name="items[0][unit_cost]" class="cost-input cost-locked" readonly required>
+                                <input type="number" step="0.01" name="items[0][unit_cost]" class="cost-input" required>
                             </div>
 
                             <div class="form-group">
@@ -289,210 +257,179 @@ $stmt->close();
     </main>
 
     <script>
-        let itemIndex = 1;
+// ==== FIXED & WORKING SCRIPT FOR add_transaction.php ====
+let itemIndex = 1;
 
-        // Load sizes based on product category
-        async function loadSizes(selectElement, isShoe) {
-            const sizeSelect = selectElement.closest('.line-item').querySelector('.size-select');
-            sizeSelect.innerHTML = '<option value="">-- Loading sizes... --</option>';
+async function loadSizes(lineItem) {
+    const sizeSelect = lineItem.querySelector('.size-select');
+    sizeSelect.innerHTML = '<option value="">-- Loading sizes... --</option>';
+    sizeSelect.disabled = true;
 
-            const url = isShoe 
-                ? 'ajax/get_shoe_sizes.php' 
-                : 'ajax/get_clothing_sizes.php';
+    const productSelect = lineItem.querySelector('.product-select');
+    const productId = productSelect.value;
 
-            const response = await fetch(url);
+    // For existing products, use get_product_sizes.php
+    if (productId && productId !== 'new') {
+        try {
+            const response = await fetch(`ajax/get_product_sizes.php?product_id=${productId}`);
             const sizes = await response.json();
-
+            
             sizeSelect.innerHTML = '<option value="">-- Select Size --</option>';
             sizes.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.id;
-                opt.textContent = s.name;
-                sizeSelect.appendChild(opt);
+                const opt = new Option(s.size_name, s.product_size_id);
+                sizeSelect.add(opt);
             });
+        } catch (error) {
+            console.error('Error loading sizes:', error);
+            sizeSelect.innerHTML = '<option value="">-- Error loading sizes --</option>';
         }
-
-        // Load unit cost for product_size
-        async function loadUnitCost(productId, sizeId, costInput) {
-            if (!productId || productId === 'new' || !sizeId) {
-                costInput.value = '';
-                costInput.readOnly = false;
-                costInput.classList.remove('cost-locked');
-                return;
-            }
-
-            const response = await fetch(`ajax/get_unit_cost.php?product_id=${productId}&size_id=${sizeId}`);
-            const data = await response.json();
-            costInput.value = data.unit_cost || '';
-            costInput.readOnly = !!data.unit_cost;
-            costInput.classList.toggle('cost-locked', !!data.unit_cost);
-        }
-
-        // Handle product change
-        document.addEventListener('change', function(e) {
-            if (e.target.classList.contains('product-select')) {
-                const lineItem = e.target.closest('.line-item');
-                const productId = e.target.value;
-                const isShoe = e.target.selectedOptions[0]?.dataset.isShoe === '1';
-                const newProductFields = lineItem.querySelector('.new-product-fields');
-                const sizeSelect = lineItem.querySelector('.size-select');
-                const costInput = lineItem.querySelector('.cost-input');
-
-                if (productId === 'new') {
-                    newProductFields.style.display = 'block';
-                    sizeSelect.innerHTML = '<option value="">-- Select Size After Saving Product --</option>';
-                    sizeSelect.disabled = true;
-                    costInput.readOnly = false;
-                    costInput.classList.remove('cost-locked');
-                } else {
-                    newProductFields.style.display = 'none';
-                    sizeSelect.disabled = false;
-                    loadSizes(e.target, isShoe);
-                    loadUnitCost(productId, sizeSelect.value, costInput);
-                }
-            }
-
-            if (e.target.classList.contains('size-select')) {
-                const lineItem = e.target.closest('.line-item');
-                const productSelect = lineItem.querySelector('.product-select');
-                const costInput = lineItem.querySelector('.cost-input');
-                if (productSelect.value && productSelect.value !== 'new') {
-                    loadUnitCost(productSelect.value, e.target.value, costInput);
-                }
-            }
-        });
-
-        // Add new item row
-        document.getElementById('addItemBtn').addEventListener('click', function() {
-            const container = document.getElementById('lineItems');
-            const firstItem = container.children[0];
-            const newItem = firstItem.cloneNode(true);
-
-            newItem.dataset.index = itemIndex;
-
-            // Reset values
-            newItem.querySelectorAll('input, select').forEach(el => {
-                if (el.name) {
-                    el.name = el.name.replace(/\[\d+\]/, '[' + itemIndex + ']');
-                }
-                if (!el.classList.contains('cost-input')) el.value = '';
-                if (el.type === 'number' && el.name.includes('quantity')) el.value = 1;
+    }
+    // For new products, dynamically load sizes based on category
+    else if (productId === 'new') {
+        const catSel = lineItem.querySelector('select[name$="[new_category_id]"]');
+        const ageSel = lineItem.querySelector('select[name$="[new_age_group_id]"]');
+        const genSel = lineItem.querySelector('select[name$="[new_gender_id]"]');
+        
+        const category_id = catSel?.value || null;
+        const age_group_id = ageSel?.value || null;
+        const gender_id = genSel?.value || null;
+        
+        const isShoeCategory = (category_id == '5');
+        
+        let apiUrl = isShoeCategory ? 'ajax/get_shoe_sizes.php' : 'ajax/get_clothing_sizes.php';
+        const params = new URLSearchParams();
+        
+        if (age_group_id) params.append('age_group_id', age_group_id);
+        if (gender_id) params.append('gender_id', gender_id);
+        
+        try {
+            const queryString = params.toString() ? `?${params.toString()}` : '';
+            const response = await fetch(`${apiUrl}${queryString}`);
+            const sizes = await response.json();
+            
+            sizeSelect.innerHTML = '<option value="">-- Select Size --</option>';
+            sizes.forEach(s => {
+                const opt = new Option(s.name, s.id);
+                sizeSelect.add(opt);
             });
-
-            newItem.querySelector('.remove-item').style.display = 'inline-block';
-            newItem.querySelector('.line-total').textContent = '0.00';
-            newItem.querySelector('.new-product-fields').style.display = 'none';
-            newItem.querySelector('.new-product-fields').id = 'newProductFields' + itemIndex;
-
-            container.appendChild(newItem);
-            itemIndex++;
-            updateSummary();
-        });
-
-        function removeItem(btn) {
-            if (document.querySelectorAll('.line-item').length > 1) {
-                btn.closest('.line-item').remove();
-                updateSummary();
-            }
+        } catch (error) {
+            console.error('Error loading sizes:', error);
+            sizeSelect.innerHTML = '<option value="">-- Error loading sizes --</option>';
         }
+    }
+    
+    sizeSelect.disabled = false;
+}
 
-        function updateSummary() {
-            let totalQty = 0;
-            let grandTotal = 0;
+// Add new line item
+document.getElementById('addItemBtn').addEventListener('click', () => {
+    const container = document.getElementById('lineItems');
+    const clone = container.children[0].cloneNode(true);
 
-            document.querySelectorAll('.line-item').forEach(item => {
-                const qty = parseFloat(item.querySelector('.qty-input').value) || 0;
-                const cost = parseFloat(item.querySelector('.cost-input').value) || 0;
-                const lineTotal = qty * cost;
+    clone.dataset.index = itemIndex;
 
-                item.querySelector('.line-total').textContent = lineTotal.toFixed(2);
-                totalQty += qty;
-                grandTotal += lineTotal;
-            });
-
-            document.getElementById('totalItems').textContent = document.querySelectorAll('.line-item').length;
-            document.getElementById('totalQty').textContent = totalQty;
-            document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
+    // Reset all fields
+    clone.querySelectorAll('input, select, textarea').forEach(el => {
+        const name = el.name?.replace(/\[\d+\]/, `[${itemIndex}]`) || '';
+        el.name = name;
+        el.value = (el.classList.contains('qty-input')) ? 1 : '';
+        if (el.classList.contains('cost-input')) {
+            el.readOnly = false;
+            el.classList.remove('cost-locked');
         }
+    });
 
-        document.getElementById('purchaseForm').addEventListener('input', updateSummary);
+    clone.querySelector('.size-select').innerHTML = '<option value="">-- Select Product First --</option>';
+    clone.querySelector('.new-product-fields').style.display = 'none';
+    clone.querySelector('.remove-item').style.display = 'inline-block';
+    clone.querySelector('.line-total').textContent = '0.00';
+
+    container.appendChild(clone);
+    itemIndex++;
+    updateSummary();
+});
+
+function removeItem(btn) {
+    if (document.querySelectorAll('.line-item').length > 1) {
+        btn.closest('.line-item').remove();
         updateSummary();
-    </script>
+    }
+}
 
-    <script>
-    // Enhanced handling for new product + size variants
-    document.addEventListener('change', function(e) {
-        if (e.target.classList.contains('new-category-select')) {
-            const lineItem = e.target.closest('.line-item');
-            const categorySelect = e.target;
-            const isShoe = categorySelect.selectedOptions[0]?.dataset.isShoe === '1';
-            const sizeSelects = lineItem.querySelectorAll('.new-size-select');
+function updateSummary() {
+    let totalQty = 0, grandTotal = 0;
+    document.querySelectorAll('.line-item').forEach(item => {
+        const qty = parseFloat(item.querySelector('.qty-input').value) || 0;
+        const cost = parseFloat(item.querySelector('.cost-input').value) || 0;
+        const lineTotal = qty * cost;
+        item.querySelector('.line-total').textContent = lineTotal.toFixed(2);
+        totalQty += qty;
+        grandTotal += lineTotal;
+    });
+    document.getElementById('totalItems').textContent = document.querySelectorAll('.line-item').length;
+    document.getElementById('totalQty').textContent = totalQty;
+    document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
+}
 
-            sizeSelects.forEach(select => {
-                const currentVal = select.value;
-                select.innerHTML = '<option value="">Loading sizes...</option>';
+// Product / Age Group change → reload sizes
+document.addEventListener('change', e => {
+    const lineItem = e.target.closest('.line-item');
+    if (!lineItem) return;
 
-                const url = isShoe ? 'ajax/get_shoe_sizes.php' : 'ajax/get_clothing_sizes.php';
-                fetch(url)
-                    .then(r => r.json())
-                    .then(sizes => {
-                        select.innerHTML = '<option value="">Select size...</option>';
-                        sizes.forEach(s => {
-                            const opt = new Option(s.name, s.id);
-                            select.add(opt);
-                        });
-                        select.value = currentVal;
-                    });
-            });
+    if (e.target.classList.contains('product-select')) {
+        const val = e.target.value;
+        lineItem.querySelector('.new-product-fields').style.display = val === 'new' ? 'block' : 'none';
+        loadSizes(lineItem);
+    }
+
+    if (e.target.name?.includes('new_age_group_id') || 
+        e.target.name?.includes('new_gender_id') ||
+        e.target.classList.contains('new-category-select')) {
+        const prodSel = lineItem.querySelector('.product-select');
+        if (prodSel.value === 'new') loadSizes(lineItem);
+    }
+
+    if (e.target.classList.contains('qty-input') || e.target.classList.contains('cost-input')) {
+        updateSummary();
+    }
+});
+
+// FINAL FIX: Prevent default only if validation fails
+document.getElementById('purchaseForm').addEventListener('submit', function(e) {
+    let valid = true;
+
+    document.querySelectorAll('.line-item').forEach(item => {
+        const prod = item.querySelector('.product-select').value;
+        const size = item.querySelector('.size-select').value;
+        const qty  = item.querySelector('.qty-input').value;
+        const cost = item.querySelector('.cost-input').value;
+
+        if (!prod || !size || !qty || !cost) {
+            valid = false;
+        }
+
+        // For new products → required fields
+        if (prod === 'new') {
+            const name = item.querySelector('input[name$="[new_product_name]"]');
+            const cat  = item.querySelector('select[name$="[new_category_id]"]');
+            const price = item.querySelector('input[name$="[new_selling_price]"]');
+            if (!name?.value || !cat?.value || !price?.value) valid = false;
         }
     });
 
-    // Add another size variant in new product
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.add-new-variant')) {
-            const container = e.target.closest('.new-size-variants');
-            const index = container.children.length;
-            const lineItem = e.target.closest('.line-item');
-            const itemIdx = lineItem.dataset.index;
+    if (!valid) {
+        e.preventDefault();
+        alert('Please fill in all required fields (Product, Size, Qty, Cost)');
+        return false;
+    }
 
-            const row = document.createElement('div');
-            row.className = 'variant-row grid grid-cols-12 gap-3 items-end mt-3';
-            row.innerHTML = `
-                <div class="col-span-4">
-                    <select name="items[${itemIdx}][new_sizes][${index}][size]" class="new-size-select w-full" required>
-                        <option value="">Select size...</option>
-                    </select>
-                </div>
-                <div class="col-span-3">
-                    <input type="number" name="items[${itemIdx}][new_sizes][${index}][quantity]" min="1" value="1" required>
-                </div>
-                <div class="col-span-4">
-                    <input type="number" step="0.01" name="items[${itemIdx}][new_sizes][${index}][price_adj]" value="0.00">
-                </div>
-                <div class="col-span-1 text-center">
-                    <button type="button" class="text-red-400 hover:text-red-300 remove-variant"><i class="fas fa-trash"></i></button>
-                </div>
-            `;
+    // Optional: show loading state
+    const btn = this.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+});
 
-            // Load sizes based on selected category
-            const categorySelect = lineItem.querySelector('.new-category-select');
-            if (categorySelect?.value) {
-                const isShoe = categorySelect.selectedOptions[0].dataset.isShoe === '1';
-                const url = isShoe ? 'ajax/get_shoe_sizes.php' : 'ajax/get_clothing_sizes.php';
-                fetch(url).then(r => r.json()).then(sizes => {
-                    const select = row.querySelector('.new-size-select');
-                    select.innerHTML = '<option value="">Select size...</option>';
-                    sizes.forEach(s => select.add(new Option(s.name, s.id)));
-                });
-            }
-
-            container.appendChild(row);
-        }
-
-        if (e.target.closest('.remove-variant')) {
-            e.target.closest('.variant-row').remove();
-        }
-    });
-    </script>
+updateSummary(); // initial call
+</script>
 </body>
 </html>

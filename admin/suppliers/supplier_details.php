@@ -1,6 +1,6 @@
 <?php
 include '../includes/auth.php';
-include '../db.php';
+include '../includes/db.php';
 
 $supplier_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($supplier_id <= 0) die("Invalid supplier ID");
