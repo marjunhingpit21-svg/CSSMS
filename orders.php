@@ -2,6 +2,11 @@
 include 'Database/db.php';
 session_start();
 
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // Redirect to login if not logged in
 if (!isset($_SESSION['user_id'])) {
     header('Location: cart.php');
@@ -87,8 +92,98 @@ if (isset($_POST['mark_received'])) {
     exit();
 }
 
+// Function to create thumbnail
+function createThumbnail($source_path, $dest_path, $width, $height) {
+    $source_info = getimagesize($source_path);
+    $source_type = $source_info[2];
+    
+    switch ($source_type) {
+        case IMAGETYPE_JPEG:
+            $source_image = imagecreatefromjpeg($source_path);
+            break;
+        case IMAGETYPE_PNG:
+            $source_image = imagecreatefrompng($source_path);
+            break;
+        case IMAGETYPE_GIF:
+            $source_image = imagecreatefromgif($source_path);
+            break;
+        case IMAGETYPE_WEBP:
+            $source_image = imagecreatefromwebp($source_path);
+            break;
+        default:
+            return false;
+    }
+    
+    $source_width = imagesx($source_image);
+    $source_height = imagesy($source_image);
+    
+    // Calculate aspect ratio
+    $source_ratio = $source_width / $source_height;
+    $thumb_ratio = $width / $height;
+    
+    if ($source_ratio > $thumb_ratio) {
+        // Source is wider
+        $new_height = $height;
+        $new_width = (int) ($height * $source_ratio);
+    } else {
+        // Source is taller or equal
+        $new_width = $width;
+        $new_height = (int) ($width / $source_ratio);
+    }
+    
+    // Create new image with transparent background for PNG/GIF
+    $thumb_image = imagecreatetruecolor($width, $height);
+    
+    // For PNG and GIF, preserve transparency
+    if ($source_type == IMAGETYPE_PNG || $source_type == IMAGETYPE_GIF) {
+        imagealphablending($thumb_image, false);
+        imagesavealpha($thumb_image, true);
+        $transparent = imagecolorallocatealpha($thumb_image, 255, 255, 255, 127);
+        imagefilledrectangle($thumb_image, 0, 0, $width, $height, $transparent);
+    } else {
+        // For JPEG, use white background
+        $white = imagecolorallocate($thumb_image, 255, 255, 255);
+        imagefilledrectangle($thumb_image, 0, 0, $width, $height, $white);
+    }
+    
+    // Resize and center the image
+    $x_offset = ($width - $new_width) / 2;
+    $y_offset = ($height - $new_height) / 2;
+    
+    imagecopyresampled(
+        $thumb_image, $source_image,
+        $x_offset, $y_offset, 0, 0,
+        $new_width, $new_height, $source_width, $source_height
+    );
+    
+    // Save the thumbnail
+    switch ($source_type) {
+        case IMAGETYPE_JPEG:
+            imagejpeg($thumb_image, $dest_path, 85);
+            break;
+        case IMAGETYPE_PNG:
+            imagepng($thumb_image, $dest_path, 8);
+            break;
+        case IMAGETYPE_GIF:
+            imagegif($thumb_image, $dest_path);
+            break;
+        case IMAGETYPE_WEBP:
+            imagewebp($thumb_image, $dest_path, 85);
+            break;
+    }
+    
+    imagedestroy($source_image);
+    imagedestroy($thumb_image);
+    
+    return true;
+}
+
 // Handle submit rating with images
 if (isset($_POST['submit_rating'])) {
+    // Debug logging
+    error_log("Rating submission received for order: " . $_POST['order_id']);
+    error_log("POST data keys: " . implode(', ', array_keys($_POST)));
+    
     $order_id = intval($_POST['order_id']);
     $user_id = $_SESSION['user_id'];
     
@@ -102,11 +197,23 @@ if (isset($_POST['submit_rating'])) {
         $customer = $customer_result->fetch_assoc();
         $customer_id = $customer['customer_id'];
         
-        // Get order items for this order
+        // Get order items for this order with proper size information
         $items_stmt = $conn->prepare("
-            SELECT oi.order_item_id, oi.order_id, i.product_id, i.size_id, i.shoe_size_id
+            SELECT 
+                oi.order_item_id, 
+                oi.order_id, 
+                i.product_id,
+                ps.product_size_id
             FROM order_items oi
             INNER JOIN inventory i ON oi.inventory_id = i.inventory_id
+            LEFT JOIN product_sizes ps ON (
+                ps.product_id = i.product_id 
+                AND (
+                    (ps.clothing_size_id = i.size_id AND i.size_id IS NOT NULL)
+                    OR 
+                    (ps.shoe_size_id = i.shoe_size_id AND i.shoe_size_id IS NOT NULL)
+                )
+            )
             WHERE oi.order_id = ?
         ");
         $items_stmt->bind_param("i", $order_id);
@@ -117,59 +224,57 @@ if (isset($_POST['submit_rating'])) {
         $total_items = 0;
         
         // Create upload directory if it doesn't exist
-        $upload_dir = 'uploads/reviews/';
+        $upload_dir = 'ratingimages/';
         if (!file_exists($upload_dir)) {
             mkdir($upload_dir, 0777, true);
         }
         
+        // Create thumbnails directory
+        $thumbnail_dir = $upload_dir . 'thumbnails/';
+        if (!file_exists($thumbnail_dir)) {
+            mkdir($thumbnail_dir, 0777, true);
+        }
+        
         while ($item = $items_result->fetch_assoc()) {
             $total_items++;
+            $order_item_id = $item['order_item_id'];
+            $product_id = $item['product_id'];
+            $product_size_id = $item['product_size_id']; // May be NULL
+            
+            error_log("Processing item - order_item_id: {$order_item_id}, product_id: {$product_id}, product_size_id: " . ($product_size_id ?? 'NULL'));
             
             // Check if rating already exists for this order item
             $check_rating_stmt = $conn->prepare("
                 SELECT rating_id FROM product_ratings WHERE order_item_id = ?
             ");
-            $check_rating_stmt->bind_param("i", $item['order_item_id']);
+            $check_rating_stmt->bind_param("i", $order_item_id);
             $check_rating_stmt->execute();
             $check_rating_result = $check_rating_stmt->get_result();
             
             if ($check_rating_result->num_rows == 0) {
-                // Get product size ID
-                $size_stmt = $conn->prepare("
-                    SELECT ps.product_size_id 
-                    FROM product_sizes ps 
-                    WHERE ps.product_id = ? 
-                    AND (ps.clothing_size_id = ? OR ps.shoe_size_id = ?)
-                    LIMIT 1
-                ");
-                $size_stmt->bind_param("iii", $item['product_id'], $item['size_id'], $item['shoe_size_id']);
-                $size_stmt->execute();
-                $size_result = $size_stmt->get_result();
-                $product_size_id = null;
-                if ($size_result->num_rows > 0) {
-                    $size_data = $size_result->fetch_assoc();
-                    $product_size_id = $size_data['product_size_id'];
-                }
-                $size_stmt->close();
+                // Get form field names for this order item
+                $rating_key = "rating_{$order_item_id}";
+                $review_title_key = "review_title_{$order_item_id}";
+                $review_text_key = "review_text_{$order_item_id}";
+                $quality_key = "quality_{$order_item_id}";
+                $fit_key = "fit_{$order_item_id}";
+                $value_key = "value_{$order_item_id}";
+                $recommend_key = "recommend_{$order_item_id}";
                 
-                // Insert rating for this product
-                $rating_key = "rating_{$item['order_item_id']}";
-                $review_title_key = "review_title_{$item['order_item_id']}";
-                $review_text_key = "review_text_{$item['order_item_id']}";
-                $quality_key = "quality_{$item['order_item_id']}";
-                $fit_key = "fit_{$item['order_item_id']}";
-                $value_key = "value_{$item['order_item_id']}";
-                $recommend_key = "recommend_{$item['order_item_id']}";
-                
-                $rating = intval($_POST[$rating_key] ?? 0);
+                // Get values from POST
+                $rating = isset($_POST[$rating_key]) ? intval($_POST[$rating_key]) : 0;
                 $review_title = trim($_POST[$review_title_key] ?? '');
                 $review_text = trim($_POST[$review_text_key] ?? '');
-                $quality_rating = intval($_POST[$quality_key] ?? 0);
-                $fit_rating = intval($_POST[$fit_key] ?? 0);
-                $value_rating = intval($_POST[$value_key] ?? 0);
+                $quality_rating = isset($_POST[$quality_key]) ? intval($_POST[$quality_key]) : 0;
+                $fit_rating = isset($_POST[$fit_key]) ? intval($_POST[$fit_key]) : 0;
+                $value_rating = isset($_POST[$value_key]) ? intval($_POST[$value_key]) : 0;
                 $would_recommend = isset($_POST[$recommend_key]) ? 1 : 0;
                 
+                error_log("Rating data for order_item_id {$order_item_id}: rating={$rating}, quality={$quality_rating}, fit={$fit_rating}, value={$value_rating}");
+                
+                // Only process if rating is provided (minimum requirement)
                 if ($rating > 0) {
+                    // Prepare insert statement - use NULL for product_size_id if not available
                     $insert_stmt = $conn->prepare("
                         INSERT INTO product_ratings (
                             order_id, order_item_id, customer_id, product_id, product_size_id,
@@ -177,12 +282,13 @@ if (isset($_POST['submit_rating'])) {
                             value_rating, would_recommend, verified_purchase, status
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'approved')
                     ");
+                    
                     $insert_stmt->bind_param(
                         "iiiiisssiiii",
                         $order_id,
-                        $item['order_item_id'],
+                        $order_item_id,
                         $customer_id,
-                        $item['product_id'],
+                        $product_id,
                         $product_size_id,
                         $rating,
                         $review_title,
@@ -196,11 +302,13 @@ if (isset($_POST['submit_rating'])) {
                     if ($insert_stmt->execute()) {
                         $rating_id = $insert_stmt->insert_id;
                         $success_count++;
+                        error_log("Successfully inserted rating ID: {$rating_id}");
                         
                         // Handle image uploads for this rating
-                        $image_input_name = "rating_images_{$item['order_item_id']}";
+                        $image_input_name = "rating_images_{$order_item_id}";
                         if (isset($_FILES[$image_input_name]) && is_array($_FILES[$image_input_name]['name'])) {
                             $image_count = count($_FILES[$image_input_name]['name']);
+                            error_log("Found {$image_count} images for rating");
                             
                             for ($i = 0; $i < $image_count; $i++) {
                                 if ($_FILES[$image_input_name]['error'][$i] === UPLOAD_ERR_OK) {
@@ -215,35 +323,67 @@ if (isset($_POST['submit_rating'])) {
                                     
                                     if (in_array($file_type, $allowed_types) && $file_size <= $max_size) {
                                         // Generate unique filename
-                                        $file_ext = pathinfo($file_name, PATHINFO_EXTENSION);
+                                        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
                                         $unique_name = uniqid() . '_' . time() . '.' . $file_ext;
                                         $upload_path = $upload_dir . $unique_name;
                                         
                                         if (move_uploaded_file($file_tmp, $upload_path)) {
+                                            // Create thumbnail
+                                            $thumbnail_path = $thumbnail_dir . 'thumb_' . $unique_name;
+                                            createThumbnail($upload_path, $thumbnail_path, 300, 300);
+                                            
                                             // Insert image record into database
                                             $image_stmt = $conn->prepare("
-                                                INSERT INTO rating_images (rating_id, image_url, image_order) 
-                                                VALUES (?, ?, ?)
+                                                INSERT INTO rating_images 
+                                                (rating_id, image_url, thumbnail_url, file_name, file_size, file_type, image_order) 
+                                                VALUES (?, ?, ?, ?, ?, ?, ?)
                                             ");
+                                            $image_url = $upload_path;
+                                            $thumbnail_url = $thumbnail_path;
                                             $image_order = $i + 1;
-                                            $image_stmt->bind_param("isi", $rating_id, $upload_path, $image_order);
-                                            $image_stmt->execute();
+                                            $image_stmt->bind_param(
+                                                "isssisi", 
+                                                $rating_id, 
+                                                $image_url, 
+                                                $thumbnail_url,
+                                                $file_name,
+                                                $file_size,
+                                                $file_type,
+                                                $image_order
+                                            );
+                                            
+                                            if ($image_stmt->execute()) {
+                                                error_log("Successfully saved image: {$file_name}");
+                                            } else {
+                                                error_log("Failed to save image record: " . $image_stmt->error);
+                                            }
                                             $image_stmt->close();
+                                        } else {
+                                            error_log("Failed to move uploaded file: " . $file_name);
                                         }
+                                    } else {
+                                        error_log("Invalid file type or size: " . $file_name);
                                     }
                                 }
                             }
                         }
+                    } else {
+                        error_log("Failed to insert rating: " . $insert_stmt->error);
                     }
                     $insert_stmt->close();
+                } else {
+                    error_log("Rating is 0 or not set for order_item_id {$order_item_id}");
                 }
+            } else {
+                error_log("Rating already exists for order_item_id {$order_item_id}");
             }
             $check_rating_stmt->close();
         }
         $items_stmt->close();
         
+        error_log("Total items: {$total_items}, Success count: {$success_count}");
+        
         // UPDATE ORDER STATUS TO COMPLETED
-        // Check if all items have been rated (or at least one was rated successfully)
         if ($success_count > 0) {
             // Update order status to 'completed'
             $update_order_stmt = $conn->prepare("
@@ -254,15 +394,17 @@ if (isset($_POST['submit_rating'])) {
             $update_order_stmt->bind_param("ii", $order_id, $customer_id);
             
             if ($update_order_stmt->execute()) {
-                $_SESSION['success_message'] = "Thank you! Your $success_count rating(s) have been submitted. Order marked as completed!";
+                $_SESSION['success_message'] = "Thank you! Your {$success_count} rating(s) have been submitted successfully. Order marked as completed!";
             } else {
-                $_SESSION['success_message'] = "Thank you! Your $success_count rating(s) have been submitted.";
-                $_SESSION['error_message'] = 'Could not update order status.';
+                $_SESSION['success_message'] = "Thank you! Your {$success_count} rating(s) have been submitted.";
+                error_log('Could not update order status: ' . $update_order_stmt->error);
             }
             $update_order_stmt->close();
         } else {
             $_SESSION['error_message'] = 'No ratings were submitted. Please make sure to rate at least one product.';
         }
+    } else {
+        $_SESSION['error_message'] = 'Customer account not found.';
     }
     $customer_stmt->close();
     
@@ -909,6 +1051,21 @@ foreach ($orders as $order) {
             color: #ffd700;
         }
 
+        /* Required star */
+        .required-star {
+            color: #f44336;
+            font-weight: bold;
+            margin-left: 3px;
+        }
+
+        /* Rating error */
+        .rating-error {
+            color: #f44336;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: none;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .rating-modal-content {
@@ -1366,19 +1523,22 @@ foreach ($orders as $order) {
                                 <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                                 </svg>
-                                Overall Rating
+                                Overall Rating <span class="required-star">*</span>
                             </div>
-                            <div class="star-rating" data-name="rating_${item.order_item_id}">
+                            <div class="star-rating">
                                 <input type="radio" id="rating_${item.order_item_id}_5" name="rating_${item.order_item_id}" value="5">
-                                <label for="rating_${item.order_item_id}_5">★</label>
+                                <label for="rating_${item.order_item_id}_5" data-value="5">★</label>
                                 <input type="radio" id="rating_${item.order_item_id}_4" name="rating_${item.order_item_id}" value="4">
-                                <label for="rating_${item.order_item_id}_4">★</label>
+                                <label for="rating_${item.order_item_id}_4" data-value="4">★</label>
                                 <input type="radio" id="rating_${item.order_item_id}_3" name="rating_${item.order_item_id}" value="3">
-                                <label for="rating_${item.order_item_id}_3">★</label>
+                                <label for="rating_${item.order_item_id}_3" data-value="3">★</label>
                                 <input type="radio" id="rating_${item.order_item_id}_2" name="rating_${item.order_item_id}" value="2">
-                                <label for="rating_${item.order_item_id}_2">★</label>
+                                <label for="rating_${item.order_item_id}_2" data-value="2">★</label>
                                 <input type="radio" id="rating_${item.order_item_id}_1" name="rating_${item.order_item_id}" value="1">
-                                <label for="rating_${item.order_item_id}_1">★</label>
+                                <label for="rating_${item.order_item_id}_1" data-value="1">★</label>
+                            </div>
+                            <div class="rating-error" id="rating_error_${item.order_item_id}" style="color: #f44336; font-size: 0.85rem; margin-top: 5px; display: none;">
+                                Please select an overall rating
                             </div>
                         </div>
                         
@@ -1386,49 +1546,49 @@ foreach ($orders as $order) {
                         <div class="detail-ratings">
                             <div class="rating-section">
                                 <div class="rating-section-title">Quality</div>
-                                <div class="star-rating" data-name="quality_${item.order_item_id}">
+                                <div class="star-rating">
                                     <input type="radio" id="quality_${item.order_item_id}_5" name="quality_${item.order_item_id}" value="5">
-                                    <label for="quality_${item.order_item_id}_5">★</label>
+                                    <label for="quality_${item.order_item_id}_5" data-value="5">★</label>
                                     <input type="radio" id="quality_${item.order_item_id}_4" name="quality_${item.order_item_id}" value="4">
-                                    <label for="quality_${item.order_item_id}_4">★</label>
+                                    <label for="quality_${item.order_item_id}_4" data-value="4">★</label>
                                     <input type="radio" id="quality_${item.order_item_id}_3" name="quality_${item.order_item_id}" value="3">
-                                    <label for="quality_${item.order_item_id}_3">★</label>
+                                    <label for="quality_${item.order_item_id}_3" data-value="3">★</label>
                                     <input type="radio" id="quality_${item.order_item_id}_2" name="quality_${item.order_item_id}" value="2">
-                                    <label for="quality_${item.order_item_id}_2">★</label>
+                                    <label for="quality_${item.order_item_id}_2" data-value="2">★</label>
                                     <input type="radio" id="quality_${item.order_item_id}_1" name="quality_${item.order_item_id}" value="1">
-                                    <label for="quality_${item.order_item_id}_1">★</label>
+                                    <label for="quality_${item.order_item_id}_1" data-value="1">★</label>
                                 </div>
                             </div>
                             
                             <div class="rating-section">
                                 <div class="rating-section-title">Fit (if applicable)</div>
-                                <div class="star-rating" data-name="fit_${item.order_item_id}">
+                                <div class="star-rating">
                                     <input type="radio" id="fit_${item.order_item_id}_5" name="fit_${item.order_item_id}" value="5">
-                                    <label for="fit_${item.order_item_id}_5">★</label>
+                                    <label for="fit_${item.order_item_id}_5" data-value="5">★</label>
                                     <input type="radio" id="fit_${item.order_item_id}_4" name="fit_${item.order_item_id}" value="4">
-                                    <label for="fit_${item.order_item_id}_4">★</label>
+                                    <label for="fit_${item.order_item_id}_4" data-value="4">★</label>
                                     <input type="radio" id="fit_${item.order_item_id}_3" name="fit_${item.order_item_id}" value="3">
-                                    <label for="fit_${item.order_item_id}_3">★</label>
+                                    <label for="fit_${item.order_item_id}_3" data-value="3">★</label>
                                     <input type="radio" id="fit_${item.order_item_id}_2" name="fit_${item.order_item_id}" value="2">
-                                    <label for="fit_${item.order_item_id}_2">★</label>
+                                    <label for="fit_${item.order_item_id}_2" data-value="2">★</label>
                                     <input type="radio" id="fit_${item.order_item_id}_1" name="fit_${item.order_item_id}" value="1">
-                                    <label for="fit_${item.order_item_id}_1">★</label>
+                                    <label for="fit_${item.order_item_id}_1" data-value="1">★</label>
                                 </div>
                             </div>
                             
                             <div class="rating-section">
                                 <div class="rating-section-title">Value for Money</div>
-                                <div class="star-rating" data-name="value_${item.order_item_id}">
+                                <div class="star-rating">
                                     <input type="radio" id="value_${item.order_item_id}_5" name="value_${item.order_item_id}" value="5">
-                                    <label for="value_${item.order_item_id}_5">★</label>
+                                    <label for="value_${item.order_item_id}_5" data-value="5">★</label>
                                     <input type="radio" id="value_${item.order_item_id}_4" name="value_${item.order_item_id}" value="4">
-                                    <label for="value_${item.order_item_id}_4">★</label>
+                                    <label for="value_${item.order_item_id}_4" data-value="4">★</label>
                                     <input type="radio" id="value_${item.order_item_id}_3" name="value_${item.order_item_id}" value="3">
-                                    <label for="value_${item.order_item_id}_3">★</label>
+                                    <label for="value_${item.order_item_id}_3" data-value="3">★</label>
                                     <input type="radio" id="value_${item.order_item_id}_2" name="value_${item.order_item_id}" value="2">
-                                    <label for="value_${item.order_item_id}_2">★</label>
+                                    <label for="value_${item.order_item_id}_2" data-value="2">★</label>
                                     <input type="radio" id="value_${item.order_item_id}_1" name="value_${item.order_item_id}" value="1">
-                                    <label for="value_${item.order_item_id}_1">★</label>
+                                    <label for="value_${item.order_item_id}_1" data-value="1">★</label>
                                 </div>
                             </div>
                         </div>
@@ -1492,8 +1652,22 @@ foreach ($orders as $order) {
             // Initialize star rating interactions
             initializeStarRatings();
             
+            // Add form validation - REMOVED THE PREVENT DEFAULT THAT WAS BLOCKING SUBMISSION
+            document.getElementById('ratingForm').addEventListener('submit', function(e) {
+                const hasRating = checkRatingsCompletion();
+                if (!hasRating) {
+                    e.preventDefault();
+                    alert('Please select an overall rating for at least one product.');
+                    return false;
+                }
+                return true;
+            });
+            
             // Show modal
             modal.classList.add('active');
+            
+            // Enable submit button initially
+            document.getElementById('submitRatingBtn').disabled = true;
         }
 
         function closeRatingModal() {
@@ -1581,30 +1755,82 @@ foreach ($orders as $order) {
             // Add click events to all star ratings
             document.querySelectorAll('.star-rating').forEach(ratingContainer => {
                 const inputs = ratingContainer.querySelectorAll('input[type="radio"]');
-                const labels = ratingContainer.querySelectorAll('label');
+                const labels = ratingContainer.querySelectorAll('label[data-value]');
                 
-                inputs.forEach((input, index) => {
-                    input.addEventListener('change', function() {
-                        // Update visual state
-                        labels.forEach((label, labelIndex) => {
-                            if (labelIndex <= index) {
-                                label.style.color = '#ffd700';
-                            } else {
-                                label.style.color = '#ddd';
-                            }
-                        });
+                // Add click event to labels
+                labels.forEach(label => {
+                    label.addEventListener('click', function() {
+                        const inputId = this.getAttribute('for');
+                        const input = document.getElementById(inputId);
+                        const value = this.getAttribute('data-value');
                         
-                        // Check if any product has a rating to enable submit button
-                        checkRatingsCompletion();
+                        // Check the corresponding radio button
+                        if (input) {
+                            input.checked = true;
+                            
+                            // Update visual state for all labels in this group
+                            const name = input.getAttribute('name');
+                            const allInputs = document.querySelectorAll(`input[name="${name}"]`);
+                            allInputs.forEach((inp, index) => {
+                                const labelForInput = document.querySelector(`label[for="${inp.id}"]`);
+                                if (labelForInput) {
+                                    if (parseInt(inp.value) <= parseInt(value)) {
+                                        labelForInput.style.color = '#ffd700';
+                                    } else {
+                                        labelForInput.style.color = '#ddd';
+                                    }
+                                }
+                            });
+                            
+                            // Check if this is an overall rating and update submit button
+                            if (name && name.startsWith('rating_')) {
+                                checkRatingsCompletion();
+                            }
+                        }
                     });
                 });
                 
-                // Initialize colors for pre-selected ratings (if any)
+                // Also handle direct input changes
+                inputs.forEach(input => {
+                    input.addEventListener('change', function() {
+                        const value = this.value;
+                        const name = this.getAttribute('name');
+                        
+                        // Update visual state for all labels in this group
+                        const allInputs = document.querySelectorAll(`input[name="${name}"]`);
+                        allInputs.forEach((inp, index) => {
+                            const labelForInput = document.querySelector(`label[for="${inp.id}"]`);
+                            if (labelForInput) {
+                                if (parseInt(inp.value) <= parseInt(value)) {
+                                    labelForInput.style.color = '#ffd700';
+                                } else {
+                                    labelForInput.style.color = '#ddd';
+                                }
+                            }
+                        });
+                        
+                        // Check if this is an overall rating and update submit button
+                        if (name && name.startsWith('rating_')) {
+                            checkRatingsCompletion();
+                        }
+                    });
+                });
+                
+                // Initialize colors for any pre-checked ratings (if any)
                 const checkedInput = ratingContainer.querySelector('input[type="radio"]:checked');
                 if (checkedInput) {
-                    const checkedIndex = Array.from(inputs).indexOf(checkedInput);
-                    labels.forEach((label, labelIndex) => {
-                        label.style.color = labelIndex <= checkedIndex ? '#ffd700' : '#ddd';
+                    const value = checkedInput.value;
+                    const name = checkedInput.getAttribute('name');
+                    const allInputs = document.querySelectorAll(`input[name="${name}"]`);
+                    allInputs.forEach((inp, index) => {
+                        const labelForInput = document.querySelector(`label[for="${inp.id}"]`);
+                        if (labelForInput) {
+                            if (parseInt(inp.value) <= parseInt(value)) {
+                                labelForInput.style.color = '#ffd700';
+                            } else {
+                                labelForInput.style.color = '#ddd';
+                            }
+                        }
                     });
                 }
             });
@@ -1617,15 +1843,26 @@ foreach ($orders as $order) {
             const submitBtn = document.getElementById('submitRatingBtn');
             let hasRating = false;
             
-            // Check if any product has an overall rating
+            // Check each product for overall rating
             document.querySelectorAll('.rating-product-item').forEach(product => {
-                const overallRating = product.querySelector('input[name^="rating_"]:checked');
-                if (overallRating && overallRating.value > 0) {
+                const orderItemId = product.getAttribute('data-order-item-id');
+                const overallRating = product.querySelector(`input[name="rating_${orderItemId}"]:checked`);
+                const errorElement = document.getElementById(`rating_error_${orderItemId}`);
+                
+                if (overallRating && parseInt(overallRating.value) > 0) {
                     hasRating = true;
+                    if (errorElement) {
+                        errorElement.style.display = 'none';
+                    }
+                } else {
+                    if (errorElement) {
+                        errorElement.style.display = 'block';
+                    }
                 }
             });
             
             submitBtn.disabled = !hasRating;
+            return hasRating;
         }
 
         // Order action functions
