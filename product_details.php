@@ -67,6 +67,136 @@ $sizes_stmt->execute();
 $sizes_result = $sizes_stmt->get_result();
 $sizes_stmt->close();
 
+// Get sorting parameters for reviews
+$sort_by = $_GET['sort'] ?? 'newest';
+$min_rating = isset($_GET['rating']) ? (int)$_GET['rating'] : 0;
+
+// Build review query based on sorting
+// Get all reviews for count and stats
+// First, get the base query without ORDER BY and LIMIT
+$base_review_query = "
+    SELECT 
+        pr.rating_id,
+        pr.rating,
+        pr.review_title,
+        pr.review_text,
+        pr.quality_rating,
+        pr.fit_rating,
+        pr.value_rating,
+        pr.would_recommend,
+        pr.verified_purchase,
+        pr.helpful_count,
+        pr.not_helpful_count,
+        pr.created_at,
+        CONCAT(LEFT(cu.first_name, 1), '. ', LEFT(cu.last_name, 1), '.') as customer_initials,
+        COALESCE(cs.size_name, CONCAT(ss.size_us, ' US')) AS size_purchased,
+        (SELECT COUNT(*) FROM rating_images WHERE rating_id = pr.rating_id) AS image_count
+    FROM product_ratings pr
+    JOIN customers cu ON pr.customer_id = cu.customer_id
+    LEFT JOIN product_sizes ps ON pr.product_size_id = ps.product_size_id
+    LEFT JOIN clothing_sizes cs ON ps.clothing_size_id = cs.clothing_size_id
+    LEFT JOIN shoe_sizes ss ON ps.shoe_size_id = ss.shoe_size_id
+    WHERE pr.product_id = ? 
+    AND pr.status = 'approved'
+";
+
+// Add rating filter if specified
+if ($min_rating > 0) {
+    $base_review_query .= " AND pr.rating = $min_rating";
+}
+
+// Get count of all reviews
+$count_query = "SELECT COUNT(*) as total FROM (" . $base_review_query . ") as subquery";
+$count_stmt = $conn->prepare($count_query);
+$count_stmt->bind_param("i", $product_id);
+$count_stmt->execute();
+$count_result = $count_stmt->get_result();
+$count_row = $count_result->fetch_assoc();
+$total_reviews = $count_row['total'] ?? 0;
+$count_stmt->close();
+
+// Now build the main query with sorting
+$review_query = $base_review_query;
+
+// Add sorting
+switch ($sort_by) {
+    case 'highest':
+        $review_query .= " ORDER BY pr.rating DESC, pr.created_at DESC";
+        break;
+    case 'lowest':
+        $review_query .= " ORDER BY pr.rating ASC, pr.created_at DESC";
+        break;
+    case 'most_helpful':
+        $review_query .= " ORDER BY (pr.helpful_count - pr.not_helpful_count) DESC, pr.created_at DESC";
+        break;
+    case 'oldest':
+        $review_query .= " ORDER BY pr.created_at ASC";
+        break;
+    default: // 'newest'
+        $review_query .= " ORDER BY pr.created_at DESC";
+}
+
+// Get limited reviews for display (just 1 initially)
+$limit = 1;
+$review_query .= " LIMIT ?";
+$reviews_stmt = $conn->prepare($review_query);
+$reviews_stmt->bind_param("ii", $product_id, $limit);
+$reviews_stmt->execute();
+$reviews_result = $reviews_stmt->get_result();
+
+// Get rating distribution for progress bars
+$rating_dist_stmt = $conn->prepare("
+    SELECT 
+        rating,
+        COUNT(*) as count
+    FROM product_ratings
+    WHERE product_id = ? AND status = 'approved'
+    GROUP BY rating
+    ORDER BY rating DESC
+");
+$rating_dist_stmt->bind_param("i", $product_id);
+$rating_dist_stmt->execute();
+$rating_dist_result = $rating_dist_stmt->get_result();
+
+// Initialize rating counts
+$rating_counts = [
+    5 => 0,
+    4 => 0,
+    3 => 0,
+    2 => 0,
+    1 => 0
+];
+
+// Calculate total reviews and average
+$total_reviews_for_avg = 0;
+$total_rating_sum = 0;
+$avg_rating = 0;
+
+while ($row = $rating_dist_result->fetch_assoc()) {
+    $rating = (int)$row['rating'];
+    $count = (int)$row['count'];
+    $rating_counts[$rating] = $count;
+    $total_reviews_for_avg += $count;
+    $total_rating_sum += ($rating * $count);
+}
+
+if ($total_reviews_for_avg > 0) {
+    $avg_rating = $total_rating_sum / $total_reviews_for_avg;
+}
+
+$rating_dist_stmt->close();
+
+// Calculate percentages for rating distribution
+$rating_distribution = [];
+if ($total_reviews_for_avg > 0) {
+    foreach ($rating_counts as $rating => $count) {
+        $rating_distribution[$rating] = [
+            'count' => $count,
+            'percentage' => ($count / $total_reviews_for_avg) * 100
+        ];
+    }
+}
+
 // Fetch related products (same category, exclude current product)
 $related_stmt = $conn->prepare("
    SELECT p.product_id, p.product_name, p.price, p.image_url, 
@@ -161,6 +291,7 @@ $has_stock = ($sizes_result->num_rows > 0);
     <link rel="stylesheet" href="css/Header.css">
     <link rel="stylesheet" href="css/product_details.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
 <body>
@@ -225,8 +356,32 @@ $has_stock = ($sizes_result->num_rows > 0);
                         </span>
 
                         <div class="product-rating">
-                            <span class="stars">★★★★★</span>
-                            <span class="rating-count">(4.8 / 127 reviews)</span>
+                            <div class="stars">
+                                <?php
+                                $avg_rating = $avg_rating ?? 0;
+                                $full_stars = floor($avg_rating);
+                                $has_half_star = ($avg_rating - $full_stars) >= 0.5;
+                                
+                                for ($i = 1; $i <= 5; $i++) {
+                                    if ($i <= $full_stars) {
+                                        echo '<i class="fas fa-star"></i>';
+                                    } elseif ($has_half_star && $i == $full_stars + 1) {
+                                        echo '<i class="fas fa-star-half-alt"></i>';
+                                    } else {
+                                        echo '<i class="far fa-star"></i>';
+                                    }
+                                }
+                                ?>
+                            </div>
+                            <span class="rating-count">
+                                <?php 
+                                if ($total_reviews_for_avg > 0) {
+                                    echo number_format($avg_rating, 1) . ' / ' . $total_reviews_for_avg . ' reviews';
+                                } else {
+                                    echo 'No reviews yet';
+                                }
+                                ?>
+                            </span>
                         </div>
                     </div>
 
@@ -325,6 +480,209 @@ $has_stock = ($sizes_result->num_rows > 0);
                 </div>
             </div>
 
+            <!-- Reviews Section -->
+            <div class="reviews-section">
+                <h2 class="section-title">Customer Reviews</h2>
+                
+                <!-- Review Filters -->
+                <div class="review-filters">
+                    <div class="filter-group">
+                        <label for="sort-select">Sort by:</label>
+                        <select id="sort-select" class="sort-select" onchange="updateReviews()">
+                            <option value="newest" <?php echo $sort_by == 'newest' ? 'selected' : ''; ?>>Newest First</option>
+                            <option value="oldest" <?php echo $sort_by == 'oldest' ? 'selected' : ''; ?>>Oldest First</option>
+                            <option value="highest" <?php echo $sort_by == 'highest' ? 'selected' : ''; ?>>Highest Rating</option>
+                            <option value="lowest" <?php echo $sort_by == 'lowest' ? 'selected' : ''; ?>>Lowest Rating</option>
+                            <option value="most_helpful" <?php echo $sort_by == 'most_helpful' ? 'selected' : ''; ?>>Most Helpful</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>Filter by rating:</label>
+                        <div class="rating-filter">
+                            <?php for ($i = 5; $i >= 1; $i--): ?>
+                                <button class="rating-filter-btn <?php echo $min_rating == $i ? 'active' : ''; ?>" 
+                                        data-rating="<?php echo $i; ?>" 
+                                        onclick="filterByRating(<?php echo $i; ?>)">
+                                    <?php echo $i; ?> <i class="fas fa-star"></i>
+                                    <?php if ($min_rating == $i): ?>
+                                        <span class="clear-filter" onclick="clearRatingFilter(event)">×</span>
+                                    <?php endif; ?>
+                                </button>
+                            <?php endfor; ?>
+                            <?php if ($min_rating > 0): ?>
+                                <button class="clear-all-btn" onclick="clearRatingFilter()">Clear All</button>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Overall Rating Summary -->
+                <div class="rating-summary">
+                    <div class="rating-overview">
+                        <div class="average-rating">
+                            <span class="rating-number"><?php echo number_format($avg_rating, 1); ?></span>
+                            <div class="rating-stars">
+                                <?php
+                                for ($i = 1; $i <= 5; $i++) {
+                                    if ($i <= $full_stars) {
+                                        echo '<i class="fas fa-star"></i>';
+                                    } elseif ($has_half_star && $i == $full_stars + 1) {
+                                        echo '<i class="fas fa-star-half-alt"></i>';
+                                    } else {
+                                        echo '<i class="far fa-star"></i>';
+                                    }
+                                }
+                                ?>
+                            </div>
+                            <span class="rating-count"><?php echo $total_reviews; ?> reviews</span>
+                        </div>
+                        
+                        <div class="rating-distribution">
+                            <?php if ($total_reviews_for_avg > 0): ?>
+                                <?php for ($i = 5; $i >= 1; $i--): 
+                                    $count = $rating_counts[$i];
+                                    $percentage = $rating_distribution[$i]['percentage'] ?? 0;
+                                ?>
+                                    <div class="rating-bar-item">
+                                        <span class="star-label">
+                                            <a href="javascript:void(0)" onclick="filterByRating(<?php echo $i; ?>)" class="star-link">
+                                                <?php echo $i; ?> stars
+                                            </a>
+                                        </span>
+                                        <div class="rating-bar">
+                                            <div class="rating-fill" style="width: <?php echo $percentage; ?>%"></div>
+                                        </div>
+                                        <span class="rating-count">
+                                            <a href="javascript:void(0)" onclick="filterByRating(<?php echo $i; ?>)" class="count-link">
+                                                <?php echo $count; ?>
+                                            </a>
+                                        </span>
+                                    </div>
+                                <?php endfor; ?>
+                            <?php else: ?>
+                                <p class="no-reviews-message">No reviews yet. Be the first to review this product!</p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reviews List -->
+                <?php if ($reviews_result->num_rows > 0): ?>
+                    <div class="reviews-list">
+                        <?php while ($review = $reviews_result->fetch_assoc()): ?>
+                            <div class="review-card">
+                                <div class="review-header">
+                                    <div class="reviewer-info">
+                                        <div class="reviewer-avatar">
+                                            <?php echo $review['customer_initials']; ?>
+                                        </div>
+                                        <div class="reviewer-details">
+                                            <span class="reviewer-name"><?php echo $review['customer_initials']; ?></span>
+                                            <div class="review-rating">
+                                                <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                    <i class="fas fa-star <?php echo $i <= $review['rating'] ? 'filled' : ''; ?>"></i>
+                                                <?php endfor; ?>
+                                            </div>
+                                            <?php if (!empty($review['size_purchased'])): ?>
+                                                <span class="review-size">Size: <?php echo htmlspecialchars($review['size_purchased']); ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <div class="review-meta">
+                                        <span class="review-date"><?php echo date('F j, Y', strtotime($review['created_at'])); ?></span>
+                                        <?php if ($review['verified_purchase']): ?>
+                                            <span class="verified-badge">
+                                                <i class="fas fa-check-circle"></i> Verified Purchase
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                
+                                <div class="review-content">
+                                    <?php if (!empty($review['review_title'])): ?>
+                                        <h3 class="review-title"><?php echo htmlspecialchars($review['review_title']); ?></h3>
+                                    <?php endif; ?>
+                                    
+                                    <p class="review-text"><?php echo nl2br(htmlspecialchars($review['review_text'])); ?></p>
+                                    
+                                    <!-- Sub-ratings -->
+                                    <div class="sub-ratings">
+                                        <?php if ($review['quality_rating']): ?>
+                                            <div class="sub-rating">
+                                                <span>Quality:</span>
+                                                <div class="sub-stars">
+                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                        <i class="fas fa-star <?php echo $i <= $review['quality_rating'] ? 'filled' : ''; ?>"></i>
+                                                    <?php endfor; ?>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($review['fit_rating']): ?>
+                                            <div class="sub-rating">
+                                                <span>Fit:</span>
+                                                <div class="sub-stars">
+                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                        <i class="fas fa-star <?php echo $i <= $review['fit_rating'] ? 'filled' : ''; ?>"></i>
+                                                    <?php endfor; ?>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($review['value_rating']): ?>
+                                            <div class="sub-rating">
+                                                <span>Value:</span>
+                                                <div class="sub-stars">
+                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                        <i class="fas fa-star <?php echo $i <= $review['value_rating'] ? 'filled' : ''; ?>"></i>
+                                                    <?php endfor; ?>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($review['would_recommend']): ?>
+                                            <div class="recommendation">
+                                                <i class="fas fa-thumbs-up"></i> Would recommend
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    
+                                    <!-- Helpfulness -->
+                                    <div class="helpfulness">
+                                        <span>Was this review helpful?</span>
+                                        <button class="helpful-btn" onclick="markHelpful(<?php echo $review['rating_id']; ?>)">
+                                            <i class="fas fa-thumbs-up"></i> Yes (<?php echo $review['helpful_count']; ?>)
+                                        </button>
+                                        <button class="not-helpful-btn" onclick="markNotHelpful(<?php echo $review['rating_id']; ?>)">
+                                            <i class="fas fa-thumbs-down"></i> No (<?php echo $review['not_helpful_count']; ?>)
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endwhile; ?>
+                        
+                        <!-- Show More Button -->
+                        <?php if ($total_reviews > 1): ?>
+                            <div class="show-more-container">
+                                <button class="btn-show-more" onclick="loadMoreReviews()">
+                                    <i class="fas fa-chevron-down"></i>
+                                    Show All Reviews (<?php echo $total_reviews - 1; ?> more)
+                                </button>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="no-reviews">
+                        <div class="no-reviews-content">
+                            <i class="fas fa-comments"></i>
+                            <h3>No reviews yet</h3>
+                            <p>Be the first to share your thoughts about this product!</p>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+
             <!-- Related Products -->
             <?php if ($related_result->num_rows > 0): ?>
                 <div class="related-products">
@@ -417,6 +775,70 @@ $has_stock = ($sizes_result->num_rows > 0);
                 cartBadge.textContent = count;
                 cartBadge.style.display = count > 0 ? 'flex' : 'none';
             }
+        }
+
+        // Review filtering and sorting
+        function updateReviews() {
+            const sortBy = document.getElementById('sort-select').value;
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('sort', sortBy);
+            
+            // Keep rating filter if present
+            const minRating = urlParams.get('rating') || '';
+            
+            window.location.href = window.location.pathname + '?' + urlParams.toString();
+        }
+
+        function filterByRating(rating) {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Toggle rating filter - if same rating clicked, remove it
+            const currentRating = urlParams.get('rating');
+            if (currentRating == rating) {
+                urlParams.delete('rating');
+            } else {
+                urlParams.set('rating', rating);
+            }
+            
+            // Keep sort if present
+            const sortBy = urlParams.get('sort') || 'newest';
+            
+            window.location.href = window.location.pathname + '?' + urlParams.toString();
+        }
+
+        function clearRatingFilter(e) {
+            if (e) e.stopPropagation();
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.delete('rating');
+            
+            window.location.href = window.location.pathname + '?' + urlParams.toString();
+        }
+
+        // Load more reviews
+        function loadMoreReviews() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Remove any limit parameter to show all reviews
+            if (urlParams.has('limit')) {
+                urlParams.delete('limit');
+            }
+            
+            // Add a parameter to indicate we want all reviews
+            urlParams.set('show_all', 'true');
+            
+            window.location.href = window.location.pathname + '?' + urlParams.toString();
+        }
+
+        // Review helpfulness functions
+        function markHelpful(ratingId) {
+            // In a real application, you would send an AJAX request here
+            alert('Thank you for your feedback! This will be implemented with proper backend functionality.');
+        }
+
+        function markNotHelpful(ratingId) {
+            // In a real application, you would send an AJAX request here
+            alert('Thank you for your feedback! This will be implemented with proper backend functionality.');
         }
 
         // Hide success message after 5 seconds
