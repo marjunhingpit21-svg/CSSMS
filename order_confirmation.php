@@ -16,11 +16,26 @@ if ($order_id <= 0) {
     exit();
 }
 
-// Fetch order details
+// Fetch order details with customer and shipping address info
 $order_stmt = $conn->prepare("
-    SELECT o.*, c.first_name, c.last_name, c.email, c.phone 
+    SELECT 
+        o.*,
+        c.first_name as customer_first_name,
+        c.last_name as customer_last_name,
+        u.email,
+        sa.first_name as ship_first_name,
+        sa.last_name as ship_last_name,
+        sa.phone as ship_phone,
+        sa.address_line1,
+        sa.address_line2,
+        sa.city,
+        sa.province,
+        sa.postal_code,
+        sa.address_label
     FROM orders o
     LEFT JOIN customers c ON o.customer_id = c.customer_id
+    LEFT JOIN users u ON c.user_id = u.user_id
+    LEFT JOIN shipping_addresses sa ON o.address_id = sa.address_id
     WHERE o.order_id = ? AND c.user_id = ?
 ");
 $order_stmt->bind_param("ii", $order_id, $_SESSION['user_id']);
@@ -73,7 +88,7 @@ $cart_count = isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart'
                     </svg>
                 </div>
                 <h1>Order Confirmed!</h1>
-                <p>Thank you for your purchase, <?php echo htmlspecialchars($order['first_name']); ?>!</p>
+                <p>Thank you for your purchase, <?php echo htmlspecialchars($order['customer_first_name']); ?>!</p>
                 <p class="order-number">Order #<?php echo str_pad($order_id, 6, '0', STR_PAD_LEFT); ?></p>
             </div>
 
@@ -118,12 +133,21 @@ $cart_count = isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart'
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                             </svg>
                             Shipping Information
+                            <?php if (!empty($order['address_label'])): ?>
+                                <span style="font-size: 0.9rem; font-weight: 500; color: #666; margin-left: 10px;">
+                                    (<?php echo htmlspecialchars($order['address_label']); ?>)
+                                </span>
+                            <?php endif; ?>
                         </h2>
                         <div class="shipping-details">
-                            <p><strong><?php echo htmlspecialchars($order['first_name'] . ' ' . $order['last_name']); ?></strong></p>
-                            <p><?php echo htmlspecialchars($order['shipping_address']); ?></p>
-                            <p><?php echo htmlspecialchars($order['phone']); ?></p>
-                            <p><?php echo htmlspecialchars($order['email']); ?></p>
+                            <p><strong><?php echo htmlspecialchars($order['ship_first_name'] . ' ' . $order['ship_last_name']); ?></strong></p>
+                            <p><?php echo htmlspecialchars($order['address_line1']); ?></p>
+                            <?php if (!empty($order['address_line2'])): ?>
+                                <p><?php echo htmlspecialchars($order['address_line2']); ?></p>
+                            <?php endif; ?>
+                            <p><?php echo htmlspecialchars($order['city'] . ', ' . $order['province'] . ' ' . $order['postal_code']); ?></p>
+                            <p style="margin-top: 10px;"><strong>Phone:</strong> <?php echo htmlspecialchars($order['ship_phone']); ?></p>
+                            <p><strong>Email:</strong> <?php echo htmlspecialchars($order['email']); ?></p>
                         </div>
                     </div>
 
