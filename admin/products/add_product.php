@@ -1,6 +1,6 @@
 <?php 
 include '../includes/auth.php';
-include '../db.php';
+include '../includes/db.php';
 
 // Fetch categories, genders, and age groups for dropdowns
 $categories = $conn->query("SELECT category_id, category_name FROM categories ORDER BY category_name");

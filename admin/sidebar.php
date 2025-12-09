@@ -24,7 +24,7 @@
             <span>Dashboard</span>
         </a>
 
-        <a href="products/index.php" class="<?= strpos($current, '/products') !== false ? 'active' : '' ?>">
+        <a href="/CSSMS/admin/products/index.php" class="<?= strpos($current, '/products') !== false ? 'active' : '' ?>">
             <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
             </svg>
@@ -51,6 +51,31 @@
             </svg>
             <span>Analytics & AI</span>
         </a>
+
+        <div class="sidebar-dropdown <?= (strpos($current, '/users') !== false || 
+                                        strpos($current, '/cashiers') !== false || 
+                                        strpos($current, '/admins') !== false) ? 'open' : '' ?>">
+
+            <a href="#" class="sidebar-nav-link dropdown-toggle <?= (strpos($current, '/users') !== false || 
+                                                                strpos($current, '/cashiers') !== false || 
+                                                                strpos($current, '/admins') !== false) ? 'active' : '' ?>">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <span>User Management</span>
+                <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </a>
+
+            <div class="dropdown-items">
+                <a href="/CSSMS/admin/users/customers_index.php" class="<?= strpos($current, 'customers_index.php') !== false ? 'active' : '' ?>">Customers</a>
+                <a href="/CSSMS/admin/users/cashiers_index.php" class="<?= strpos($current, 'cashiers_index.php') !== false ? 'active' : '' ?>">Cashiers</a>
+                <a href="/CSSMS/admin/users/admins_index.php" class="<?= strpos($current, 'admins_index.php') !== false ? 'active' : '' ?>">Admins</a>
+            </div>
+        </div>
+
     </nav>
 
     <!-- Footer – Admin Info -->
@@ -68,76 +93,84 @@
 </aside>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const sidebar = document.getElementById('adminSidebar');
-    const toggleBtn = document.getElementById('sidebarToggle');
-    
-    // Check if sidebar state is saved in localStorage
-    const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-    
-    if (isCollapsed) {
-        sidebar.classList.add('collapsed');
-        toggleBtn.innerHTML = '→';
-    }
-    
-    toggleBtn.addEventListener('click', function() {
-        sidebar.classList.toggle('collapsed');
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.getElementById('adminSidebar');
+        const toggleBtn = document.getElementById('sidebarToggle');
         
-        if (sidebar.classList.contains('collapsed')) {
+        // Check if sidebar state is saved in localStorage
+        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        
+        if (isCollapsed) {
+            sidebar.classList.add('collapsed');
             toggleBtn.innerHTML = '→';
-            localStorage.setItem('sidebarCollapsed', 'true');
-        } else {
-            toggleBtn.innerHTML = '←';
-            localStorage.setItem('sidebarCollapsed', 'false');
         }
+        
+        toggleBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                toggleBtn.innerHTML = '→';
+                localStorage.setItem('sidebarCollapsed', 'true');
+            } else {
+                toggleBtn.innerHTML = '←';
+                localStorage.setItem('sidebarCollapsed', 'false');
+            }
     });
     
     // Close sidebar when clicking outside on mobile
     document.addEventListener('click', function(event) {
-        if (window.innerWidth <= 768 && 
-            !sidebar.contains(event.target) && 
-            !event.target.classList.contains('mobile-menu-toggle') &&
-            sidebar.classList.contains('mobile-open')) {
-            sidebar.classList.remove('mobile-open');
-        }
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !event.target.classList.contains('mobile-menu-toggle') &&
+                sidebar.classList.contains('mobile-open')) {
+                sidebar.classList.remove('mobile-open');
+            }
+        });
     });
-});
 
-// Function to toggle mobile menu (call this from your header toggle button)
-function toggleMobileSidebar() {
-    const sidebar = document.getElementById('adminSidebar');
-    sidebar.classList.toggle('mobile-open');
-}
+    // Function to toggle mobile menu (call this from your header toggle button)
+    function toggleMobileSidebar() {
+        const sidebar = document.getElementById('adminSidebar');
+        sidebar.classList.toggle('mobile-open');
+    }
+
+    document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            const dropdown = this.closest('.sidebar-dropdown');
+            dropdown.classList.toggle('open');
+        });
+    });
 </script>
 
 <!-- Mobile menu toggle button (add to your admin header if needed) -->
 <style>
-.mobile-menu-toggle {
-    display: none;
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #333;
-    padding: 8px;
-}
-
-@media (max-width: 768px) {
     .mobile-menu-toggle {
-        display: block;
+        display: none;
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #333;
+        padding: 8px;
     }
-    
-    /* Add padding to main content when sidebar is open on mobile */
-    .admin-main-content {
-        transition: margin-left 0.3s ease;
+
+    @media (max-width: 768px) {
+        .mobile-menu-toggle {
+            display: block;
+        }
+        
+        /* Add padding to main content when sidebar is open on mobile */
+        .admin-main-content {
+            transition: margin-left 0.3s ease;
+        }
+        
+        .admin-sidebar.mobile-open + .admin-main-content {
+            margin-left: 220px;
+        }
+        
+        .admin-sidebar.mobile-open.collapsed + .admin-main-content {
+            margin-left: 60px;
+        }
     }
-    
-    .admin-sidebar.mobile-open + .admin-main-content {
-        margin-left: 220px;
-    }
-    
-    .admin-sidebar.mobile-open.collapsed + .admin-main-content {
-        margin-left: 60px;
-    }
-}
 </style>
