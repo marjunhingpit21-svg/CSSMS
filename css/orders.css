@@ -316,6 +316,7 @@
     font-size: 0.9rem;
 }
 
+
 /* Order Actions */
 .order-actions {
     display: flex;
@@ -343,6 +344,7 @@
 .btn-track,
 .btn-view,
 .btn-rate,
+.btn-received,
 .btn-cancel {
     padding: 10px 20px;
     border-radius: 6px;
@@ -359,7 +361,16 @@
     color: white;
 }
 
-.btn-track:hover {
+.btn-received {
+    background: #009824;
+    color: white;
+}
+
+ .btn-received:hover{
+ background: #016919;
+ }
+
+.btn-track:hover{
     background: #1976d2;
 }
 

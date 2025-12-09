@@ -51,6 +51,225 @@ if (isset($_POST['login_submit'])) {
     }
 }
 
+// Handle mark as received
+if (isset($_POST['mark_received'])) {
+    $order_id = intval($_POST['order_id']);
+    $user_id = $_SESSION['user_id'];
+    
+    // Verify the order belongs to the logged in user
+    $check_stmt = $conn->prepare("
+        SELECT o.order_id 
+        FROM orders o 
+        INNER JOIN customers c ON o.customer_id = c.customer_id 
+        WHERE o.order_id = ? AND c.user_id = ? AND o.status = 'delivered'
+    ");
+    $check_stmt->bind_param("ii", $order_id, $user_id);
+    $check_stmt->execute();
+    $check_result = $check_stmt->get_result();
+    
+    if ($check_result->num_rows > 0) {
+        // Update order status to 'received'
+        $update_stmt = $conn->prepare("UPDATE orders SET status = 'received' WHERE order_id = ?");
+        $update_stmt->bind_param("i", $order_id);
+        
+        if ($update_stmt->execute()) {
+            $_SESSION['success_message'] = 'Order marked as received successfully!';
+        } else {
+            $_SESSION['error_message'] = 'Failed to update order status. Please try again.';
+        }
+        $update_stmt->close();
+    } else {
+        $_SESSION['error_message'] = 'Order not found or not eligible for marking as received.';
+    }
+    $check_stmt->close();
+    
+    header('Location: orders.php');
+    exit();
+}
+
+// Handle submit rating with images
+if (isset($_POST['submit_rating'])) {
+    $order_id = intval($_POST['order_id']);
+    $user_id = $_SESSION['user_id'];
+    
+    // Get customer ID
+    $customer_stmt = $conn->prepare("SELECT customer_id FROM customers WHERE user_id = ?");
+    $customer_stmt->bind_param("i", $user_id);
+    $customer_stmt->execute();
+    $customer_result = $customer_stmt->get_result();
+    
+    if ($customer_result->num_rows > 0) {
+        $customer = $customer_result->fetch_assoc();
+        $customer_id = $customer['customer_id'];
+        
+        // Get order items for this order
+        $items_stmt = $conn->prepare("
+            SELECT oi.order_item_id, oi.order_id, i.product_id, i.size_id, i.shoe_size_id
+            FROM order_items oi
+            INNER JOIN inventory i ON oi.inventory_id = i.inventory_id
+            WHERE oi.order_id = ?
+        ");
+        $items_stmt->bind_param("i", $order_id);
+        $items_stmt->execute();
+        $items_result = $items_stmt->get_result();
+        
+        $success_count = 0;
+        $total_items = 0;
+        
+        // Create upload directory if it doesn't exist
+        $upload_dir = 'uploads/reviews/';
+        if (!file_exists($upload_dir)) {
+            mkdir($upload_dir, 0777, true);
+        }
+        
+        while ($item = $items_result->fetch_assoc()) {
+            $total_items++;
+            
+            // Check if rating already exists for this order item
+            $check_rating_stmt = $conn->prepare("
+                SELECT rating_id FROM product_ratings WHERE order_item_id = ?
+            ");
+            $check_rating_stmt->bind_param("i", $item['order_item_id']);
+            $check_rating_stmt->execute();
+            $check_rating_result = $check_rating_stmt->get_result();
+            
+            if ($check_rating_result->num_rows == 0) {
+                // Get product size ID
+                $size_stmt = $conn->prepare("
+                    SELECT ps.product_size_id 
+                    FROM product_sizes ps 
+                    WHERE ps.product_id = ? 
+                    AND (ps.clothing_size_id = ? OR ps.shoe_size_id = ?)
+                    LIMIT 1
+                ");
+                $size_stmt->bind_param("iii", $item['product_id'], $item['size_id'], $item['shoe_size_id']);
+                $size_stmt->execute();
+                $size_result = $size_stmt->get_result();
+                $product_size_id = null;
+                if ($size_result->num_rows > 0) {
+                    $size_data = $size_result->fetch_assoc();
+                    $product_size_id = $size_data['product_size_id'];
+                }
+                $size_stmt->close();
+                
+                // Insert rating for this product
+                $rating_key = "rating_{$item['order_item_id']}";
+                $review_title_key = "review_title_{$item['order_item_id']}";
+                $review_text_key = "review_text_{$item['order_item_id']}";
+                $quality_key = "quality_{$item['order_item_id']}";
+                $fit_key = "fit_{$item['order_item_id']}";
+                $value_key = "value_{$item['order_item_id']}";
+                $recommend_key = "recommend_{$item['order_item_id']}";
+                
+                $rating = intval($_POST[$rating_key] ?? 0);
+                $review_title = trim($_POST[$review_title_key] ?? '');
+                $review_text = trim($_POST[$review_text_key] ?? '');
+                $quality_rating = intval($_POST[$quality_key] ?? 0);
+                $fit_rating = intval($_POST[$fit_key] ?? 0);
+                $value_rating = intval($_POST[$value_key] ?? 0);
+                $would_recommend = isset($_POST[$recommend_key]) ? 1 : 0;
+                
+                if ($rating > 0) {
+                    $insert_stmt = $conn->prepare("
+                        INSERT INTO product_ratings (
+                            order_id, order_item_id, customer_id, product_id, product_size_id,
+                            rating, review_title, review_text, quality_rating, fit_rating,
+                            value_rating, would_recommend, verified_purchase, status
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'approved')
+                    ");
+                    $insert_stmt->bind_param(
+                        "iiiiisssiiii",
+                        $order_id,
+                        $item['order_item_id'],
+                        $customer_id,
+                        $item['product_id'],
+                        $product_size_id,
+                        $rating,
+                        $review_title,
+                        $review_text,
+                        $quality_rating,
+                        $fit_rating,
+                        $value_rating,
+                        $would_recommend
+                    );
+                    
+                    if ($insert_stmt->execute()) {
+                        $rating_id = $insert_stmt->insert_id;
+                        $success_count++;
+                        
+                        // Handle image uploads for this rating
+                        $image_input_name = "rating_images_{$item['order_item_id']}";
+                        if (isset($_FILES[$image_input_name]) && is_array($_FILES[$image_input_name]['name'])) {
+                            $image_count = count($_FILES[$image_input_name]['name']);
+                            
+                            for ($i = 0; $i < $image_count; $i++) {
+                                if ($_FILES[$image_input_name]['error'][$i] === UPLOAD_ERR_OK) {
+                                    $file_name = $_FILES[$image_input_name]['name'][$i];
+                                    $file_tmp = $_FILES[$image_input_name]['tmp_name'][$i];
+                                    $file_size = $_FILES[$image_input_name]['size'][$i];
+                                    $file_type = $_FILES[$image_input_name]['type'][$i];
+                                    
+                                    // Validate file
+                                    $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                                    $max_size = 5 * 1024 * 1024; // 5MB
+                                    
+                                    if (in_array($file_type, $allowed_types) && $file_size <= $max_size) {
+                                        // Generate unique filename
+                                        $file_ext = pathinfo($file_name, PATHINFO_EXTENSION);
+                                        $unique_name = uniqid() . '_' . time() . '.' . $file_ext;
+                                        $upload_path = $upload_dir . $unique_name;
+                                        
+                                        if (move_uploaded_file($file_tmp, $upload_path)) {
+                                            // Insert image record into database
+                                            $image_stmt = $conn->prepare("
+                                                INSERT INTO rating_images (rating_id, image_url, image_order) 
+                                                VALUES (?, ?, ?)
+                                            ");
+                                            $image_order = $i + 1;
+                                            $image_stmt->bind_param("isi", $rating_id, $upload_path, $image_order);
+                                            $image_stmt->execute();
+                                            $image_stmt->close();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    $insert_stmt->close();
+                }
+            }
+            $check_rating_stmt->close();
+        }
+        $items_stmt->close();
+        
+        // UPDATE ORDER STATUS TO COMPLETED
+        // Check if all items have been rated (or at least one was rated successfully)
+        if ($success_count > 0) {
+            // Update order status to 'completed'
+            $update_order_stmt = $conn->prepare("
+                UPDATE orders 
+                SET status = 'completed' 
+                WHERE order_id = ? AND customer_id = ? AND status = 'received'
+            ");
+            $update_order_stmt->bind_param("ii", $order_id, $customer_id);
+            
+            if ($update_order_stmt->execute()) {
+                $_SESSION['success_message'] = "Thank you! Your $success_count rating(s) have been submitted. Order marked as completed!";
+            } else {
+                $_SESSION['success_message'] = "Thank you! Your $success_count rating(s) have been submitted.";
+                $_SESSION['error_message'] = 'Could not update order status.';
+            }
+            $update_order_stmt->close();
+        } else {
+            $_SESSION['error_message'] = 'No ratings were submitted. Please make sure to rate at least one product.';
+        }
+    }
+    $customer_stmt->close();
+    
+    header('Location: orders.php');
+    exit();
+}
+
 // Get cart count for header
 $cart_count = 0;
 if (isset($_SESSION['cart'])) {
@@ -146,6 +365,7 @@ try {
             $order_items = [];
             while ($item = $items_result->fetch_assoc()) {
                 $order_items[] = [
+                    'order_item_id' => $item['order_item_id'],
                     'product_id' => $item['product_id'],
                     'product_name' => $item['product_name'],
                     'image_url' => $item['image_url'] ?: 'https://via.placeholder.com/100',
@@ -163,7 +383,9 @@ try {
                 'pending' => 'to_ship',
                 'processing' => 'to_ship',
                 'shipped' => 'to_receive',
-                'delivered' => 'to_rate',
+                'delivered' => 'to_receive', // Now "delivered" shows in "to_receive" section
+                'received' => 'to_rate', // New status that shows in "to_rate" section
+                'completed' => 'completed',
                 'cancelled' => 'cancelled'
             ];
             
@@ -236,10 +458,545 @@ foreach ($orders as $order) {
     <link rel="stylesheet" href="css/Header.css">
     <link rel="stylesheet" href="css/orders.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Rating Modal Styles */
+        .rating-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+            overflow-y: auto;
+        }
+
+        .rating-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .rating-modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .rating-modal-header {
+            padding: 25px 30px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .rating-modal-header h2 {
+            font-size: 1.8rem;
+            color: #222;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .rating-modal-subtitle {
+            color: #666;
+            font-size: 1rem;
+            margin-bottom: 5px;
+        }
+
+        .rating-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #666;
+            line-height: 1;
+            padding: 5px;
+            transition: color 0.3s ease;
+        }
+
+        .rating-modal-close:hover {
+            color: #e91e63;
+        }
+
+        .rating-modal-body {
+            padding: 25px 30px;
+        }
+
+        .rating-products {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .rating-product-item {
+            background: #fafafa;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #f0f0f0;
+        }
+
+        .product-rating-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .product-rating-image img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .product-rating-info h4 {
+            font-size: 1.1rem;
+            color: #222;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .product-rating-variants {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .rating-section {
+            margin-bottom: 25px;
+        }
+
+        .rating-section-title {
+            font-size: 1rem;
+            color: #222;
+            margin-bottom: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rating-section-title svg {
+            color: #e91e63;
+        }
+
+        .star-rating {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .star-rating input {
+            display: none;
+        }
+
+        .star-rating label {
+            cursor: pointer;
+            font-size: 2rem;
+            color: #ddd;
+            transition: color 0.2s ease;
+        }
+
+        .star-rating label:hover,
+        .star-rating label:hover ~ label {
+            color: #ffd700;
+        }
+
+        .star-rating input:checked ~ label {
+            color: #ffd700;
+        }
+
+        .star-rating input:checked + label ~ label {
+            color: #ddd;
+        }
+
+        .rating-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+        }
+
+        .rating-label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.95rem;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group input[type="text"],
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: border-color 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #e91e63;
+            box-shadow: 0 0 0 2px rgba(233, 30, 99, 0.1);
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* Image Upload Styles */
+        .image-upload-section {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .image-upload-title {
+            font-size: 1rem;
+            color: #222;
+            margin-bottom: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .image-upload-title svg {
+            color: #e91e63;
+        }
+
+        .image-upload-container {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background: #f9f9f9;
+            transition: all 0.3s ease;
+        }
+
+        .image-upload-container:hover {
+            border-color: #e91e63;
+            background: #fff9fb;
+        }
+
+        .image-upload-container.dragover {
+            border-color: #e91e63;
+            background: #fff0f5;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #e91e63;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }
+
+        .upload-hint {
+            font-size: 0.85rem;
+            color: #999;
+            margin-top: 10px;
+        }
+
+        .btn-upload {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #e91e63;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-upload:hover {
+            background: #c2185b;
+            transform: translateY(-1px);
+        }
+
+        .image-preview-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .image-preview-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #eee;
+        }
+
+        .image-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            color: #f44336;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .image-remove-btn:hover {
+            background: white;
+            transform: scale(1.1);
+        }
+
+        .hidden-file-input {
+            display: none;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: #333;
+        }
+
+        .rating-modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            position: sticky;
+            bottom: 0;
+            background: white;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .btn-cancel-rating {
+            padding: 12px 24px;
+            background: #f5f5f5;
+            color: #666;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .btn-cancel-rating:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-submit-rating {
+            padding: 12px 24px;
+            background: #e91e63;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .btn-submit-rating:hover {
+            background: #c2185b;
+            transform: translateY(-1px);
+        }
+
+        .btn-submit-rating:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Detail Ratings */
+        .detail-rating {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .detail-rating-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .detail-rating-label {
+            min-width: 120px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .detail-rating-stars {
+            display: flex;
+            gap: 3px;
+        }
+
+        .detail-rating-stars span {
+            font-size: 1.2rem;
+            color: #ddd;
+        }
+
+        .detail-rating-stars span.filled {
+            color: #ffd700;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .rating-modal-content {
+                width: 95%;
+                margin: 10px;
+            }
+
+            .rating-modal-header,
+            .rating-modal-body,
+            .rating-modal-footer {
+                padding: 20px;
+            }
+
+            .product-rating-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .rating-modal-footer {
+                flex-direction: column;
+            }
+
+            .rating-modal-footer button {
+                width: 100%;
+            }
+
+            .star-rating label {
+                font-size: 1.8rem;
+            }
+            
+            .image-preview-container {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            }
+            
+            .image-preview-item {
+                width: 80px;
+                height: 80px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .rating-modal-header h2 {
+                font-size: 1.5rem;
+            }
+
+            .product-rating-image img {
+                width: 60px;
+                height: 60px;
+            }
+
+            .star-rating label {
+                font-size: 1.5rem;
+            }
+            
+            .image-preview-container {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
 </head>
 
 <body>
     <?php include 'header.php'; ?>
+    
+    <!-- Success/Error Messages -->
+    <?php if (isset($_SESSION['success_message'])): ?>
+        <div class="alert alert-success" style="position: fixed; top: 20px; right: 20px; z-index: 1000; padding: 15px 20px; background: #4CAF50; color: white; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20" style="vertical-align: middle; margin-right: 10px;">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <?php 
+                echo htmlspecialchars($_SESSION['success_message']);
+                unset($_SESSION['success_message']);
+            ?>
+        </div>
+    <?php endif; ?>
+    
+    <?php if (isset($_SESSION['error_message'])): ?>
+        <div class="alert alert-error" style="position: fixed; top: 20px; right: 20px; z-index: 1000; padding: 15px 20px; background: #f44336; color: white; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20" style="vertical-align: middle; margin-right: 10px;">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+            <?php 
+                echo htmlspecialchars($_SESSION['error_message']);
+                unset($_SESSION['error_message']);
+            ?>
+        </div>
+    <?php endif; ?>
 
     <div class="page-wrapper-orders">
         <div class="orders-container">
@@ -413,10 +1170,19 @@ foreach ($orders as $order) {
                                         <button class="btn-track" onclick="trackOrder(<?php echo $order['db_order_id']; ?>)">Track Order</button>
                                         <button class="btn-cancel" onclick="cancelOrder(<?php echo $order['db_order_id']; ?>)">Cancel Order</button>
                                     <?php elseif ($order['status'] === 'to_receive'): ?>
-                                        <button class="btn-track" onclick="trackOrder(<?php echo $order['db_order_id']; ?>)">Track Package</button>
+                                        <?php if ($order['db_status'] === 'delivered'): ?>
+                                            <!-- Show "Mark as Received" button for delivered orders -->
+                                            <form method="POST" action="orders.php" style="display: inline;">
+                                                <input type="hidden" name="order_id" value="<?php echo $order['db_order_id']; ?>">
+                                                <button type="submit" name="mark_received" class="btn-received">Mark as Received</button>
+                                            </form>
+                                        <?php else: ?>
+                                            <!-- Show "Track Package" for shipped orders -->
+                                            <button class="btn-track" onclick="trackOrder(<?php echo $order['db_order_id']; ?>)">Track Package</button>
+                                        <?php endif; ?>
                                         <button class="btn-view" onclick="viewOrderDetails(<?php echo $order['db_order_id']; ?>)">View Details</button>
                                     <?php elseif ($order['status'] === 'to_rate'): ?>
-                                        <button class="btn-rate" onclick="rateProducts(<?php echo $order['db_order_id']; ?>)">Rate Products</button>
+                                        <button class="btn-rate" onclick="openRatingModal(<?php echo $order['db_order_id']; ?>, <?php echo htmlspecialchars(json_encode($order['items'])); ?>)">Rate Products</button>
                                         <button class="btn-view" onclick="viewOrderDetails(<?php echo $order['db_order_id']; ?>)">Order Details</button>
                                     <?php elseif ($order['status'] === 'cancelled'): ?>
                                         <button class="btn-view" onclick="viewOrderDetails(<?php echo $order['db_order_id']; ?>)">View Details</button>
@@ -431,6 +1197,29 @@ foreach ($orders as $order) {
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- Rating Modal -->
+    <div id="ratingModal" class="rating-modal">
+        <div class="rating-modal-content">
+            <button class="rating-modal-close" onclick="closeRatingModal()">&times;</button>
+            <div class="rating-modal-header">
+                <h2>Rate Your Products</h2>
+                <p class="rating-modal-subtitle">Share your experience to help other shoppers</p>
+            </div>
+            <form method="POST" action="orders.php" id="ratingForm" enctype="multipart/form-data">
+                <input type="hidden" name="order_id" id="ratingOrderId">
+                <div class="rating-modal-body">
+                    <div class="rating-products" id="ratingProductsContainer">
+                        <!-- Products will be dynamically inserted here -->
+                    </div>
+                </div>
+                <div class="rating-modal-footer">
+                    <button type="button" class="btn-cancel-rating" onclick="closeRatingModal()">Cancel</button>
+                    <button type="submit" name="submit_rating" class="btn-submit-rating" id="submitRatingBtn">Submit All Ratings</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -498,6 +1287,9 @@ foreach ($orders as $order) {
             if (event.target.classList.contains('modal')) {
                 event.target.classList.remove('active');
             }
+            if (event.target.classList.contains('rating-modal')) {
+                closeRatingModal();
+            }
         }
 
         // Update cart count and orders count in header
@@ -520,7 +1312,321 @@ foreach ($orders as $order) {
             // Initialize filter functionality
             initializeFilters();
             initializeStickyFilter();
+            
+            // Auto-hide success/error messages after 5 seconds
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert-success, .alert-error');
+                alerts.forEach(alert => {
+                    alert.style.transition = 'opacity 0.5s ease';
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.remove(), 500);
+                });
+            }, 5000);
         });
+
+        // Rating Modal Functions
+        function openRatingModal(orderId, items) {
+            const modal = document.getElementById('ratingModal');
+            const orderIdInput = document.getElementById('ratingOrderId');
+            const productsContainer = document.getElementById('ratingProductsContainer');
+            
+            // Set order ID
+            orderIdInput.value = orderId;
+            
+            // Clear previous content
+            productsContainer.innerHTML = '';
+            
+            // Create product rating forms
+            items.forEach((item, index) => {
+                const productHtml = `
+                    <div class="rating-product-item" data-order-item-id="${item.order_item_id}">
+                        <div class="product-rating-header">
+                            <div class="product-rating-image">
+                                <img src="${item.image_url}" alt="${item.product_name}" onerror="this.src='https://via.placeholder.com/100'">
+                            </div>
+                            <div class="product-rating-info">
+                                <h4>${item.product_name}</h4>
+                                <p class="product-rating-variants">
+                                    ${item.size ? 'Size: ' + item.size : ''}
+                                    ${item.category_name ? '• Category: ' + item.category_name : ''}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Overall Rating -->
+                        <div class="rating-section">
+                            <div class="rating-labels">
+                                <span class="rating-label">Poor</span>
+                                <span class="rating-label">Fair</span>
+                                <span class="rating-label">Good</span>
+                                <span class="rating-label">Very Good</span>
+                                <span class="rating-label">Excellent</span>
+                            </div>
+                            <div class="rating-section-title">
+                                <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                                Overall Rating
+                            </div>
+                            <div class="star-rating" data-name="rating_${item.order_item_id}">
+                                <input type="radio" id="rating_${item.order_item_id}_5" name="rating_${item.order_item_id}" value="5">
+                                <label for="rating_${item.order_item_id}_5">★</label>
+                                <input type="radio" id="rating_${item.order_item_id}_4" name="rating_${item.order_item_id}" value="4">
+                                <label for="rating_${item.order_item_id}_4">★</label>
+                                <input type="radio" id="rating_${item.order_item_id}_3" name="rating_${item.order_item_id}" value="3">
+                                <label for="rating_${item.order_item_id}_3">★</label>
+                                <input type="radio" id="rating_${item.order_item_id}_2" name="rating_${item.order_item_id}" value="2">
+                                <label for="rating_${item.order_item_id}_2">★</label>
+                                <input type="radio" id="rating_${item.order_item_id}_1" name="rating_${item.order_item_id}" value="1">
+                                <label for="rating_${item.order_item_id}_1">★</label>
+                            </div>
+                        </div>
+                        
+                        <!-- Detailed Ratings -->
+                        <div class="detail-ratings">
+                            <div class="rating-section">
+                                <div class="rating-section-title">Quality</div>
+                                <div class="star-rating" data-name="quality_${item.order_item_id}">
+                                    <input type="radio" id="quality_${item.order_item_id}_5" name="quality_${item.order_item_id}" value="5">
+                                    <label for="quality_${item.order_item_id}_5">★</label>
+                                    <input type="radio" id="quality_${item.order_item_id}_4" name="quality_${item.order_item_id}" value="4">
+                                    <label for="quality_${item.order_item_id}_4">★</label>
+                                    <input type="radio" id="quality_${item.order_item_id}_3" name="quality_${item.order_item_id}" value="3">
+                                    <label for="quality_${item.order_item_id}_3">★</label>
+                                    <input type="radio" id="quality_${item.order_item_id}_2" name="quality_${item.order_item_id}" value="2">
+                                    <label for="quality_${item.order_item_id}_2">★</label>
+                                    <input type="radio" id="quality_${item.order_item_id}_1" name="quality_${item.order_item_id}" value="1">
+                                    <label for="quality_${item.order_item_id}_1">★</label>
+                                </div>
+                            </div>
+                            
+                            <div class="rating-section">
+                                <div class="rating-section-title">Fit (if applicable)</div>
+                                <div class="star-rating" data-name="fit_${item.order_item_id}">
+                                    <input type="radio" id="fit_${item.order_item_id}_5" name="fit_${item.order_item_id}" value="5">
+                                    <label for="fit_${item.order_item_id}_5">★</label>
+                                    <input type="radio" id="fit_${item.order_item_id}_4" name="fit_${item.order_item_id}" value="4">
+                                    <label for="fit_${item.order_item_id}_4">★</label>
+                                    <input type="radio" id="fit_${item.order_item_id}_3" name="fit_${item.order_item_id}" value="3">
+                                    <label for="fit_${item.order_item_id}_3">★</label>
+                                    <input type="radio" id="fit_${item.order_item_id}_2" name="fit_${item.order_item_id}" value="2">
+                                    <label for="fit_${item.order_item_id}_2">★</label>
+                                    <input type="radio" id="fit_${item.order_item_id}_1" name="fit_${item.order_item_id}" value="1">
+                                    <label for="fit_${item.order_item_id}_1">★</label>
+                                </div>
+                            </div>
+                            
+                            <div class="rating-section">
+                                <div class="rating-section-title">Value for Money</div>
+                                <div class="star-rating" data-name="value_${item.order_item_id}">
+                                    <input type="radio" id="value_${item.order_item_id}_5" name="value_${item.order_item_id}" value="5">
+                                    <label for="value_${item.order_item_id}_5">★</label>
+                                    <input type="radio" id="value_${item.order_item_id}_4" name="value_${item.order_item_id}" value="4">
+                                    <label for="value_${item.order_item_id}_4">★</label>
+                                    <input type="radio" id="value_${item.order_item_id}_3" name="value_${item.order_item_id}" value="3">
+                                    <label for="value_${item.order_item_id}_3">★</label>
+                                    <input type="radio" id="value_${item.order_item_id}_2" name="value_${item.order_item_id}" value="2">
+                                    <label for="value_${item.order_item_id}_2">★</label>
+                                    <input type="radio" id="value_${item.order_item_id}_1" name="value_${item.order_item_id}" value="1">
+                                    <label for="value_${item.order_item_id}_1">★</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Image Upload Section -->
+                        <div class="image-upload-section">
+                            <div class="image-upload-title">
+                                <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                                </svg>
+                                Upload Photos (Optional)
+                            </div>
+                            <div class="image-upload-container" id="uploadContainer_${item.order_item_id}" 
+                                 ondragover="handleDragOver(event)" 
+                                 ondragleave="handleDragLeave(event)" 
+                                 ondrop="handleDrop(event, ${item.order_item_id})">
+                                <div class="upload-icon">
+                                    <svg width="48" height="48" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <p class="upload-text">Drag & drop photos here or click to browse</p>
+                                <button type="button" class="btn-upload" onclick="document.getElementById('imageInput_${item.order_item_id}').click()">
+                                    Browse Files
+                                </button>
+                                <p class="upload-hint">Max 5 images • JPG, PNG, GIF, WebP • Max 5MB each</p>
+                                <input type="file" 
+                                       id="imageInput_${item.order_item_id}" 
+                                       class="hidden-file-input" 
+                                       name="rating_images_${item.order_item_id}[]" 
+                                       multiple 
+                                       accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                                       onchange="handleImageSelect(event, ${item.order_item_id})">
+                            </div>
+                            <div class="image-preview-container" id="imagePreview_${item.order_item_id}">
+                                <!-- Image previews will be added here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Review Title & Text -->
+                        <div class="form-group">
+                            <label for="review_title_${item.order_item_id}">Review Title (Optional)</label>
+                            <input type="text" id="review_title_${item.order_item_id}" name="review_title_${item.order_item_id}" placeholder="Summarize your experience">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="review_text_${item.order_item_id}">Detailed Review (Optional)</label>
+                            <textarea id="review_text_${item.order_item_id}" name="review_text_${item.order_item_id}" placeholder="Share details about your experience with this product..."></textarea>
+                        </div>
+                        
+                        <!-- Would Recommend -->
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="recommend_${item.order_item_id}" name="recommend_${item.order_item_id}" value="1" checked>
+                            <label for="recommend_${item.order_item_id}">I would recommend this product</label>
+                        </div>
+                    </div>
+                `;
+                productsContainer.innerHTML += productHtml;
+            });
+            
+            // Initialize star rating interactions
+            initializeStarRatings();
+            
+            // Show modal
+            modal.classList.add('active');
+        }
+
+        function closeRatingModal() {
+            const modal = document.getElementById('ratingModal');
+            modal.classList.remove('active');
+        }
+
+        // Image Upload Functions
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.target.closest('.image-upload-container').classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.target.closest('.image-upload-container').classList.remove('dragover');
+        }
+
+        function handleDrop(e, orderItemId) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.target.closest('.image-upload-container').classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            handleImageFiles(files, orderItemId);
+        }
+
+        function handleImageSelect(e, orderItemId) {
+            const files = e.target.files;
+            handleImageFiles(files, orderItemId);
+        }
+
+        function handleImageFiles(files, orderItemId) {
+            const previewContainer = document.getElementById(`imagePreview_${orderItemId}`);
+            const maxImages = 5;
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            
+            // Count existing images
+            const existingCount = previewContainer.querySelectorAll('.image-preview-item').length;
+            
+            // Process each file
+            Array.from(files).forEach((file, index) => {
+                if (existingCount + index >= maxImages) {
+                    alert(`Maximum ${maxImages} images allowed per product.`);
+                    return;
+                }
+                
+                if (!allowedTypes.includes(file.type)) {
+                    alert(`File "${file.name}" is not a valid image type. Please upload JPG, PNG, GIF, or WebP.`);
+                    return;
+                }
+                
+                if (file.size > maxSize) {
+                    alert(`File "${file.name}" is too large. Maximum size is 5MB.`);
+                    return;
+                }
+                
+                // Create preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'image-preview-item';
+                    previewItem.innerHTML = `
+                        <img src="${e.target.result}" alt="Preview">
+                        <button type="button" class="image-remove-btn" onclick="removeImage(this, ${orderItemId})">×</button>
+                    `;
+                    previewContainer.appendChild(previewItem);
+                };
+                reader.readAsDataURL(file);
+            });
+            
+            // Reset file input to allow uploading same file again
+            document.getElementById(`imageInput_${orderItemId}`).value = '';
+        }
+
+        function removeImage(button, orderItemId) {
+            const previewItem = button.closest('.image-preview-item');
+            previewItem.remove();
+        }
+
+        function initializeStarRatings() {
+            // Add click events to all star ratings
+            document.querySelectorAll('.star-rating').forEach(ratingContainer => {
+                const inputs = ratingContainer.querySelectorAll('input[type="radio"]');
+                const labels = ratingContainer.querySelectorAll('label');
+                
+                inputs.forEach((input, index) => {
+                    input.addEventListener('change', function() {
+                        // Update visual state
+                        labels.forEach((label, labelIndex) => {
+                            if (labelIndex <= index) {
+                                label.style.color = '#ffd700';
+                            } else {
+                                label.style.color = '#ddd';
+                            }
+                        });
+                        
+                        // Check if any product has a rating to enable submit button
+                        checkRatingsCompletion();
+                    });
+                });
+                
+                // Initialize colors for pre-selected ratings (if any)
+                const checkedInput = ratingContainer.querySelector('input[type="radio"]:checked');
+                if (checkedInput) {
+                    const checkedIndex = Array.from(inputs).indexOf(checkedInput);
+                    labels.forEach((label, labelIndex) => {
+                        label.style.color = labelIndex <= checkedIndex ? '#ffd700' : '#ddd';
+                    });
+                }
+            });
+            
+            // Check initial state
+            checkRatingsCompletion();
+        }
+
+        function checkRatingsCompletion() {
+            const submitBtn = document.getElementById('submitRatingBtn');
+            let hasRating = false;
+            
+            // Check if any product has an overall rating
+            document.querySelectorAll('.rating-product-item').forEach(product => {
+                const overallRating = product.querySelector('input[name^="rating_"]:checked');
+                if (overallRating && overallRating.value > 0) {
+                    hasRating = true;
+                }
+            });
+            
+            submitBtn.disabled = !hasRating;
+        }
 
         // Order action functions
         function trackOrder(orderId) {
@@ -536,10 +1642,6 @@ foreach ($orders as $order) {
 
         function viewOrderDetails(orderId) {
             alert('Viewing details for order #' + orderId + '\nThis feature will be implemented soon!');
-        }
-
-        function rateProducts(orderId) {
-            alert('Rating products for order #' + orderId + '\nThis feature will be implemented soon!');
         }
 
         function reorder(orderId) {
