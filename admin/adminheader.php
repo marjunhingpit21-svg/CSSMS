@@ -1,4 +1,3 @@
-<!-- adminheader.php -->
 <?php
 // Optional: You can calculate admin notifications here if you want
 $admin_notifications = 3; // Example count (replace with real logic later)

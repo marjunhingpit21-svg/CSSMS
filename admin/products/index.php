@@ -1,65 +1,70 @@
 <?php 
 include '../includes/auth.php';
-include '../db.php';
+include '../includes/db.php';
 
 // Total products count
-$totalQ = $conn->query("SELECT COUNT(*) FROM products")->fetch_row()[0];
+$totalQ_result = $conn->query("SELECT COUNT(*) FROM products");
+$totalQ = $totalQ_result->fetch_row()[0];   
 
 // Products with stock > 20
 $inStockQ = $conn->query("
-    SELECT COUNT(DISTINCT p.product_id) 
-    FROM products p 
-    LEFT JOIN product_sizes ps ON p.product_id = ps.product_id 
-    WHERE ps.product_size_id IS NOT NULL 
-    GROUP BY p.product_id 
-    HAVING COALESCE(SUM(ps.stock_quantity), 0) > 20
-")->fetch_row()[0] ?? 0;
+    SELECT COUNT(*) FROM (
+        SELECT p.product_id
+        FROM products p
+        LEFT JOIN product_sizes ps ON p.product_id = ps.product_id
+        GROUP BY p.product_id
+        HAVING COALESCE(SUM(ps.stock_quantity), 0) > 20
+    ) AS t
+")->fetch_row()[0];
 
 // Products with stock between 1-20
 $lowStockQ = $conn->query("
-    SELECT COUNT(DISTINCT p.product_id) 
-    FROM products p 
-    LEFT JOIN product_sizes ps ON p.product_id = ps.product_id 
-    WHERE ps.product_size_id IS NOT NULL 
-    GROUP BY p.product_id 
-    HAVING COALESCE(SUM(ps.stock_quantity), 0) BETWEEN 1 AND 20
-")->fetch_row()[0] ?? 0;
+    SELECT COUNT(*) FROM (
+        SELECT p.product_id
+        FROM products p
+        LEFT JOIN product_sizes ps ON p.product_id = ps.product_id
+        GROUP BY p.product_id
+        HAVING COALESCE(SUM(ps.stock_quantity), 0) BETWEEN 1 AND 20
+    ) AS t
+")->fetch_row()[0];
 
 // Products with stock = 0
 $outStockQ = $conn->query("
-    SELECT COUNT(DISTINCT p.product_id) 
-    FROM products p 
-    LEFT JOIN product_sizes ps ON p.product_id = ps.product_id 
-    WHERE ps.product_size_id IS NOT NULL 
-    GROUP BY p.product_id 
-    HAVING COALESCE(SUM(ps.stock_quantity), 0) = 0
-")->fetch_row()[0] ?? 0;
+    SELECT COUNT(*) FROM (
+        SELECT p.product_id
+        FROM products p
+        LEFT JOIN product_sizes ps ON p.product_id = ps.product_id
+        GROUP BY p.product_id
+        HAVING COALESCE(SUM(ps.stock_quantity), 0) = 0
+    ) AS t
+")->fetch_row()[0];
 
-// For products that have no size entries at all (completely out of stock)
-$noSizeQ = $conn->query("
-    SELECT COUNT(*) 
-    FROM products p 
-    LEFT JOIN product_sizes ps ON p.product_id = ps.product_id 
-    WHERE ps.product_size_id IS NULL
-")->fetch_row()[0] ?? 0;
 
-// Add products with no sizes to out of stock count
-$outStockQ += $noSizeQ;
 
-$current_page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
-$products_per_page = 5; // Changed from 8 to 6
-$offset = ($current_page - 1) * $products_per_page;
+
+$products_per_page = 5;                               // you wanted 5 per page
+$current_page      = max(1, (int)($_GET['page'] ?? 1));
+$offset            = ($current_page - 1) * $products_per_page;
 
 $products = $conn->query("
-    SELECT p.product_id, p.product_name, p.image_url, c.category_name, p.price,
-           COALESCE(SUM(ps.stock_quantity), 0) AS total_stock
+    SELECT 
+        p.product_id,
+        p.product_name,
+        p.image_url,
+        p.price,
+        c.category_name,
+        COALESCE(SUM(ps.stock_quantity), 0) AS total_stock
     FROM products p
-    LEFT JOIN categories c ON p.category_id = c.category_id
+    LEFT JOIN categories c     ON p.category_id = c.category_id
     LEFT JOIN product_sizes ps ON p.product_id = ps.product_id
-    GROUP BY p.product_id, p.product_name, p.image_url, c.category_name, p.price
+    GROUP BY p.product_id, p.product_name, p.image_url, p.price, c.category_name
     ORDER BY p.product_id ASC
     LIMIT $offset, $products_per_page
 ");
+
+$total_pages = ceil($totalQ / $products_per_page);
+$start_item  = $totalQ == 0 ? 0 : ($current_page - 1) * $products_per_page + 1;
+$end_item    = min($current_page * $products_per_page, $totalQ);
 ?>
 
 <!DOCTYPE html>
@@ -154,8 +159,8 @@ $products = $conn->query("
                         <option value="Out of Stock">Out of Stock</option>
                     </select>
                     <select class="filter-select" id="sort-filter">
-                        <option value="Sort by: Name A-Z">Sort by: Name A-Z</option>
                         <option value="Sort by: Newest">Sort by: Date Added</option>
+                        <option value="Sort by: Name A-Z">Sort by: Name A-Z</option>
                         <option value="Sort by: Price Low-High">Sort by: Price Low-High</option>
                         <option value="Sort by: Stock Level">Sort by: Stock Level</option>
                     </select>
@@ -224,40 +229,28 @@ $products = $conn->query("
             </table>
 
             <div class="pagination-section">
-                <?php
-                $current_page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
-                $products_per_page = 6; // Changed from 8 to 6
-                $total_pages = ceil($totalQ / $products_per_page);
-                
-                $start_item = (($current_page - 1) * $products_per_page) + 1;
-                $end_item = min($current_page * $products_per_page, $totalQ);
-                ?>
-                
                 <p class="pagination-info">
-                    Showing <span><?= $start_item ?>-<?= $end_item ?></span> of <span><?= $totalQ ?></span> products
+                    <?php if ($start_item == $end_item): ?>
+                        Showing <span><?= $start_item ?></span> of <span><?= $totalQ ?></span> products
+                    <?php else: ?>
+                        Showing <span><?= $start_item ?>-<?= $end_item ?></span> of <span><?= $totalQ ?></span> products
+                    <?php endif; ?>
                 </p>
-                
+
                 <?php if ($total_pages > 1): ?>
                 <div>
-                    <button class="pagination-btn <?= $current_page == 1 ? 'disabled' : '' ?>" 
+                    <button class="pagination-btn <?= $current_page == 1 ? 'disabled' : '' ?>"
                             <?= $current_page == 1 ? 'disabled' : '' ?>
-                            onclick="changePage(<?= $current_page - 1 ?>)">
-                        Previous
-                    </button>
-                    
+                            onclick="changePage(<?= $current_page - 1 ?>)">Previous</button>
+
                     <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                        <?php if ($i == $current_page): ?>
-                            <button class="pagination-btn active"><?= $i ?></button>
-                        <?php else: ?>
-                            <button class="pagination-btn" onclick="changePage(<?= $i ?>)"><?= $i ?></button>
-                        <?php endif; ?>
+                        <button class="pagination-btn <?= $i == $current_page ? 'active' : '' ?>"
+                                onclick="changePage(<?= $i ?>)"><?= $i ?></button>
                     <?php endfor; ?>
-                    
-                    <button class="pagination-btn <?= $current_page == $total_pages ? 'disabled' : '' ?>" 
+
+                    <button class="pagination-btn <?= $current_page == $total_pages ? 'disabled' : '' ?>"
                             <?= $current_page == $total_pages ? 'disabled' : '' ?>
-                            onclick="changePage(<?= $current_page + 1 ?>)">
-                        Next
-                    </button>
+                            onclick="changePage(<?= $current_page + 1 ?>)">Next</button>
                 </div>
                 <?php endif; ?>
             </div>
