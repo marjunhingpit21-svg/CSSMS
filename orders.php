@@ -600,531 +600,6 @@ foreach ($orders as $order) {
     <link rel="stylesheet" href="css/Header.css">
     <link rel="stylesheet" href="css/orders.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* Rating Modal Styles */
-        .rating-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1001;
-            overflow-y: auto;
-        }
-
-        .rating-modal.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .rating-modal-content {
-            background: white;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 900px;
-            max-height: 90vh;
-            overflow-y: auto;
-            position: relative;
-            animation: modalSlideIn 0.3s ease;
-        }
-
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .rating-modal-header {
-            padding: 25px 30px 20px;
-            border-bottom: 1px solid #f0f0f0;
-            position: sticky;
-            top: 0;
-            background: white;
-            z-index: 10;
-            border-radius: 12px 12px 0 0;
-        }
-
-        .rating-modal-header h2 {
-            font-size: 1.8rem;
-            color: #222;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .rating-modal-subtitle {
-            color: #666;
-            font-size: 1rem;
-            margin-bottom: 5px;
-        }
-
-        .rating-modal-close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: none;
-            border: none;
-            font-size: 2rem;
-            cursor: pointer;
-            color: #666;
-            line-height: 1;
-            padding: 5px;
-            transition: color 0.3s ease;
-        }
-
-        .rating-modal-close:hover {
-            color: #e91e63;
-        }
-
-        .rating-modal-body {
-            padding: 25px 30px;
-        }
-
-        .rating-products {
-            display: flex;
-            flex-direction: column;
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-
-        .rating-product-item {
-            background: #fafafa;
-            border-radius: 10px;
-            padding: 20px;
-            border: 1px solid #f0f0f0;
-        }
-
-        .product-rating-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .product-rating-image img {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 8px;
-        }
-
-        .product-rating-info h4 {
-            font-size: 1.1rem;
-            color: #222;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-
-        .product-rating-variants {
-            font-size: 0.9rem;
-            color: #666;
-        }
-
-        .rating-section {
-            margin-bottom: 25px;
-        }
-
-        .rating-section-title {
-            font-size: 1rem;
-            color: #222;
-            margin-bottom: 15px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .rating-section-title svg {
-            color: #e91e63;
-        }
-
-        .star-rating {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 15px;
-        }
-
-        .star-rating input {
-            display: none;
-        }
-
-        .star-rating label {
-            cursor: pointer;
-            font-size: 2rem;
-            color: #ddd;
-            transition: color 0.2s ease;
-        }
-
-        .star-rating label:hover,
-        .star-rating label:hover ~ label {
-            color: #ffd700;
-        }
-
-        .star-rating input:checked ~ label {
-            color: #ffd700;
-        }
-
-        .star-rating input:checked + label ~ label {
-            color: #ddd;
-        }
-
-        .rating-labels {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 5px;
-        }
-
-        .rating-label {
-            font-size: 0.8rem;
-            color: #666;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 0.95rem;
-            color: #333;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        .form-group input[type="text"],
-        .form-group textarea {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 0.95rem;
-            transition: border-color 0.3s ease;
-            font-family: 'Poppins', sans-serif;
-        }
-
-        .form-group input[type="text"]:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #e91e63;
-            box-shadow: 0 0 0 2px rgba(233, 30, 99, 0.1);
-        }
-
-        .form-group textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        /* Image Upload Styles */
-        .image-upload-section {
-            margin-top: 20px;
-            margin-bottom: 20px;
-        }
-
-        .image-upload-title {
-            font-size: 1rem;
-            color: #222;
-            margin-bottom: 15px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .image-upload-title svg {
-            color: #e91e63;
-        }
-
-        .image-upload-container {
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            background: #f9f9f9;
-            transition: all 0.3s ease;
-        }
-
-        .image-upload-container:hover {
-            border-color: #e91e63;
-            background: #fff9fb;
-        }
-
-        .image-upload-container.dragover {
-            border-color: #e91e63;
-            background: #fff0f5;
-        }
-
-        .upload-icon {
-            font-size: 3rem;
-            color: #e91e63;
-            margin-bottom: 10px;
-        }
-
-        .upload-text {
-            color: #666;
-            margin-bottom: 15px;
-            font-size: 0.95rem;
-        }
-
-        .upload-hint {
-            font-size: 0.85rem;
-            color: #999;
-            margin-top: 10px;
-        }
-
-        .btn-upload {
-            display: inline-block;
-            padding: 10px 20px;
-            background: #e91e63;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .btn-upload:hover {
-            background: #c2185b;
-            transform: translateY(-1px);
-        }
-
-        .image-preview-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .image-preview-item {
-            position: relative;
-            width: 100px;
-            height: 100px;
-            border-radius: 6px;
-            overflow: hidden;
-            border: 1px solid #eee;
-        }
-
-        .image-preview-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .image-remove-btn {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            width: 24px;
-            height: 24px;
-            background: rgba(255, 255, 255, 0.9);
-            border: none;
-            border-radius: 50%;
-            color: #f44336;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .image-remove-btn:hover {
-            background: white;
-            transform: scale(1.1);
-        }
-
-        .hidden-file-input {
-            display: none;
-        }
-
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .checkbox-group input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-
-        .checkbox-group label {
-            margin: 0;
-            cursor: pointer;
-            font-size: 0.95rem;
-            color: #333;
-        }
-
-        .rating-modal-footer {
-            padding: 20px 30px;
-            border-top: 1px solid #f0f0f0;
-            display: flex;
-            justify-content: flex-end;
-            gap: 15px;
-            position: sticky;
-            bottom: 0;
-            background: white;
-            border-radius: 0 0 12px 12px;
-        }
-
-        .btn-cancel-rating {
-            padding: 12px 24px;
-            background: #f5f5f5;
-            color: #666;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.95rem;
-        }
-
-        .btn-cancel-rating:hover {
-            background: #e0e0e0;
-        }
-
-        .btn-submit-rating {
-            padding: 12px 24px;
-            background: #e91e63;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.95rem;
-        }
-
-        .btn-submit-rating:hover {
-            background: #c2185b;
-            transform: translateY(-1px);
-        }
-
-        .btn-submit-rating:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Detail Ratings */
-        .detail-rating {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .detail-rating-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .detail-rating-label {
-            min-width: 120px;
-            font-size: 0.9rem;
-            color: #666;
-        }
-
-        .detail-rating-stars {
-            display: flex;
-            gap: 3px;
-        }
-
-        .detail-rating-stars span {
-            font-size: 1.2rem;
-            color: #ddd;
-        }
-
-        .detail-rating-stars span.filled {
-            color: #ffd700;
-        }
-
-        /* Required star */
-        .required-star {
-            color: #f44336;
-            font-weight: bold;
-            margin-left: 3px;
-        }
-
-        /* Rating error */
-        .rating-error {
-            color: #f44336;
-            font-size: 0.85rem;
-            margin-top: 5px;
-            display: none;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .rating-modal-content {
-                width: 95%;
-                margin: 10px;
-            }
-
-            .rating-modal-header,
-            .rating-modal-body,
-            .rating-modal-footer {
-                padding: 20px;
-            }
-
-            .product-rating-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .rating-modal-footer {
-                flex-direction: column;
-            }
-
-            .rating-modal-footer button {
-                width: 100%;
-            }
-
-            .star-rating label {
-                font-size: 1.8rem;
-            }
-            
-            .image-preview-container {
-                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-            }
-            
-            .image-preview-item {
-                width: 80px;
-                height: 80px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .rating-modal-header h2 {
-                font-size: 1.5rem;
-            }
-
-            .product-rating-image img {
-                width: 60px;
-                height: 60px;
-            }
-
-            .star-rating label {
-                font-size: 1.5rem;
-            }
-            
-            .image-preview-container {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-    </style>
 </head>
 
 <body>
@@ -1526,16 +1001,18 @@ foreach ($orders as $order) {
                                 Overall Rating <span class="required-star">*</span>
                             </div>
                             <div class="star-rating">
-                                <input type="radio" id="rating_${item.order_item_id}_5" name="rating_${item.order_item_id}" value="5">
-                                <label for="rating_${item.order_item_id}_5" data-value="5">★</label>
-                                <input type="radio" id="rating_${item.order_item_id}_4" name="rating_${item.order_item_id}" value="4">
-                                <label for="rating_${item.order_item_id}_4" data-value="4">★</label>
-                                <input type="radio" id="rating_${item.order_item_id}_3" name="rating_${item.order_item_id}" value="3">
-                                <label for="rating_${item.order_item_id}_3" data-value="3">★</label>
-                                <input type="radio" id="rating_${item.order_item_id}_2" name="rating_${item.order_item_id}" value="2">
-                                <label for="rating_${item.order_item_id}_2" data-value="2">★</label>
-                                <input type="radio" id="rating_${item.order_item_id}_1" name="rating_${item.order_item_id}" value="1">
-                                <label for="rating_${item.order_item_id}_1" data-value="1">★</label>
+                                 <div class="star-rating">
+                                    <input type="radio" id="rating_${item.order_item_id}_1" name="rating_${item.order_item_id}" value="1">
+                                    <label for="rating_${item.order_item_id}_1" data-value="1">★</label>
+                                    <input type="radio" id="rating_${item.order_item_id}_2" name="rating_${item.order_item_id}" value="2">
+                                    <label for="rating_${item.order_item_id}_2" data-value="2">★</label>
+                                    <input type="radio" id="rating_${item.order_item_id}_3" name="rating_${item.order_item_id}" value="3">
+                                    <label for="rating_${item.order_item_id}_3" data-value="3">★</label>
+                                    <input type="radio" id="rating_${item.order_item_id}_4" name="rating_${item.order_item_id}" value="4">
+                                    <label for="rating_${item.order_item_id}_4" data-value="4">★</label>
+                                    <input type="radio" id="rating_${item.order_item_id}_5" name="rating_${item.order_item_id}" value="5">
+                                    <label for="rating_${item.order_item_id}_5" data-value="5">★</label>
+                                </div>
                             </div>
                             <div class="rating-error" id="rating_error_${item.order_item_id}" style="color: #f44336; font-size: 0.85rem; margin-top: 5px; display: none;">
                                 Please select an overall rating
@@ -1547,48 +1024,54 @@ foreach ($orders as $order) {
                             <div class="rating-section">
                                 <div class="rating-section-title">Quality</div>
                                 <div class="star-rating">
-                                    <input type="radio" id="quality_${item.order_item_id}_5" name="quality_${item.order_item_id}" value="5">
-                                    <label for="quality_${item.order_item_id}_5" data-value="5">★</label>
-                                    <input type="radio" id="quality_${item.order_item_id}_4" name="quality_${item.order_item_id}" value="4">
-                                    <label for="quality_${item.order_item_id}_4" data-value="4">★</label>
-                                    <input type="radio" id="quality_${item.order_item_id}_3" name="quality_${item.order_item_id}" value="3">
-                                    <label for="quality_${item.order_item_id}_3" data-value="3">★</label>
-                                    <input type="radio" id="quality_${item.order_item_id}_2" name="quality_${item.order_item_id}" value="2">
-                                    <label for="quality_${item.order_item_id}_2" data-value="2">★</label>
-                                    <input type="radio" id="quality_${item.order_item_id}_1" name="quality_${item.order_item_id}" value="1">
-                                    <label for="quality_${item.order_item_id}_1" data-value="1">★</label>
+                                     <div class="star-rating">
+                                        <input type="radio" id="rating_${item.order_item_id}_1" name="rating_${item.order_item_id}" value="1">
+                                        <label for="rating_${item.order_item_id}_1" data-value="1">★</label>
+                                        <input type="radio" id="rating_${item.order_item_id}_2" name="rating_${item.order_item_id}" value="2">
+                                        <label for="rating_${item.order_item_id}_2" data-value="2">★</label>
+                                        <input type="radio" id="rating_${item.order_item_id}_3" name="rating_${item.order_item_id}" value="3">
+                                        <label for="rating_${item.order_item_id}_3" data-value="3">★</label>
+                                        <input type="radio" id="rating_${item.order_item_id}_4" name="rating_${item.order_item_id}" value="4">
+                                        <label for="rating_${item.order_item_id}_4" data-value="4">★</label>
+                                        <input type="radio" id="rating_${item.order_item_id}_5" name="rating_${item.order_item_id}" value="5">
+                                        <label for="rating_${item.order_item_id}_5" data-value="5">★</label>
+                                    </div>
                                 </div>
                             </div>
                             
                             <div class="rating-section">
                                 <div class="rating-section-title">Fit (if applicable)</div>
                                 <div class="star-rating">
-                                    <input type="radio" id="fit_${item.order_item_id}_5" name="fit_${item.order_item_id}" value="5">
-                                    <label for="fit_${item.order_item_id}_5" data-value="5">★</label>
-                                    <input type="radio" id="fit_${item.order_item_id}_4" name="fit_${item.order_item_id}" value="4">
-                                    <label for="fit_${item.order_item_id}_4" data-value="4">★</label>
-                                    <input type="radio" id="fit_${item.order_item_id}_3" name="fit_${item.order_item_id}" value="3">
-                                    <label for="fit_${item.order_item_id}_3" data-value="3">★</label>
-                                    <input type="radio" id="fit_${item.order_item_id}_2" name="fit_${item.order_item_id}" value="2">
-                                    <label for="fit_${item.order_item_id}_2" data-value="2">★</label>
-                                    <input type="radio" id="fit_${item.order_item_id}_1" name="fit_${item.order_item_id}" value="1">
-                                    <label for="fit_${item.order_item_id}_1" data-value="1">★</label>
+                                     <div class="star-rating">
+                                        <input type="radio" id="rating_${item.order_item_id}_1" name="rating_${item.order_item_id}" value="1">
+                                        <label for="rating_${item.order_item_id}_1" data-value="1">★</label>
+                                        <input type="radio" id="rating_${item.order_item_id}_2" name="rating_${item.order_item_id}" value="2">
+                                        <label for="rating_${item.order_item_id}_2" data-value="2">★</label>
+                                        <input type="radio" id="rating_${item.order_item_id}_3" name="rating_${item.order_item_id}" value="3">
+                                        <label for="rating_${item.order_item_id}_3" data-value="3">★</label>
+                                        <input type="radio" id="rating_${item.order_item_id}_4" name="rating_${item.order_item_id}" value="4">
+                                        <label for="rating_${item.order_item_id}_4" data-value="4">★</label>
+                                        <input type="radio" id="rating_${item.order_item_id}_5" name="rating_${item.order_item_id}" value="5">
+                                        <label for="rating_${item.order_item_id}_5" data-value="5">★</label>
+                                    </div>
                                 </div>
                             </div>
                             
                             <div class="rating-section">
                                 <div class="rating-section-title">Value for Money</div>
                                 <div class="star-rating">
-                                    <input type="radio" id="value_${item.order_item_id}_5" name="value_${item.order_item_id}" value="5">
-                                    <label for="value_${item.order_item_id}_5" data-value="5">★</label>
-                                    <input type="radio" id="value_${item.order_item_id}_4" name="value_${item.order_item_id}" value="4">
-                                    <label for="value_${item.order_item_id}_4" data-value="4">★</label>
-                                    <input type="radio" id="value_${item.order_item_id}_3" name="value_${item.order_item_id}" value="3">
-                                    <label for="value_${item.order_item_id}_3" data-value="3">★</label>
-                                    <input type="radio" id="value_${item.order_item_id}_2" name="value_${item.order_item_id}" value="2">
-                                    <label for="value_${item.order_item_id}_2" data-value="2">★</label>
-                                    <input type="radio" id="value_${item.order_item_id}_1" name="value_${item.order_item_id}" value="1">
-                                    <label for="value_${item.order_item_id}_1" data-value="1">★</label>
+                                     <div class="star-rating">
+                                        <input type="radio" id="rating_${item.order_item_id}_1" name="rating_${item.order_item_id}" value="1">
+                                        <label for="rating_${item.order_item_id}_1" data-value="1">★</label>
+                                        <input type="radio" id="rating_${item.order_item_id}_2" name="rating_${item.order_item_id}" value="2">
+                                        <label for="rating_${item.order_item_id}_2" data-value="2">★</label>
+                                        <input type="radio" id="rating_${item.order_item_id}_3" name="rating_${item.order_item_id}" value="3">
+                                        <label for="rating_${item.order_item_id}_3" data-value="3">★</label>
+                                        <input type="radio" id="rating_${item.order_item_id}_4" name="rating_${item.order_item_id}" value="4">
+                                        <label for="rating_${item.order_item_id}_4" data-value="4">★</label>
+                                        <input type="radio" id="rating_${item.order_item_id}_5" name="rating_${item.order_item_id}" value="5">
+                                        <label for="rating_${item.order_item_id}_5" data-value="5">★</label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1752,90 +1235,83 @@ foreach ($orders as $order) {
         }
 
         function initializeStarRatings() {
-            // Add click events to all star ratings
             document.querySelectorAll('.star-rating').forEach(ratingContainer => {
-                const inputs = ratingContainer.querySelectorAll('input[type="radio"]');
                 const labels = ratingContainer.querySelectorAll('label[data-value]');
                 
-                // Add click event to labels
                 labels.forEach(label => {
+                    // Click handler
                     label.addEventListener('click', function() {
                         const inputId = this.getAttribute('for');
                         const input = document.getElementById(inputId);
-                        const value = this.getAttribute('data-value');
+                        const value = parseInt(this.getAttribute('data-value'));
                         
-                        // Check the corresponding radio button
                         if (input) {
                             input.checked = true;
                             
-                            // Update visual state for all labels in this group
+                            // Update visual state
                             const name = input.getAttribute('name');
-                            const allInputs = document.querySelectorAll(`input[name="${name}"]`);
-                            allInputs.forEach((inp, index) => {
-                                const labelForInput = document.querySelector(`label[for="${inp.id}"]`);
-                                if (labelForInput) {
-                                    if (parseInt(inp.value) <= parseInt(value)) {
-                                        labelForInput.style.color = '#ffd700';
-                                    } else {
-                                        labelForInput.style.color = '#ddd';
-                                    }
+                            const allLabels = ratingContainer.querySelectorAll('label');
+                            
+                            allLabels.forEach(lbl => {
+                                const lblValue = parseInt(lbl.getAttribute('data-value'));
+                                if (lblValue <= value) {
+                                    lbl.style.color = '#ffd700';
+                                } else {
+                                    lbl.style.color = '#ddd';
                                 }
                             });
                             
-                            // Check if this is an overall rating and update submit button
+                            // Hide error if this is overall rating
                             if (name && name.startsWith('rating_')) {
+                                const orderItemId = name.replace('rating_', '');
+                                const errorElement = document.getElementById(`rating_error_${orderItemId}`);
+                                if (errorElement) {
+                                    errorElement.style.display = 'none';
+                                }
                                 checkRatingsCompletion();
                             }
                         }
                     });
-                });
-                
-                // Also handle direct input changes
-                inputs.forEach(input => {
-                    input.addEventListener('change', function() {
-                        const value = this.value;
-                        const name = this.getAttribute('name');
+                    
+                    // Hover effect
+                    label.addEventListener('mouseenter', function() {
+                        const value = parseInt(this.getAttribute('data-value'));
+                        const allLabels = ratingContainer.querySelectorAll('label');
                         
-                        // Update visual state for all labels in this group
-                        const allInputs = document.querySelectorAll(`input[name="${name}"]`);
-                        allInputs.forEach((inp, index) => {
-                            const labelForInput = document.querySelector(`label[for="${inp.id}"]`);
-                            if (labelForInput) {
-                                if (parseInt(inp.value) <= parseInt(value)) {
-                                    labelForInput.style.color = '#ffd700';
-                                } else {
-                                    labelForInput.style.color = '#ddd';
-                                }
+                        allLabels.forEach(lbl => {
+                            const lblValue = parseInt(lbl.getAttribute('data-value'));
+                            if (lblValue <= value) {
+                                lbl.style.color = '#ffd700';
+                            } else {
+                                lbl.style.color = '#ddd';
                             }
                         });
-                        
-                        // Check if this is an overall rating and update submit button
-                        if (name && name.startsWith('rating_')) {
-                            checkRatingsCompletion();
-                        }
                     });
                 });
                 
-                // Initialize colors for any pre-checked ratings (if any)
-                const checkedInput = ratingContainer.querySelector('input[type="radio"]:checked');
-                if (checkedInput) {
-                    const value = checkedInput.value;
-                    const name = checkedInput.getAttribute('name');
-                    const allInputs = document.querySelectorAll(`input[name="${name}"]`);
-                    allInputs.forEach((inp, index) => {
-                        const labelForInput = document.querySelector(`label[for="${inp.id}"]`);
-                        if (labelForInput) {
-                            if (parseInt(inp.value) <= parseInt(value)) {
-                                labelForInput.style.color = '#ffd700';
+                // Reset on mouse leave
+                ratingContainer.addEventListener('mouseleave', function() {
+                    const checkedInput = ratingContainer.querySelector('input[type="radio"]:checked');
+                    const allLabels = ratingContainer.querySelectorAll('label');
+                    
+                    if (checkedInput) {
+                        const value = parseInt(checkedInput.value);
+                        allLabels.forEach(lbl => {
+                            const lblValue = parseInt(lbl.getAttribute('data-value'));
+                            if (lblValue <= value) {
+                                lbl.style.color = '#ffd700';
                             } else {
-                                labelForInput.style.color = '#ddd';
+                                lbl.style.color = '#ddd';
                             }
-                        }
-                    });
-                }
+                        });
+                    } else {
+                        allLabels.forEach(lbl => {
+                            lbl.style.color = '#ddd';
+                        });
+                    }
+                });
             });
             
-            // Check initial state
             checkRatingsCompletion();
         }
 

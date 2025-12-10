@@ -71,8 +71,7 @@
 
             <div class="dropdown-items">
                 <a href="/CSSMS/admin/users/customers_index.php" class="<?= strpos($current, 'customers_index.php') !== false ? 'active' : '' ?>">Customers</a>
-                <a href="/CSSMS/admin/users/cashiers_index.php" class="<?= strpos($current, 'cashiers_index.php') !== false ? 'active' : '' ?>">Cashiers</a>
-                <a href="/CSSMS/admin/users/admins_index.php" class="<?= strpos($current, 'admins_index.php') !== false ? 'active' : '' ?>">Admins</a>
+                <a href="/CSSMS/admin/users/employees_index.php" class="<?= strpos($current, 'employees_index.php') !== false ? 'active' : '' ?>">Employees</a>
             </div>
         </div>
 
