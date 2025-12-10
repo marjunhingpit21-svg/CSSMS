@@ -778,6 +778,24 @@ if (isset($_SESSION['user_id'])) {
                                 }
                             }
                         ?>
+
+                        <?php
+                            // Fetch images for this review
+                            $images_stmt = $conn->prepare("
+                                SELECT image_id, image_url, thumbnail_url, file_name 
+                                FROM rating_images 
+                                WHERE rating_id = ? 
+                                ORDER BY image_order
+                            ");
+                            $images_stmt->bind_param("i", $review['rating_id']);
+                            $images_stmt->execute();
+                            $images_result = $images_stmt->get_result();
+                            $review_images = [];
+                            while ($img = $images_result->fetch_assoc()) {
+                                $review_images[] = $img;
+                            }
+                            $images_stmt->close();
+                            ?>
                             <div class="review-card <?php echo $is_active_review ? 'highlight' : ''; ?>" id="review-<?php echo $review['rating_id']; ?>">
                                 <div class="review-header">
                                     <div class="reviewer-info">
@@ -805,6 +823,20 @@ if (isset($_SESSION['user_id'])) {
                                         <?php endif; ?>
                                     </div>
                                 </div>
+
+                                <!-- ADD THIS: Review Images Display -->
+                                <?php if (!empty($review_images)): ?>
+                                    <div class="review-images">
+                                        <?php foreach ($review_images as $image): ?>
+                                            <div class="review-image-item">
+                                                <img src="<?php echo htmlspecialchars($image['thumbnail_url']); ?>" 
+                                                    alt="Review image" 
+                                                    onclick="openImageModal('<?php echo htmlspecialchars($image['image_url']); ?>')"
+                                                    onerror="this.src='<?php echo htmlspecialchars($image['image_url']); ?>'">
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
                                 
                                 <div class="review-content">
                                     <?php if (!empty($review['review_title'])): ?>
@@ -854,6 +886,8 @@ if (isset($_SESSION['user_id'])) {
                                             </div>
                                         <?php endif; ?>
                                     </div>
+
+
                                     
                                     <!-- Helpfulness -->
                                     <div class="helpfulness">
@@ -872,6 +906,7 @@ if (isset($_SESSION['user_id'])) {
                                         </button>
                                     </div>
                                 </div>
+                                
                             </div>
                         <?php endwhile; ?>
                         
@@ -984,6 +1019,10 @@ if (isset($_SESSION['user_id'])) {
                 thumb.classList.remove('active');
             });
             element.classList.add('active');
+        }
+
+        function openImageModal(imageSrc) {
+            zoomImage(imageSrc);
         }
 
         // Zoom functionality
