@@ -71,7 +71,7 @@ main { margin-left: 280px; padding: 100px 40px 40px; transition: margin-left 0.3
 }
 
 .search-input {
-    width: 450px;
+    width: 400px;
     background: #f8f9fa;
     border: 1px solid #e91e63;
     border-radius: 8px;
@@ -460,4 +460,70 @@ form {
 .modal-actions.delete-actions {
     justify-content: center;
     margin-top: 24px;
+}
+
+.modal-content,
+.modal-header h2,
+.modal-header h3,
+.form-group label,
+.form-group input,
+.form-group select,
+.btn-cancel,
+.btn-save,
+.delete-message h3,
+.delete-message p,
+.warning-content h4,
+.warning-content p {
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* Modal titles & text – consistent sizing and weight */
+.modal-header h2,
+.delete-message h3 {
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.modal-header h3 {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+/* Form labels */
+.form-group label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+/* Inputs & selects */
+.form-group input,
+.form-group select {
+    font-size: 15px;
+    font-weight: 400;
+}
+
+/* Buttons in modals */
+.btn-cancel,
+.btn-save,
+.btn-delete-confirm {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* Delete modal specific text */
+.delete-message p,
+.warning-content p {
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.warning-content h4 {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* Ensure modal body text uses Inter */
+.modal-content * {
+    line-height: 1.5;
 }
