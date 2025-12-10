@@ -652,6 +652,9 @@ if (isset($_SESSION['user_id'])) {
                                 <button type="button" onclick="incrementQty()">+</button>
                             </div>
 
+                            <!-- //basta naay changes -->
+                             <!-- hello world -->
+
                             <button type="submit" name="add_to_cart" class="btn-add-to-cart" <?php echo !$has_stock ? 'disabled' : ''; ?>>
                                 <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
