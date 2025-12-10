@@ -1,8 +1,8 @@
 <?php
 $host = "localhost";   
 $user = "root";        
-$pass = "";            
-$dbname = "store2";
+$pass = "root";            
+$dbname = "altiere2";
 
 
 $conn = new mysqli($host, $user, $pass, $dbname);

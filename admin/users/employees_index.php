@@ -43,6 +43,7 @@ if ($result && $result->num_rows > 0) {
     <link rel="stylesheet" href="css/customers.css">
     <style>
         .add-btn {
+            font-family: 'Inter', sans-serif;
             display: inline-flex;
             align-items: center;
             gap: 8px;
@@ -127,10 +128,10 @@ if ($result && $result->num_rows > 0) {
     <main>
         <div class="header-section">
             <h1>Employee Management</h1>
-            <a href="add_employee.php" class="add-btn">
+            <button class="add-btn" id="openAddModal">
                 <span class="material-icons">add</span>
                 Add New Employee
-            </a>
+            </button>
         </div>
 
         <!-- Stats -->
@@ -212,7 +213,9 @@ if ($result && $result->num_rows > 0) {
                 <tbody>
                     <?php if (count($employees) > 0): ?>
                         <?php foreach ($employees as $emp): ?>
-                            <tr data-employee-id="<?= $emp['employee_id'] ?>">
+                            <tr 
+                                data-employee-id="<?= $emp['employee_id'] ?>" 
+                                data-hire-date="<?= $emp['hire_date'] ?>">
                                 <td>
                                     <strong><?= htmlspecialchars($emp['full_name'] ?? '—') ?></strong>
                                 </td>
@@ -245,49 +248,72 @@ if ($result && $result->num_rows > 0) {
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Edit Employee</h2>
-                <button class="modal-close">&times;</button>
+                <button class="modal-close">×</button>
             </div>
-            <form id="editForm" action="update_employee.php" method="POST">
+            <form id="editForm">
                 <input type="hidden" name="employee_id" id="edit_id">
 
-                <div class="form-grid">
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- First Name -->
                     <div class="form-group">
-                        <label>Full Name</label>
-                        <input type="text" name="full_name" id="edit_full_name" required>
+                        <label>First Name <span style="color:red">*</span></label>
+                        <input type="text" name="first_name" id="edit_first_name" required placeholder="Juan">
                     </div>
+
+                    <!-- Last Name -->
+                    <div class="form-group">
+                        <label>Last Name <span style="color:red;">*</span></label>
+                        <input type="text" name="last_name" id="edit_last_name" required placeholder="Dela Cruz">
+                    </div>
+
+                    <!-- Email -->
                     <div class="form-group">
                         <label>Email</label>
-                        <input type="email" name="email" id="edit_email">
+                        <input type="email" name="email" id="edit_email" placeholder="juan@example.com">
                     </div>
+
+                    <!-- Phone -->
                     <div class="form-group">
                         <label>Phone</label>
-                        <input type="text" name="phone" id="edit_phone">
+                        <input type="text" name="phone" id="edit_phone" placeholder="0917-123-4567">
                     </div>
+
+                    <!-- Position Dropdown -->
                     <div class="form-group">
-                        <label>Position</label>
-                        <input type="text" name="position" id="edit_position" required>
+                        <label>Position <span style="color:red;">*</span></label>
+                        <select name="position" id="edit_position" class="filter-select" required style="height:48px; width:100%;">
+                            <option value="">Select Position</option>
+                            <option value="cashier">Cashier</option>
+                            <option value="sales_associate">Sales Associate</option>
+                            <option value="stock_clerk">Stock Clerk</option>
+                            <option value="supervisor">Supervisor</option>
+                            <option value="manager">Manager</option>
+                        </select>
                     </div>
+
+                    <!-- Branch -->
                     <div class="form-group">
-                        <label>Branch</label>
-                        <select name="branch_id" id="edit_branch" required>
+                        <label>Branch <span style="color:red;">*</span></label>
+                        <select name="branch_id" id="edit_branch" class="filter-select" required style="height:48px; width:100%;">
                             <option value="">Select Branch</option>
                             <?php
-                            $conn->query("SELECT branch_id, branch_name FROM branches ORDER BY branch_name");
-                            $branches_q->data_seek(0);
+                            $branches_q = $conn->query("SELECT branch_id, branch_name FROM branches ORDER BY branch_name");
                             while ($b = $branches_q->fetch_assoc()) {
-                                echo "<option value=\"{$b['branch_id']}\">{$b['branch_name']}</option>";
+                                echo '<option value="'.$b['branch_id'].'">'.htmlspecialchars($b['branch_name']).'</option>';
                             }
                             ?>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Salary (₱)</label>
-                        <input type="number" step="0.01" name="salary" id="edit_salary" required>
+
+                    <!-- Salary -->
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Monthly Salary (₱) <span style="color:red;">*</span></label>
+                        <input type="number" step="0.01" min="0" name="salary" id="edit_salary" required placeholder="25000.00">
                     </div>
                 </div>
 
                 <div class="modal-actions">
-                    <button type="button" class="btn-cancel modal-close">Cancel</button>
+                    <button type="button" class="btn-cancel">Cancel</button>
                     <button type="submit" class="btn-save">Save Changes</button>
                 </div>
             </form>
@@ -303,15 +329,88 @@ if ($result && $result->num_rows > 0) {
             </div>
             <div style="padding: 28px; text-align:center;">
                 <div class="delete-icon">
-                    <span class="material-icons" style="font-size:48px;color:#dc2626;">warning</span>
+                    <span class="material-icons" style="font-size:48px;color:#dc2626;">delete_forever</span>
                 </div>
                 <h3 style="margin:20px 0 10px;">Are you sure?</h3>
                 <p id="deleteText">You are about to delete <strong>1</strong> employee.</p>
                 <div id="deleteNames" style="margin:20px 0; font-weight:500;"></div>
                 <div class="modal-actions delete-actions">
-                    <button class="btn-cancel modal-close">Cancel</button>
+                    <button class="btn-cancel">Cancel</button>
                     <button class="btn-delete-confirm" id="confirmDelete">Yes, Delete</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Employee Modal -->
+    <div class="modal-overlay" id="addEmployeeModal">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #e91e63, #c2185b);">
+                <h2>Add New Employee</h2>
+                <button type="button" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addEmployeeForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>First Name <span style="color:#e91e63;">*</span></label>
+                            <input type="text" name="first_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Last Name <span style="color:#e91e63;">*</span></label>
+                            <input type="text" name="last_name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Email Address <span style="color:#e91e63;">*</span></label>
+                            <input type="email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="text" name="phone" placeholder="e.g. 09171234567">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Position <span style="color:#e91e63;">*</span></label>
+                            <select name="position" required>
+                                <option value="">Select Position</option>
+                                <option value="cashier">Cashier</option>
+                                <option value="supervisor">Supervisor</option>
+                                <option value="manager">Manager</option>
+                                <option value="stock_clerk">Stock Clerk</option>
+                                <option value="sales_associate">Sales Associate</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Branch <span style="color:#e91e63;">*</span></label>
+                            <select name="branch_id" required>
+                                <option value="">Select Branch</option>
+                                <?php
+                                $branches_q = $conn->query("SELECT branch_id, branch_name FROM branches ORDER BY branch_name");
+                                while ($b = $branches_q->fetch_assoc()) {
+                                    echo '<option value="'.$b['branch_id'].'">'.htmlspecialchars($b['branch_name']).'</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Monthly Salary (₱) <span style="color:#e91e63;">*</span></label>
+                            <input type="number" name="salary" min="0" step="0.01" required placeholder="25000.00">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Hire Date <span style="color:#e91e63;">*</span></label>
+                            <input type="date" name="hire_date" required value="<?= date('Y-m-d') ?>">
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-cancel">Cancel</button>
+                        <button type="submit" class="btn-save">Add Employee</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -344,21 +443,27 @@ if ($result && $result->num_rows > 0) {
                         .then(d => {
                             if (d.success) {
                                 const e = d.employee;
+
                                 document.getElementById('edit_id').value = e.employee_id;
-                                document.getElementById('edit_full_name').value = e.full_name || '';
+                                document.getElementById('edit_first_name').value = e.first_name || '';
+                                document.getElementById('edit_last_name').value = e.last_name || '';
                                 document.getElementById('edit_email').value = e.email || '';
                                 document.getElementById('edit_phone').value = e.phone || '';
                                 document.getElementById('edit_position').value = e.position || '';
                                 document.getElementById('edit_branch').value = e.branch_id || '';
                                 document.getElementById('edit_salary').value = e.salary || '';
 
-                                document.getElementById('editEmployeeModal').style.display = 'flex';
-                                setTimeout(() => document.getElementById('editEmployeeModal').classList.add('show'), 10);
+                                const modal = document.getElementById('editEmployeeModal');
+                                modal.style.display = 'flex';
+                                setTimeout(() => modal.classList.add('show'), 10);
+                            } else {
+                                alert('Failed to load employee data.');
                             }
-                        });
+                        })
+                        .catch(() => alert('Error loading employee data.'));
                 }
             };
-
+            
             // Delete
             deleteBtn.onclick = () => {
                 const checked = Array.from(table.querySelectorAll('.select-employee:checked'));
@@ -390,17 +495,54 @@ if ($result && $result->num_rows > 0) {
             search.addEventListener('input', filter);
             document.getElementById('filter-branch').addEventListener('change', filter);
             document.getElementById('filter-position').addEventListener('change', filter);
+            document.getElementById('filter-sort').addEventListener('change', () => {
+                const sortBy = document.getElementById('filter-sort').value;
+                const tbody = table.querySelector('tbody');
+                const rowsArray = Array.from(rows).filter(r => r.style.display !== 'none');
+
+                rowsArray.sort((a, b) => {
+                    switch (sortBy) {
+                        case 'recent':
+                        case 'oldest':
+                            const getDate = (d) => d ? new Date(d) : new Date('1900-01-01');
+                            const dateA = getDate(a.dataset.hireDate);
+                            const dateB = getDate(b.dataset.hireDate);
+                            const comparison = dateA - dateB;
+                            return sortBy === 'recent' ? -comparison : comparison;
+                        case 'name-asc':
+                            return a.cells[0].textContent.localeCompare(b.cells[0].textContent);
+                        case 'name-desc':
+                            return b.cells[0].textContent.localeCompare(a.cells[0].textContent);
+                        case 'salary-asc':
+                            const salaryA = parseFloat(a.cells[3].textContent.replace(/[^0-9.-]+/g,""));
+                            const salaryB = parseFloat(b.cells[3].textContent.replace(/[^0-9.-]+/g,""));
+                            return salaryA - salaryB;
+                        case 'salary-desc':
+                            const salaryA2 = parseFloat(a.cells[3].textContent.replace(/[^0-9.-]+/g,""));
+                            const salaryB2 = parseFloat(b.cells[3].textContent.replace(/[^0-9.-]+/g,""));
+                            return salaryB2 - salaryA2;
+                        default:
+                            return 0;
+                    }
+                });
+
+                // Re-append sorted rows
+                rowsArray.forEach(r => tbody.appendChild(r));
+            });
 
             function filter() {
                 const term = search.value.toLowerCase();
                 const branch = document.getElementById('filter-branch').value.toLowerCase();
                 const pos = document.getElementById('filter-position').value.toLowerCase();
+                const sortBy = document.getElementById('filter-sort').value;
 
                 rows.forEach(row => {
                     const text = row.textContent.toLowerCase();
-                    const rowBranch = (row.cells[3]?.textContent || '').toLowerCase();
-                    const rowPos = (row.cells[2]?.textContent || '').toLowerCase();
-
+                    
+                    // Branch = cell 2, Position = cell 1 (as per your table structure)
+                    const rowBranch = (row.cells[2]?.textContent || '').toLowerCase().trim();
+                    const rowPos = (row.cells[1]?.textContent || '').toLowerCase().trim();
+                    
                     const matchSearch = text.includes(term);
                     const matchBranch = !branch || rowBranch.includes(branch);
                     const matchPos = !pos || rowPos.includes(pos);
@@ -409,7 +551,6 @@ if ($result && $result->num_rows > 0) {
                 });
                 updateButtons();
             }
-
             // Close modals
             document.querySelectorAll('.modal-close').forEach(btn => {
                 btn.onclick = () => {
@@ -418,6 +559,94 @@ if ($result && $result->num_rows > 0) {
                 };
             });
         });
+
+        document.querySelectorAll('.modal-close, .btn-cancel').forEach(btn => {
+            btn.onclick = (e) => {
+                if (e.target.closest('.modal-overlay')) {
+                    const overlay = e.target.closest('.modal-overlay');
+                    overlay.classList.remove('show');
+                    setTimeout(() => overlay.style.display = 'none', 300);
+                }
+            };
+        })
+
+            document.getElementById('openAddModal').addEventListener('click', function() {
+            const modal = document.getElementById('addEmployeeModal');
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('show'), 10);
+        });
+
+        // Close all modals when clicking X or Cancel
+        document.querySelectorAll('.modal-close').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const overlay = this.closest('.modal-overlay');
+                overlay.classList.remove('show');
+                setTimeout(() => overlay.style.display = 'none', 300);
+            });
+        });
+
+        // Submit Add Employee Form via AJAX
+        document.getElementById('addEmployeeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+
+            const submitBtn = this.querySelector('.btn-save');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+
+            fetch('save_employee.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    alert(
+                        `Employee added successfully!\n\n` +
+                        `Employee No: ${res.employee_number}\n` +
+                        `Default Password: ${res.default_password}\n\n` +
+                        `They can log in with their email and this password, then change it.`
+                    );
+                    location.reload();
+                } else {
+                    alert('Error: ' + (res.message || 'Could not add employee'));
+                }
+            })
+            .catch(() => alert('Connection error. Please try again.'))
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Add Employee';
+            });
+        });
+        
+    </script>
+    <script>
+    // Handle form submission via AJAX
+    document.getElementById('editForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData);
+
+        fetch('update_employee.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                alert('Employee updated successfully!');
+                location.reload(); // Refresh to show changes
+            } else {
+                alert('Error: ' + res.message);
+            }
+        })
+        .catch(() => alert('Connection error. Please try again.'));
+    });
     </script>
 </body>
 </html>

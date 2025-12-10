@@ -176,22 +176,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
                     ", $city, $province $postal_code";
             }
 
-            $final_address_id = null;
+           $final_address_id = null;
 
-            if ($selected_address_id > 0) {
-                // Using existing address
-                $final_address_id = $selected_address_id;
-            } else {
-                // Just inserted new address above, get its ID
-                $final_address_id = $conn->insert_id;
-            }
+if ($selected_address_id > 0) {
+    // Using existing address
+    $final_address_id = $selected_address_id;
+} else {
+    // Just inserted new address above, get its ID
+    $final_address_id = $conn->insert_id;
+}
 
-            // Create order - ADD address_id parameter
-            $discount = 0.00;
-            $insert_order = $conn->prepare("INSERT INTO orders (customer_id, address_id, subtotal, tax, discount, total_amount, payment_method, status, shipping_address) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)");
-            $insert_order->bind_param("iidddsss", $customer_id, $final_address_id, $subtotal, $tax, $discount, $total, $payment_method, $shipping_address);
-            $insert_order->execute();
-            $order_id = $conn->insert_id;
+// Create order - ADD address_id parameter
+$discount = 0.00;
+$insert_order = $conn->prepare("INSERT INTO orders (customer_id, address_id, subtotal, tax, discount, total_amount, payment_method, status, shipping_address) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)");
+$insert_order->bind_param("iidddsss", $customer_id, $final_address_id, $subtotal, $tax, $discount, $total, $payment_method, $shipping_address);
+$insert_order->execute();
+$order_id = $conn->insert_id;
 
             // Insert order items (rest of your code remains the same)
             foreach ($_SESSION['cart'] as $item) {
