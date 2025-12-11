@@ -1,0 +1,134 @@
+/* admin/inventory/inventory.css — Red accents for alerts, same style as suppliers */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body { font-family: 'Inter', sans-serif; background: #f9f9fc; margin: 0; color: #333; }
+
+main {
+    margin-left: 280px;
+    padding: 120px 40px 60px;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+    transition: margin-left 0.3s ease;
+}
+body.sidebar-collapsed main { margin-left: 80px; }
+@media (max-width: 992px) { main { margin-left: 0; padding: 100px 20px 40px; } }
+
+/* Header */
+.header-section {
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 3px solid #e91e63;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+.page-title { font-size: 2.4rem; font-weight: 700; color: #e91e63; margin: 0; }
+.header-subtitle { color: #666; font-size: 1.1rem; margin: 8px 0 0; }
+
+/* Search Input */
+.search-input {
+    width: 100%;
+    max-width: 460px;
+    padding: 16px 20px;
+    border-radius: 16px;
+    border: 2px solid #f0e6f8;
+    font-size: 1.1rem;
+    margin-bottom: 32px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+.search-input:focus { border-color: #e91e63; }
+
+/* Alerts Grid – Card Style with red accents */
+.alerts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 28px;
+    margin-bottom: 60px;
+}
+
+.alert-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border: 1px solid #f8d7da;
+}
+.alert-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 16px 40px rgba(233,30,99,0.15);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #c62828, #b71c1c);
+    color: white;
+    padding: 20px 24px;
+}
+.card-header h3 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 600;
+}
+
+.card-body {
+    padding: 24px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+}
+.info-label {
+    color: #777;
+    font-weight: 500;
+}
+.info-value {
+    color: #333;
+    font-weight: 500;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 12px;
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.card-actions {
+    padding: 16px 24px;
+    background: #f8f9fa;
+    display: flex;
+    gap: 12px;
+    border-top: 1px solid #eee;
+}
+.card-actions a {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    border-radius: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+.edit-btn { background: #e3f2fd; color: #1976d2; }
+.edit-btn:hover { background: #bbdefb; }
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 100px 20px;
+    color: #999;
+}
+.empty-state .material-icons {
+    font-size: 100px;
+    color: #e91e6333;
+    margin-bottom: 20px;
+}
