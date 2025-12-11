@@ -109,11 +109,9 @@ if (isset($_SESSION['cart'])) {
 
 // Get orders count for header
 $orders_count = 0;
-if ($user_data['customer_id']) {
-    $count_query = $conn->prepare("SELECT COUNT(*) as count FROM orders WHERE customer_id = ?");
-    $count_query->bind_param("i", $user_data['customer_id']);
-    $count_query->execute();
-    $orders_count = $count_query->get_result()->fetch_assoc()['count'];
+if (isset($_SESSION['user_id'])) {
+    include 'orders_count.php';
+    $orders_count = getOrdersCount($conn, $_SESSION['user_id']);
 }
 ?>
 

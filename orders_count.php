@@ -23,7 +23,7 @@ function getOrdersCount($conn, $user_id) {
                 $count_stmt = $conn->prepare("
                     SELECT COUNT(*) as order_count 
                     FROM orders 
-                    WHERE customer_id = ? AND status IN ('pending', 'processing', 'shipped', 'delivered')
+                    WHERE customer_id = ? AND status IN ('pending', 'processing', 'shipped', 'delivered','received')
                 ");
                 $count_stmt->bind_param("i", $customer_id);
                 $count_stmt->execute();

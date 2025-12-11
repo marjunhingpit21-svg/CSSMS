@@ -1,6 +1,6 @@
 <?php
 
-include '../db.php';
+include '../includes/db.php';
 include '../includes/auth.php'; // Ensures only logged-in admins can access
 
 // Start session if needed for flash messages

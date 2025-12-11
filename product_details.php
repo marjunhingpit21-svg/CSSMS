@@ -70,10 +70,82 @@ $sizes_stmt->close();
 // Get sorting parameters for reviews
 $sort_by = $_GET['sort'] ?? 'newest';
 $min_rating = isset($_GET['rating']) ? (int)$_GET['rating'] : 0;
+$show_all = isset($_GET['show_all']) && $_GET['show_all'] === 'true';
+
+// Handle review helpfulness if user is logged in
+if (isset($_GET['helpful_action']) && isset($_GET['rating_id'])) {
+    $rating_id = (int)$_GET['rating_id'];
+    $action = $_GET['helpful_action'];
+    
+    if (isset($_SESSION['user_id'])) {
+        // Get customer_id from users table
+        $customer_query = $conn->prepare("SELECT customer_id FROM customers WHERE user_id = ?");
+        $customer_query->bind_param("i", $_SESSION['user_id']);
+        $customer_query->execute();
+        $customer_result = $customer_query->get_result();
+        
+        if ($customer_result->num_rows > 0) {
+            $customer_data = $customer_result->fetch_assoc();
+            $customer_id = $customer_data['customer_id'];
+            
+            // Check if user has already voted on this review
+            $check_stmt = $conn->prepare("SELECT helpfulness_id, is_helpful FROM rating_helpfulness WHERE rating_id = ? AND customer_id = ?");
+            $check_stmt->bind_param("ii", $rating_id, $customer_id);
+            $check_stmt->execute();
+            $check_result = $check_stmt->get_result();
+            
+            if ($check_result->num_rows > 0) {
+                $existing_vote = $check_result->fetch_assoc();
+                $existing_helpfulness_id = $existing_vote['helpfulness_id'];
+                $existing_is_helpful = $existing_vote['is_helpful'];
+                
+                // Determine new vote value based on action
+                $new_is_helpful = ($action == 'helpful') ? 1 : 0;
+                
+                if ($action == 'helpful_remove' || $action == 'not_helpful_remove') {
+                    // User wants to remove their vote
+                    $delete_stmt = $conn->prepare("DELETE FROM rating_helpfulness WHERE helpfulness_id = ?");
+                    $delete_stmt->bind_param("i", $existing_helpfulness_id);
+                    $delete_stmt->execute();
+                    $delete_stmt->close();
+                    // TRIGGER WILL HANDLE THE COUNT UPDATE
+                } elseif ($existing_is_helpful != $new_is_helpful) {
+                    // User is changing their vote
+                    $update_vote_stmt = $conn->prepare("UPDATE rating_helpfulness SET is_helpful = ? WHERE helpfulness_id = ?");
+                    $update_vote_stmt->bind_param("ii", $new_is_helpful, $existing_helpfulness_id);
+                    $update_vote_stmt->execute();
+                    $update_vote_stmt->close();
+                    // TRIGGER WILL HANDLE THE COUNT UPDATE
+                }
+                // If same vote, do nothing
+            } else {
+                // New vote - only insert if not removing
+                if ($action == 'helpful' || $action == 'not_helpful') {
+                    $is_helpful_value = ($action == 'helpful') ? 1 : 0;
+                    $insert_stmt = $conn->prepare("INSERT INTO rating_helpfulness (rating_id, customer_id, is_helpful) VALUES (?, ?, ?)");
+                    $insert_stmt->bind_param("iii", $rating_id, $customer_id, $is_helpful_value);
+                    $insert_stmt->execute();
+                    $insert_stmt->close();
+                    // TRIGGER WILL HANDLE THE COUNT UPDATE
+                }
+            }
+            
+            $check_stmt->close();
+        }
+        $customer_query->close();
+        
+        // Redirect back to the specific review
+        header("Location: product_details.php?id=$product_id#review-$rating_id");
+        exit();
+    } else {
+        // User not logged in - redirect to login
+        $_SESSION['redirect_url'] = "product_details.php?id=$product_id#reviews";
+        header("Location: login.php");
+        exit();
+    }
+}
 
 // Build review query based on sorting
-// Get all reviews for count and stats
-// First, get the base query without ORDER BY and LIMIT
 $base_review_query = "
     SELECT 
         pr.rating_id,
@@ -136,11 +208,19 @@ switch ($sort_by) {
         $review_query .= " ORDER BY pr.created_at DESC";
 }
 
-// Get limited reviews for display (just 1 initially)
-$limit = 1;
-$review_query .= " LIMIT ?";
-$reviews_stmt = $conn->prepare($review_query);
-$reviews_stmt->bind_param("ii", $product_id, $limit);
+// Check if show_all is true, if so, don't limit
+if ($show_all) {
+    // Show all reviews
+    $reviews_stmt = $conn->prepare($review_query);
+    $reviews_stmt->bind_param("i", $product_id);
+} else {
+    // Show only 1 review initially
+    $limit = 1;
+    $review_query .= " LIMIT ?";
+    $reviews_stmt = $conn->prepare($review_query);
+    $reviews_stmt->bind_param("ii", $product_id, $limit);
+}
+
 $reviews_stmt->execute();
 $reviews_result = $reviews_stmt->get_result();
 
@@ -279,6 +359,41 @@ if (isset($_POST['add_to_cart'])) {
 
 // Determine if any stock available
 $has_stock = ($sizes_result->num_rows > 0);
+
+// Calculate displayed reviews count
+$displayed_reviews = $reviews_result->num_rows;
+
+// Load user's helpfulness votes for all reviews on this product
+$user_helpfulness = [];
+if (isset($_SESSION['user_id'])) {
+    // Get customer_id from users table
+    $customer_stmt = $conn->prepare("SELECT customer_id FROM customers WHERE user_id = ?");
+    $customer_stmt->bind_param("i", $_SESSION['user_id']);
+    $customer_stmt->execute();
+    $customer_result = $customer_stmt->get_result();
+    
+    if ($customer_result->num_rows > 0) {
+        $customer_data = $customer_result->fetch_assoc();
+        $customer_id = $customer_data['customer_id'];
+        
+        $helpfulness_stmt = $conn->prepare("
+            SELECT rating_id, is_helpful 
+            FROM rating_helpfulness 
+            WHERE rating_id IN (
+                SELECT rating_id FROM product_ratings WHERE product_id = ?
+            ) AND customer_id = ?
+        ");
+        $helpfulness_stmt->bind_param("ii", $product_id, $customer_id);
+        $helpfulness_stmt->execute();
+        $helpfulness_result = $helpfulness_stmt->get_result();
+        
+        while ($row = $helpfulness_result->fetch_assoc()) {
+            $user_helpfulness[$row['rating_id']] = $row['is_helpful'];
+        }
+        $helpfulness_stmt->close();
+    }
+    $customer_stmt->close();
+}
 ?>
 
 <!DOCTYPE html>
@@ -292,6 +407,86 @@ $has_stock = ($sizes_result->num_rows > 0);
     <link rel="stylesheet" href="css/product_details.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .helpfulness button.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .helpfulness button.active.not-helpful {
+            background-color: #f44336;
+        }
+        
+        .helpfulness button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .login-prompt {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .login-prompt-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .login-prompt-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .login-prompt-buttons a {
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .login-prompt-buttons .login-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .login-prompt-buttons .cancel-btn {
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        
+        .login-prompt.show {
+            display: flex;
+        }
+        
+        .review-card {
+            scroll-margin-top: 80px; /* Add space for fixed header when scrolling */
+        }
+        
+        .review-card.highlight {
+            animation: highlightReview 2s ease-in-out;
+            border-left: 4px solid #4CAF50;
+            background-color: rgba(76, 175, 80, 0.05);
+        }
+        
+        @keyframes highlightReview {
+            0% { background-color: rgba(76, 175, 80, 0.1); }
+            100% { background-color: rgba(76, 175, 80, 0.05); }
+        }
+    </style>
 </head>
 
 <body>
@@ -457,6 +652,9 @@ $has_stock = ($sizes_result->num_rows > 0);
                                 <button type="button" onclick="incrementQty()">+</button>
                             </div>
 
+                            <!-- //basta naay changes -->
+                             <!-- hello world -->
+
                             <button type="submit" name="add_to_cart" class="btn-add-to-cart" <?php echo !$has_stock ? 'disabled' : ''; ?>>
                                 <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -481,7 +679,7 @@ $has_stock = ($sizes_result->num_rows > 0);
             </div>
 
             <!-- Reviews Section -->
-            <div class="reviews-section">
+            <div class="reviews-section" id="reviews">
                 <h2 class="section-title">Customer Reviews</h2>
                 
                 <!-- Review Filters -->
@@ -570,8 +768,38 @@ $has_stock = ($sizes_result->num_rows > 0);
                 <!-- Reviews List -->
                 <?php if ($reviews_result->num_rows > 0): ?>
                     <div class="reviews-list">
-                        <?php while ($review = $reviews_result->fetch_assoc()): ?>
-                            <div class="review-card">
+                        <?php while ($review = $reviews_result->fetch_assoc()): 
+                            $user_vote = isset($user_helpfulness[$review['rating_id']]) ? $user_helpfulness[$review['rating_id']] : null;
+                            $is_helpful_active = ($user_vote === 1);
+                            $is_not_helpful_active = ($user_vote === 0);
+                            // Check if this is the review we just voted on (from URL hash)
+                            $is_active_review = false;
+                            if (isset($_SERVER['HTTP_REFERER'])) {
+                                $referer = $_SERVER['HTTP_REFERER'];
+                                if (strpos($referer, "#review-{$review['rating_id']}") !== false) {
+                                    $is_active_review = true;
+                                }
+                            }
+                        ?>
+
+                        <?php
+                            // Fetch images for this review
+                            $images_stmt = $conn->prepare("
+                                SELECT image_id, image_url, thumbnail_url, file_name 
+                                FROM rating_images 
+                                WHERE rating_id = ? 
+                                ORDER BY image_order
+                            ");
+                            $images_stmt->bind_param("i", $review['rating_id']);
+                            $images_stmt->execute();
+                            $images_result = $images_stmt->get_result();
+                            $review_images = [];
+                            while ($img = $images_result->fetch_assoc()) {
+                                $review_images[] = $img;
+                            }
+                            $images_stmt->close();
+                            ?>
+                            <div class="review-card <?php echo $is_active_review ? 'highlight' : ''; ?>" id="review-<?php echo $review['rating_id']; ?>">
                                 <div class="review-header">
                                     <div class="reviewer-info">
                                         <div class="reviewer-avatar">
@@ -598,6 +826,20 @@ $has_stock = ($sizes_result->num_rows > 0);
                                         <?php endif; ?>
                                     </div>
                                 </div>
+
+                                <!-- ADD THIS: Review Images Display -->
+                                <?php if (!empty($review_images)): ?>
+                                    <div class="review-images">
+                                        <?php foreach ($review_images as $image): ?>
+                                            <div class="review-image-item">
+                                                <img src="<?php echo htmlspecialchars($image['thumbnail_url']); ?>" 
+                                                    alt="Review image" 
+                                                    onclick="openImageModal('<?php echo htmlspecialchars($image['image_url']); ?>')"
+                                                    onerror="this.src='<?php echo htmlspecialchars($image['image_url']); ?>'">
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
                                 
                                 <div class="review-content">
                                     <?php if (!empty($review['review_title'])): ?>
@@ -647,27 +889,36 @@ $has_stock = ($sizes_result->num_rows > 0);
                                             </div>
                                         <?php endif; ?>
                                     </div>
+
+
                                     
                                     <!-- Helpfulness -->
                                     <div class="helpfulness">
                                         <span>Was this review helpful?</span>
-                                        <button class="helpful-btn" onclick="markHelpful(<?php echo $review['rating_id']; ?>)">
+                                        <button class="helpful-btn <?php echo $is_helpful_active ? 'active' : ''; ?>" 
+                                                data-rating-id="<?php echo $review['rating_id']; ?>"
+                                                onclick="markHelpful(<?php echo $review['rating_id']; ?>)"
+                                                <?php echo $is_helpful_active ? 'disabled' : ''; ?>>
                                             <i class="fas fa-thumbs-up"></i> Yes (<?php echo $review['helpful_count']; ?>)
                                         </button>
-                                        <button class="not-helpful-btn" onclick="markNotHelpful(<?php echo $review['rating_id']; ?>)">
+                                        <button class="not-helpful-btn <?php echo $is_not_helpful_active ? 'active not-helpful' : ''; ?>" 
+                                                data-rating-id="<?php echo $review['rating_id']; ?>"
+                                                onclick="markNotHelpful(<?php echo $review['rating_id']; ?>)"
+                                                <?php echo $is_not_helpful_active ? 'disabled' : ''; ?>>
                                             <i class="fas fa-thumbs-down"></i> No (<?php echo $review['not_helpful_count']; ?>)
                                         </button>
                                     </div>
                                 </div>
+                                
                             </div>
                         <?php endwhile; ?>
                         
                         <!-- Show More Button -->
-                        <?php if ($total_reviews > 1): ?>
+                        <?php if ($total_reviews > $displayed_reviews): ?>
                             <div class="show-more-container">
                                 <button class="btn-show-more" onclick="loadMoreReviews()">
-                                    <i class="fas fa-chevron-down"></i>
-                                    Show All Reviews (<?php echo $total_reviews - 1; ?> more)
+                                    <i class="fas fa-eye"></i>
+                                    View All <?php echo $total_reviews; ?> Reviews
                                 </button>
                             </div>
                         <?php endif; ?>
@@ -709,6 +960,18 @@ $has_stock = ($sizes_result->num_rows > 0);
     <div class="zoom-overlay" id="zoomOverlay" onclick="closeZoom()">
         <img id="zoomedImage" src="" alt="Zoomed product">
     </div>
+    
+    <!-- Login Prompt Overlay -->
+    <div class="login-prompt" id="loginPrompt">
+        <div class="login-prompt-content">
+            <h3>Sign In Required</h3>
+            <p>You need to be logged in to vote on reviews.</p>
+            <div class="login-prompt-buttons">
+                <a href="login.php" class="login-btn">Sign In</a>
+                <a href="javascript:void(0)" class="cancel-btn" onclick="hideLoginPrompt()">Cancel</a>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Size stocks data from PHP
@@ -725,6 +988,12 @@ $has_stock = ($sizes_result->num_rows > 0);
             endwhile;
             ?>
         };
+        
+        // Check if user is logged in
+        const isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
+        
+        // User helpfulness data
+        const userHelpfulness = <?php echo json_encode($user_helpfulness); ?>;
 
         // Quantity controls
         function incrementQty() {
@@ -755,6 +1024,10 @@ $has_stock = ($sizes_result->num_rows > 0);
             element.classList.add('active');
         }
 
+        function openImageModal(imageSrc) {
+            zoomImage(imageSrc);
+        }
+
         // Zoom functionality
         function zoomImage(src) {
             const overlay = document.getElementById('zoomOverlay');
@@ -777,16 +1050,26 @@ $has_stock = ($sizes_result->num_rows > 0);
             }
         }
 
-        // Review filtering and sorting
+        // Review filtering and sorting - Stay in reviews section
         function updateReviews() {
             const sortBy = document.getElementById('sort-select').value;
             const urlParams = new URLSearchParams(window.location.search);
             urlParams.set('sort', sortBy);
             
             // Keep rating filter if present
-            const minRating = urlParams.get('rating') || '';
+            const currentRating = urlParams.get('rating');
+            if (currentRating) {
+                urlParams.set('rating', currentRating);
+            }
             
-            window.location.href = window.location.pathname + '?' + urlParams.toString();
+            // Keep show_all if present
+            const showAll = urlParams.get('show_all');
+            if (showAll) {
+                urlParams.set('show_all', showAll);
+            }
+            
+            // Add anchor to stay in reviews section
+            window.location.href = window.location.pathname + '?' + urlParams.toString() + '#reviews';
         }
 
         function filterByRating(rating) {
@@ -801,9 +1084,19 @@ $has_stock = ($sizes_result->num_rows > 0);
             }
             
             // Keep sort if present
-            const sortBy = urlParams.get('sort') || 'newest';
+            const sortBy = urlParams.get('sort');
+            if (sortBy) {
+                urlParams.set('sort', sortBy);
+            }
             
-            window.location.href = window.location.pathname + '?' + urlParams.toString();
+            // Keep show_all if present
+            const showAll = urlParams.get('show_all');
+            if (showAll) {
+                urlParams.set('show_all', showAll);
+            }
+            
+            // Add anchor to stay in reviews section
+            window.location.href = window.location.pathname + '?' + urlParams.toString() + '#reviews';
         }
 
         function clearRatingFilter(e) {
@@ -812,34 +1105,110 @@ $has_stock = ($sizes_result->num_rows > 0);
             const urlParams = new URLSearchParams(window.location.search);
             urlParams.delete('rating');
             
-            window.location.href = window.location.pathname + '?' + urlParams.toString();
+            // Keep sort if present
+            const sortBy = urlParams.get('sort');
+            if (sortBy) {
+                urlParams.set('sort', sortBy);
+            }
+            
+            // Keep show_all if present
+            const showAll = urlParams.get('show_all');
+            if (showAll) {
+                urlParams.set('show_all', showAll);
+            }
+            
+            // Add anchor to stay in reviews section
+            window.location.href = window.location.pathname + '?' + urlParams.toString() + '#reviews';
         }
 
-        // Load more reviews
         function loadMoreReviews() {
             const urlParams = new URLSearchParams(window.location.search);
             
-            // Remove any limit parameter to show all reviews
-            if (urlParams.has('limit')) {
-                urlParams.delete('limit');
-            }
+            // Get current filters
+            const sortBy = urlParams.get('sort') || 'newest';
+            const rating = urlParams.get('rating') || '';
             
-            // Add a parameter to indicate we want all reviews
-            urlParams.set('show_all', 'true');
+            // Build reviews page URL with filters
+            let url = `reviews.php?id=<?php echo $product_id; ?>`;
+            if (sortBy !== 'newest') url += `&sort=${sortBy}`;
+            if (rating) url += `&rating=${rating}`;
             
-            window.location.href = window.location.pathname + '?' + urlParams.toString();
+            // Redirect to reviews page
+            window.location.href = url;
         }
 
-        // Review helpfulness functions
+
+        // Login prompt functions
+        function showLoginPrompt() {
+            document.getElementById('loginPrompt').classList.add('show');
+        }
+
+        function hideLoginPrompt() {
+            document.getElementById('loginPrompt').classList.remove('show');
+        }
+
+        // Review helpfulness functions - SIMPLE VERSION
         function markHelpful(ratingId) {
-            // In a real application, you would send an AJAX request here
-            alert('Thank you for your feedback! This will be implemented with proper backend functionality.');
+            if (!isLoggedIn) {
+                showLoginPrompt();
+                return;
+            }
+            
+            const currentUserVote = userHelpfulness[ratingId];
+            let action = 'helpful';
+            
+            // If user already voted helpful, remove the vote
+            if (currentUserVote === 1) {
+                action = 'helpful_remove';
+            }
+            
+            // Simple redirect - the page will reload and browser will scroll to anchor
+            window.location.href = `product_details.php?id=<?php echo $product_id; ?>&rating_id=${ratingId}&helpful_action=${action}#review-${ratingId}`;
         }
 
         function markNotHelpful(ratingId) {
-            // In a real application, you would send an AJAX request here
-            alert('Thank you for your feedback! This will be implemented with proper backend functionality.');
+            if (!isLoggedIn) {
+                showLoginPrompt();
+                return;
+            }
+            
+            const currentUserVote = userHelpfulness[ratingId];
+            let action = 'not_helpful';
+            
+            // If user already voted not helpful, remove the vote
+            if (currentUserVote === 0) {
+                action = 'not_helpful_remove';
+            }
+            
+            // Simple redirect - the page will reload and browser will scroll to anchor
+            window.location.href = `product_details.php?id=<?php echo $product_id; ?>&rating_id=${ratingId}&helpful_action=${action}#review-${ratingId}`;
         }
+
+        // Auto-scroll to the review anchor on page load
+        window.addEventListener('load', function() {
+            const hash = window.location.hash;
+            if (hash && hash.startsWith('#review-')) {
+                const reviewId = hash.replace('#review-', '');
+                const reviewElement = document.getElementById(`review-${reviewId}`);
+                if (reviewElement) {
+                    // Give the page time to fully load
+                    setTimeout(() => {
+                        reviewElement.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                        });
+                        
+                        // Add highlight effect
+                        reviewElement.classList.add('highlight');
+                        
+                        // Remove highlight after animation
+                        setTimeout(() => {
+                            reviewElement.classList.remove('highlight');
+                        }, 2000);
+                    }, 500); // Increased delay to ensure page is loaded
+                }
+            }
+        });
 
         // Hide success message after 5 seconds
         <?php if ($message): ?>
