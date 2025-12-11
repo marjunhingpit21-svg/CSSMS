@@ -917,8 +917,8 @@ if (isset($_SESSION['user_id'])) {
                         <?php if ($total_reviews > $displayed_reviews): ?>
                             <div class="show-more-container">
                                 <button class="btn-show-more" onclick="loadMoreReviews()">
-                                    <i class="fas fa-chevron-down"></i>
-                                    Show All Reviews (<?php echo $total_reviews - $displayed_reviews; ?> more)
+                                    <i class="fas fa-eye"></i>
+                                    View All <?php echo $total_reviews; ?> Reviews
                                 </button>
                             </div>
                         <?php endif; ?>
@@ -1121,28 +1121,22 @@ if (isset($_SESSION['user_id'])) {
             window.location.href = window.location.pathname + '?' + urlParams.toString() + '#reviews';
         }
 
-        // Load more reviews - Show all reviews
         function loadMoreReviews() {
             const urlParams = new URLSearchParams(window.location.search);
             
-            // Set show_all parameter to true
-            urlParams.set('show_all', 'true');
+            // Get current filters
+            const sortBy = urlParams.get('sort') || 'newest';
+            const rating = urlParams.get('rating') || '';
             
-            // Keep sort if present
-            const sortBy = urlParams.get('sort');
-            if (sortBy) {
-                urlParams.set('sort', sortBy);
-            }
+            // Build reviews page URL with filters
+            let url = `reviews.php?id=<?php echo $product_id; ?>`;
+            if (sortBy !== 'newest') url += `&sort=${sortBy}`;
+            if (rating) url += `&rating=${rating}`;
             
-            // Keep rating filter if present
-            const rating = urlParams.get('rating');
-            if (rating) {
-                urlParams.set('rating', rating);
-            }
-            
-            // Add anchor to stay in reviews section
-            window.location.href = window.location.pathname + '?' + urlParams.toString() + '#reviews';
+            // Redirect to reviews page
+            window.location.href = url;
         }
+
 
         // Login prompt functions
         function showLoginPrompt() {

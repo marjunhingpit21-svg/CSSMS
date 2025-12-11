@@ -509,14 +509,12 @@ if (isset($_POST['submit_rating'])) {
     exit();
 }
 
-// Get cart count for header
-$cart_count = 0;
-if (isset($_SESSION['cart'])) {
-    $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
-}
-
 // Get orders count for header
-$orders_count = 0;
+  $orders_count = 0;
+  if (isset($_SESSION['user_id'])) {
+      include 'orders_count.php';
+      $orders_count = getOrdersCount($conn, $_SESSION['user_id']);
+  }
 
 // Fetch orders from database for the logged-in user
 $orders = [];
@@ -539,7 +537,7 @@ try {
         $count_stmt = $conn->prepare("
             SELECT COUNT(*) as order_count 
             FROM orders 
-            WHERE customer_id = ? AND status NOT IN ('cancelled')
+            WHERE customer_id = ? AND status NOT IN ('cancelled','completed')
         ");
         $count_stmt->bind_param("i", $customer_id);
         $count_stmt->execute();
@@ -922,8 +920,8 @@ foreach ($orders as $order) {
                                 </div>
                                 <div class="action-buttons">
                                     <?php if ($order['status'] === 'to_ship'): ?>
-                                        <button class="btn-track" onclick="trackOrder(<?php echo $order['db_order_id']; ?>)">Track
-                                            Order</button>
+                                        <!-- <button class="btn-track" onclick="trackOrder(<?php echo $order['db_order_id']; ?>)">Track
+                                            Order</button> -->
                                         <button class="btn-cancel"
                                             onclick="cancelOrder(<?php echo $order['db_order_id']; ?>)">Cancel Order</button>
                                     <?php elseif ($order['status'] === 'to_receive'): ?>
@@ -936,27 +934,22 @@ foreach ($orders as $order) {
                                             </form>
                                         <?php else: ?>
                                             <!-- Show "Track Package" for shipped orders -->
-                                            <button class="btn-track" onclick="trackOrder(<?php echo $order['db_order_id']; ?>)">Track
-                                                Package</button>
+                                            <!-- <button class="btn-track" onclick="trackOrder(<?php echo $order['db_order_id']; ?>)">Track
+                                                Package</button> -->
                                         <?php endif; ?>
-                                        <button class="btn-view"
-                                            onclick="viewOrderDetails(<?php echo $order['db_order_id']; ?>)">View Details</button>
+                                        <button class="btn-view" onclick="viewOrderDetails(<?php echo $order['db_order_id']; ?>)">View Details</button>
                                     <?php elseif ($order['status'] === 'to_rate'): ?>
                                         <button class="btn-rate"
                                             onclick="openRatingModal(<?php echo $order['db_order_id']; ?>, <?php echo htmlspecialchars(json_encode($order['items'])); ?>)">Rate
                                             Products</button>
-                                        <button class="btn-view"
-                                            onclick="viewOrderDetails(<?php echo $order['db_order_id']; ?>)">Order Details</button>
+                                        <button class="btn-view" onclick="viewOrderDetails(<?php echo $order['db_order_id']; ?>)">Order Details</button>
                                     <?php elseif ($order['status'] === 'cancelled'): ?>
-                                        <button class="btn-view"
-                                            onclick="viewOrderDetails(<?php echo $order['db_order_id']; ?>)">View Details</button>
+                                        <button class="btn-view" onclick="viewOrderDetails(<?php echo $order['db_order_id']; ?>)">View Details</button>
                                         <button class="btn-rate"
                                             onclick="reorder(<?php echo $order['db_order_id']; ?>)">Reorder</button>
                                     <?php else: ?>
-                                        <button class="btn-view"
-                                            onclick="viewOrderDetails(<?php echo $order['db_order_id']; ?>)">View Details</button>
-                                        <button class="btn-rate" onclick="reorder(<?php echo $order['db_order_id']; ?>)">Buy
-                                            Again</button>
+                                        <button class="btn-view" onclick="viewOrderDetails(<?php echo $order['db_order_id']; ?>)">View Details</button>
+                                        <button class="btn-rate" onclick="reorder(<?php echo $order['db_order_id']; ?>, <?php echo $order['items'][0]['product_id'] ?? 0; ?>)">Buy Again</button>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -1097,7 +1090,31 @@ foreach ($orders as $order) {
             }, 5000);
         });
 
-        // Rating Modal Functions
+        // Order action functions
+        function trackOrder(orderId) {
+            alert('Tracking order #' + orderId + '\nThis feature will be implemented soon!');
+        }
+
+        function cancelOrder(orderId) {
+            if (confirm('Are you sure you want to cancel order #' + orderId + '?')) {
+                alert('Order cancellation request sent for order #' + orderId);
+                // In a real application, you would make an AJAX call here
+            }
+        }
+
+        function viewOrderDetails(orderId) {
+            // Redirect to order_details.php with the order ID
+            window.location.href = 'order_details.php?id=' + orderId;
+        }
+
+        function reorder(orderId, productId) {
+            // Redirect to product detail page for the first item
+            if (productId) {
+                window.location.href = 'product_details.php?id=' + productId;
+            } else {
+                alert('Could not find product details. Please browse our catalog instead.');
+            }
+        }
         // Rating Modal Functions
         function openRatingModal(orderId, items) {
             const modal = document.getElementById('ratingModal');
@@ -1498,26 +1515,6 @@ foreach ($orders as $order) {
 
             submitBtn.disabled = !hasRating;
             return hasRating;
-        }
-
-        // Order action functions
-        function trackOrder(orderId) {
-            alert('Tracking order #' + orderId + '\nThis feature will be implemented soon!');
-        }
-
-        function cancelOrder(orderId) {
-            if (confirm('Are you sure you want to cancel order #' + orderId + '?')) {
-                alert('Order cancellation request sent for order #' + orderId);
-                // In a real application, you would make an AJAX call here
-            }
-        }
-
-        function viewOrderDetails(orderId) {
-            alert('Viewing details for order #' + orderId + '\nThis feature will be implemented soon!');
-        }
-
-        function reorder(orderId) {
-            alert('Reordering items from order #' + orderId + '\nThis feature will be implemented soon!');
         }
 
         // Filter functionality
