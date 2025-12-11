@@ -58,12 +58,15 @@ while ($row = $trend_result->fetch_assoc()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Analytics | TrendyWear Admin</title>
+    <title>Employee Analytics</title>
     <link rel="stylesheet" href="../css/adminheader.css">
     <link rel="stylesheet" href="../css/sidebar.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
         .analytics-container { margin-left: 280px; padding: 100px 30px 30px; transition: margin 0.3s; }
         .admin-sidebar.collapsed ~ .analytics-container { margin-left: 70px; }
         @media (max-width: 768px) { .analytics-container { margin-left: 0 !important; padding-top: 140px; } }
@@ -79,7 +82,7 @@ while ($row = $trend_result->fetch_assoc()) {
 
         .table-container { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-bottom: 30px; }
         table { width: 100%; border-collapse: collapse; }
-        th { background: #667eea; color: white; padding: 15px; text-align: left; }
+        th { background: #e91e63; color: white; padding: 15px; text-align: left; }
         td { padding: 14px 15px; border-bottom: 1px solid #eee; }
         tr:hover { background: #f8f9fa; }
         .rank-badge { background: #e91e63; color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
@@ -90,8 +93,8 @@ while ($row = $trend_result->fetch_assoc()) {
         }
         @media (max-width: 992px) { .charts-grid { grid-template-columns: 1fr; } }
 
-        .top-performer { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
-        .top-performer .stat-card { border-left-color: #e91e63; }
+        .top-performer { color: white; }
+        .top-performer .stat-card {border: 2px solid;border-color: #e91e63; }
     </style>
 </head>
 <body>
