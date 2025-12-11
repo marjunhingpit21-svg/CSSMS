@@ -1,237 +1,85 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+   
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-body { 
-    font-family: 'Inter', -apple-system, sans-serif; 
-    background: #f8fafc; 
-    color: #1e293b; 
-}
+body { font-family: 'Inter', sans-serif; background: #f9f9fc; margin: 0; color: #333; }
 
-main { 
-    margin-left: 280px; 
-    margin-top: 70px;
-    padding: 40px; 
-    min-height: calc(100vh - 70px);
+main {
+    margin-left: 280px;
+    padding: 120px 40px 60px;
+    min-height: 100vh;
+    z-index: 1;
     transition: margin-left 0.3s ease;
 }
+body.sidebar-collapsed main { margin-left: 80px; }
+@media (max-width: 992px) { main { margin-left: 0; padding: 100px 20px 40px; } }
 
-body.sidebar-collapsed main { 
-    margin-left: 70px; 
-}
-
-/* Header Section - matching the design system */
+/* Header */
 .header-section {
     margin-bottom: 40px;
-    padding-bottom: 24px;
-    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 20px;
+    border-bottom: 3px solid #e91e63;
 }
+.page-title { font-size: 2.4rem; font-weight: 700; color: #e91e63; margin: 0; }
+.header-subtitle { color: #666; font-size: 1.1rem; margin: 8px 0 0; }
 
-.page-title { 
-    font-size: 2.5rem; 
-    color: #e91e63; 
-    margin: 0 0 8px; 
-    font-weight: 700; 
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
 }
-
-.subtitle { 
-    color: #64748b; 
-    font-size: 1.1rem; 
-    margin: 0;
-    font-weight: 400;
-}
-
-/* Date Filter - cleaner design */
-.date-filter { 
-    display: flex;
-    justify-content: center;
-    margin: 30px 0; 
-}
-
-.date-filter select { 
-    padding: 12px 24px; 
-    font-size: 1rem; 
-    border: 2px solid #e5e7eb; 
-    border-radius: 12px; 
-    background: white; 
-    cursor: pointer;
-    font-family: 'Inter', sans-serif;
-    font-weight: 500;
-    color: #333;
-    transition: all 0.3s ease;
-    outline: none;
-}
-
-.date-filter select:hover {
-    border-color: #e91e63;
-    box-shadow: 0 4px 12px rgba(233, 30, 99, 0.15);
-}
-
-.date-filter select:focus {
-    border-color: #e91e63;
-    box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.1);
-}
-
-/* AI Cards Grid */
-.ai-grid { 
-    display: grid; 
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
-    gap: 24px; 
-    max-width: 1400px; 
-    margin: 0 auto 40px;
-}
-
-.ai-card {
+.stat-card {
     background: white;
     border-radius: 16px;
     padding: 28px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    text-align: center;
     transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    border: 1px solid #e5e7eb;
 }
+.stat-card:hover { transform: translateY(-8px); box-shadow: 0 16px 40px rgba(233,30,99,0.15); }
+.stat-value { font-size: 2.8rem; font-weight: 700; color: #e91e63; margin: 12px 0; }
+.stat-label { color: #666; font-size: 1.1rem; }
 
-.ai-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #e91e63, #c2185b);
-    transform: scaleX(0);
-    transition: transform 0.3s ease;
+/* Charts */
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 60px;
 }
-
-.ai-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(233, 30, 99, 0.15);
-    border-color: #e91e63;
-}
-
-.ai-card:hover::before {
-    transform: scaleX(1);
-}
-
-.ai-card h3 { 
-    margin: 0 0 16px; 
-    font-size: 0.95rem; 
-    color: #64748b;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.ai-value { 
-    font-size: 2.5rem; 
-    font-weight: 700; 
-    color: #e91e63; 
-    margin: 12px 0; 
-    line-height: 1;
-}
-
-.ai-insight { 
-    font-size: 1.25rem; 
-    font-weight: 600; 
-    color: #1e293b; 
-    margin: 8px 0;
-    line-height: 1.4;
-}
-
-.ai-card p {
-    color: #64748b;
-    font-size: 0.95rem;
-    line-height: 1.6;
-    margin: 8px 0 0;
-}
-
-/* Tags - matching the color system */
-.tag { 
-    font-size: 0.8rem; 
-    padding: 6px 12px; 
-    border-radius: 20px; 
-    color: white; 
-    display: inline-block; 
-    margin-top: 12px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-}
-
-.success { background: linear-gradient(135deg, #10b981, #059669); }
-.warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
-.info { background: linear-gradient(135deg, #667eea, #764ba2); }
-
-/* Updated timestamp */
-.updated { 
-    text-align: center; 
-    color: #94a3b8; 
-    font-size: 0.9rem; 
-    margin-top: 60px;
-    padding: 20px;
+.chart-card {
     background: white;
-    border-radius: 12px;
-    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+.chart-card h3 {
+    margin: 0 0 24px;
+    font-size: 1.4rem;
+    color: #e91e63;
+    font-weight: 600;
 }
 
-/* Responsive adjustments */
+/* Top Products Table */
+.table-container {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+.table-container h3 {
+    margin: 0;
+    padding: 24px;
+    background: #f8f9fa;
+    color: #e91e63;
+    font-weight: 600;
+}
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 16px 24px; text-align: left; border-bottom: 1px solid #eee; }
+th { background: #fdf2f8; color: #e91e63; font-weight: 600; }
+
+/* Responsive */
 @media (max-width: 1024px) {
-    main {
-        margin-left: 70px;
-        padding: 30px 20px;
-    }
-
-    body.sidebar-collapsed main {
-        margin-left: 70px;
-    }
-}
-
-@media (max-width: 768px) {
-    main { 
-        margin-left: 0;
-        padding: 20px;
-    }
-
-    body.sidebar-collapsed main {
-        margin-left: 0;
-    }
-
-    .page-title {
-        font-size: 2rem;
-    }
-
-    .ai-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
-    }
-
-    .ai-card {
-        padding: 20px;
-    }
-
-    .ai-value {
-        font-size: 2rem;
-    }
-
-    .ai-insight {
-        font-size: 1.1rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .page-title {
-        font-size: 1.75rem;
-    }
-
-    .subtitle {
-        font-size: 1rem;
-    }
-
-    .date-filter select {
-        font-size: 0.9rem;
-        padding: 10px 20px;
-    }
+    .charts-grid { grid-template-columns: 1fr; }
 }

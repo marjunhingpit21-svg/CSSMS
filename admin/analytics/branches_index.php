@@ -53,35 +53,297 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Branch Analytics</title>
+    <title>Branch Analytics - TrendyWear Admin</title>
     <link rel="stylesheet" href="../css/adminheader.css">
     <link rel="stylesheet" href="../css/sidebar.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .container { max-width: 1400px; margin: 0 auto; padding: 100px 20px 40px; }
-        h1 { font-size: 2.4rem; color: #333; margin-bottom: 8px; }
-        .analytics-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
-            gap: 20px; 
-            margin: 30px 0; 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .card { 
-            background: white; padding: 24px; border-radius: 16px; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center;
+
+        body {
+            font-family: 'Inter', 'Poppins', -apple-system, sans-serif;
+            background: #f8f9fa;
+            color: #333;
         }
-        .value { font-size: 2.4rem; font-weight: 700; color: #e91e63; margin: 12px 0; }
-        .label { color: #666; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        th { background: #f8f9fa; padding: 18px; text-align: left; font-weight: 600; border-bottom: 3px solid #e91e63; }
-        td { padding: 16px; border-bottom: 1px solid #eee; }
-        tr:hover { background: #fdf6ff; }
-        .rank { background: #e91e63; color: white; width: 36px; height: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; }
-        .top-rank { background: linear-gradient(135deg, #e91e63, #c2185b) !important; color: white; }
-        .top-rank td { color: white; font-weight: 600; }
-        .chart-box { background: white; padding: 24px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-top: 30px; }
-        select { padding: 12px 16px; border: 2px solid #ddd; border-radius: 12px; font-size: 1rem; }
-        @media (max-width: 768px) { .container { padding-top: 120px; } }
+
+        .admin-main-content {
+            margin-left: 280px;
+            padding-top: 70px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .admin-sidebar.collapsed ~ .admin-main-content {
+            margin-left: 70px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Page Header */
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            background: white;
+            padding: 20px 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .filter-section label {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95rem;
+        }
+
+        .filter-section select {
+            padding: 10px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            color: #333;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            min-width: 280px;
+        }
+
+        .filter-section select:hover {
+            border-color: #e91e63;
+        }
+
+        .filter-section select:focus {
+            outline: none;
+            border-color: #e91e63;
+            box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.1);
+        }
+
+        /* Analytics Grid */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .stat-card .label {
+            color: #666;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #e91e63;
+            line-height: 1.2;
+        }
+
+        /* Table Section */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            overflow: hidden;
+            margin-bottom: 32px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8f9fa;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        th {
+            padding: 16px 18px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px 18px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.95rem;
+            color: #333;
+        }
+
+        tbody tr {
+            transition: background 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background: #fafafa;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .rank {
+            background: #e91e63;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.875rem;
+        }
+
+        .top-rank {
+            background: linear-gradient(135deg, #e91e63, #c2185b);
+        }
+
+        .top-rank td {
+            font-weight: 600;
+        }
+
+        /* Chart Section */
+        .chart-container {
+            background: white;
+            padding: 28px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .chart-container h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 24px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .admin-main-content {
+                margin-left: 240px;
+            }
+
+            .admin-sidebar.collapsed ~ .admin-main-content {
+                margin-left: 60px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .admin-main-content {
+                margin-left: 0;
+                padding-top: 70px;
+            }
+
+            .admin-sidebar.collapsed ~ .admin-main-content {
+                margin-left: 0;
+            }
+
+            .container {
+                padding: 24px 16px;
+            }
+
+            .page-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .analytics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-section select {
+                width: 100%;
+                min-width: unset;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            table {
+                min-width: 800px;
+            }
+
+            th, td {
+                padding: 12px;
+                font-size: 0.85rem;
+            }
+
+            .stat-card .value {
+                font-size: 1.75rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .page-header h1 {
+                font-size: 1.25rem;
+            }
+
+            .stat-card {
+                padding: 20px;
+            }
+
+            .stat-card .value {
+                font-size: 1.5rem;
+            }
+
+            .chart-container {
+                padding: 20px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -91,13 +353,16 @@ $conn->close();
 
 <div class="admin-main-content">
     <div class="container">
-        <h1>Branch Performance Analytics</h1>
-        <p style="color:#777;">Real-time comparison of revenue, profit, and activity across all branches</p>
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>Branch Performance Analytics</h1>
+            <p>Real-time comparison of revenue, profit, and activity across all branches</p>
+        </div>
 
-        <!-- Filter -->
-        <div style="margin:25px 0;">
-            <label for="branchFilter"><strong>Filter Branch:</strong></label>
-            <select id="branchFilter" style="margin-left:10px; width:320px;">
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <label for="branchFilter">Filter Branch:</label>
+            <select id="branchFilter">
                 <option value="all">All Branches</option>
                 <?php foreach ($branches as $b): ?>
                     <option value="<?= $b['branch_id'] ?>">
@@ -109,59 +374,61 @@ $conn->close();
 
         <!-- Summary Cards -->
         <div class="analytics-grid">
-            <div class="card">
+            <div class="stat-card">
                 <div class="label">Total Revenue</div>
                 <div class="value">₱<?= number_format(array_sum(array_column($branches, 'total_revenue')), 2) ?></div>
             </div>
-            <div class="card">
+            <div class="stat-card">
                 <div class="label">Total Profit</div>
                 <div class="value">₱<?= number_format(array_sum(array_column($branches, 'total_profit')), 2) ?></div>
             </div>
-            <div class="card">
+            <div class="stat-card">
                 <div class="label">Total Transactions</div>
                 <div class="value"><?= number_format(array_sum(array_column($branches, 'total_transactions'))) ?></div>
             </div>
-            <div class="card">
+            <div class="stat-card">
                 <div class="label">Total Items Sold</div>
                 <div class="value"><?= number_format(array_sum(array_column($branches, 'items_sold'))) ?></div>
             </div>
         </div>
 
         <!-- Ranking Table -->
-        <table>
-            <thead>
-                <tr>
-                    <th>Rank</th>
-                    <th>Branch Name</th>
-                    <th>City</th>
-                    <th>Address</th>
-                    <th>Revenue</th>
-                    <th>Profit</th>
-                    <th>Transactions</th>
-                    <th>Items Sold</th>
-                    <th>Employees</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody">
-                <?php foreach ($branches as $i => $b): ?>
-                <tr data-id="<?= $b['branch_id'] ?>" class="<?= $i===0 ? 'top-rank' : '' ?>">
-                    <td><span class="rank"><?= $i + 1 ?></span></td>
-                    <td><strong><?= htmlspecialchars($b['branch_name']) ?></strong></td>
-                    <td><?= htmlspecialchars($b['city']) ?></td>
-                    <td><?= htmlspecialchars(strlen($b['address']) > 40 ? substr($b['address'],0,40).'...' : $b['address']) ?></td>
-                    <td>₱<?= number_format($b['total_revenue'], 2) ?></td>
-                    <td>₱<?= number_format($b['total_profit'], 2) ?></td>
-                    <td><?= number_format($b['total_transactions']) ?></td>
-                    <td><?= number_format($b['items_sold']) ?></td>
-                    <td><?= $b['employee_count'] ?></td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Branch Name</th>
+                        <th>City</th>
+                        <th>Address</th>
+                        <th>Revenue</th>
+                        <th>Profit</th>
+                        <th>Transactions</th>
+                        <th>Items Sold</th>
+                        <th>Employees</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <?php foreach ($branches as $i => $b): ?>
+                    <tr data-id="<?= $b['branch_id'] ?>" class="<?= $i===0 ? 'top-rank' : '' ?>">
+                        <td><span class="rank"><?= $i + 1 ?></span></td>
+                        <td><strong><?= htmlspecialchars($b['branch_name']) ?></strong></td>
+                        <td><?= htmlspecialchars($b['city']) ?></td>
+                        <td><?= htmlspecialchars(strlen($b['address']) > 40 ? substr($b['address'],0,40).'...' : $b['address']) ?></td>
+                        <td>₱<?= number_format($b['total_revenue'], 2) ?></td>
+                        <td>₱<?= number_format($b['total_profit'], 2) ?></td>
+                        <td><?= number_format($b['total_transactions']) ?></td>
+                        <td><?= number_format($b['items_sold']) ?></td>
+                        <td><?= $b['employee_count'] ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
 
         <!-- Revenue Bar Chart -->
-        <div class="chart-box">
-            <h3 style="margin-bottom:20px; color:#333;">Revenue Comparison by Branch</h3>
+        <div class="chart-container">
+            <h3>Revenue Comparison by Branch</h3>
             <canvas id="revenueChart" height="120"></canvas>
         </div>
     </div>
@@ -176,7 +443,7 @@ document.getElementById('branchFilter').addEventListener('change', function() {
     });
 });
 
-// Chart.js - super lightweight
+// Chart.js
 new Chart(document.getElementById('revenueChart'), {
     type: 'bar',
     data: {
@@ -192,9 +459,36 @@ new Chart(document.getElementById('revenueChart'), {
     },
     options: {
         responsive: true,
-        plugins: { legend: { display: false } },
+        maintainAspectRatio: true,
+        plugins: { 
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 12,
+                borderRadius: 8,
+                titleFont: { size: 14, weight: 'bold' },
+                bodyFont: { size: 13 }
+            }
+        },
         scales: {
-            y: { beginAtZero: true, ticks: { callback: v => '₱' + v.toLocaleString() } }
+            y: { 
+                beginAtZero: true, 
+                ticks: { 
+                    callback: v => '₱' + v.toLocaleString(),
+                    font: { size: 12 }
+                },
+                grid: {
+                    color: '#f0f0f0'
+                }
+            },
+            x: {
+                ticks: {
+                    font: { size: 12 }
+                },
+                grid: {
+                    display: false
+                }
+            }
         }
     }
 });
