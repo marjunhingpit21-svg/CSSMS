@@ -33,7 +33,7 @@ $low_stock = $conn->query("
     <link rel="stylesheet" href="inventory.css">
     <style>
         .size-badge {
-            background: #e91e63;
+            /* background: #e91e63; */
             color: white;
             padding: 6px 14px;
             border-radius: 50px;
@@ -42,7 +42,22 @@ $low_stock = $conn->query("
             margin-top: 8px;
             display: inline-block;
         }
-        .stock-value { font-size: 1.8rem; font-weight: 700; color: #c62828; }
+        .stock-value { 
+            font-size: 1.8rem; 
+            font-weight: 700; 
+            color: #c62828; 
+        }
+        /* Update status badge colors to match index.css palette */
+        .status-low {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .status-critical {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -59,12 +74,28 @@ $low_stock = $conn->query("
 
         <div class="alerts-grid" id="alertsGrid">
             <?php if ($low_stock && $low_stock->num_rows > 0): ?>
-                <?php while ($item = $low_stock->fetch_assoc()): ?>
+                <?php while ($item = $low_stock->fetch_assoc()): 
+                    // ALL CARDS NOW USE THE SAME PINK GRADIENT
+                    $gradient = "linear-gradient(135deg, #e91e63, #c2185b)";
+                    
+                    // Status badge varies based on stock level
+                    $stock = $item['stock_quantity'];
+                    if ($stock <= 5) {
+                        $statusClass = "status-critical";
+                        $statusText = "Critical Stock";
+                    } elseif ($stock <= 10) {
+                        $statusClass = "status-low";
+                        $statusText = "Very Low Stock";
+                    } else {
+                        $statusClass = "status-low";
+                        $statusText = "Low Stock";
+                    }
+                ?>
                     <div class="alert-card" 
                          data-name="<?= strtolower($item['product_name'] . ' ' . $item['display_size']) ?>">
-                        <div class="card-header" style="background: linear-gradient(135deg,#ff9800,#f57c00);">
+                        <div class="card-header" style="background: <?= $gradient ?>;">
                             <h3><?= htmlspecialchars($item['product_name']) ?></h3>
-                            <span class="size-badge"><?= htmlspecialchars($item['display_size']) ?></span>
+                            <span class="size-badge">Size: <?= htmlspecialchars($item['display_size']) ?></span>
                         </div>
                         <div class="card-body">
                             <div class="info-row">
@@ -75,7 +106,7 @@ $low_stock = $conn->query("
                                 <span class="info-label">Category</span>
                                 <span class="info-value"><?= htmlspecialchars($item['category_name'] ?: '—') ?></span>
                             </div>
-                            <span class="status-badge status-low">Low Stock Alert</span>
+                            <span class="status-badge <?= $statusClass ?>"><?= $statusText ?></span>
                         </div>
                         <div class="card-actions">
                             <a href="#" class="edit-btn adjust-stock-btn" 
@@ -83,7 +114,7 @@ $low_stock = $conn->query("
                                data-current="<?= $item['stock_quantity'] ?>">
                                Adjust Stock
                             </a>
-                            <a href="../products/view_product.php?id=<?= $item['product_id'] ?>" class="edit-btn" style="background:#1976d2;color:white;">
+                            <a href="../products/view_product.php?id=<?= $item['product_id'] ?>" class="edit-btn" style="background:#e91e63;color:white;">
                                 View Product
                             </a>
                         </div>
@@ -200,9 +231,38 @@ $low_stock = $conn->query("
             border-radius: 12px;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s ease;
         }
-        .cancel-btn { background: #f0f0f0; border: 2px solid #ddd; }
-        .save-btn { background: #e91e63; color: white; border: none; }
+        .cancel-btn { 
+            background: #f8f9fa; 
+            border: 1px solid #e0e0e0; 
+            color: #666;
+        }
+        .cancel-btn:hover {
+            background: #f0f0f0;
+            border-color: #ccc;
+        }
+        .save-btn { 
+            background: #e91e63; 
+            color: white; 
+            border: none; 
+        }
+        .save-btn:hover {
+            background: #c2185b;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.3);
+        }
+        /* Update the View Product button to match primary pink */
+        .card-actions a[style*="background:#1976d2"] {
+            background: #e91e63 !important;
+            color: white !important;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .card-actions a[style*="background:#1976d2"]:hover {
+            background: #c2185b !important;
+            transform: translateY(-2px);
+        }
     </style>
 </body>
 </html>
