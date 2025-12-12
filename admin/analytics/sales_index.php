@@ -56,6 +56,15 @@ require_once '../includes/db.php';
             <div class="metric-value" id="avgOrder">₱0</div>
             <small>Per transaction</small>
         </div>
+
+        <div class="card forecast-card">
+            <h3><i class="fas fa-chart-line"></i> AI Demand Forecast</h3>
+            <div class="metric-value" id="forecastTotal">487</div>
+            <small id="forecastChange">+18% from last 30 days</small>
+            <div class="chart-container" style="margin-top: 20px;">
+                <canvas id="forecastChart"></canvas>
+            </div>
+        </div>
     </div>
 
     <!-- Charts Row -->
@@ -188,6 +197,53 @@ loadAnalytics('month');
 document.getElementById('timeFilter').addEventListener('change', (e) => {
     loadAnalytics(e.target.value);
 });
+
+// Load Forecast
+fetch('../includes/forecast.json?' + Date.now())  // bypass cache
+    .then(r => r.json())
+    .then(f => {
+        document.getElementById('forecastTotal').textContent = f.next_30_days_total.toLocaleString() + " items";
+        const changeEl = document.getElementById('forecastChange');
+        const change = f.vs_last_30_days;
+        changeEl.textContent = (change > 0 ? "+" : "") + change + " from last 30 days";
+        changeEl.style.color = change > 0 ? "#4caf50" : "#f44336";
+
+        new Chart(document.getElementById('forecastChart'), {
+            type: 'line',
+            data: {
+                labels: f.daily.map(d => d.date.split('-')[2] + '/' + d.date.split('-')[1]), // show day/month
+                datasets: [{
+                    label: 'Predicted Daily Sales',
+                    data: f.daily.map(d => d.predicted),
+                    borderColor: '#e91e63',
+                    backgroundColor: 'rgba(233, 30, 99, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#e91e63',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { display: false }
+                },
+                scales: { 
+                    y: { 
+                        beginAtZero: true,
+                        ticks: { color: '#666' },
+                        grid: { color: '#e5e7eb' }
+                    }, 
+                    x: { 
+                        ticks: { color: '#666' },
+                        grid: { color: '#e5e7eb' }
+                    } 
+                }
+            }
+        });
+    });
 </script>
 
 </body>

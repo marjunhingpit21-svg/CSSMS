@@ -92,6 +92,38 @@
     letter-spacing: 0.5px;
 }
 
+/* Forecast card styling - consistent with other cards */
+.forecast-card {
+    background: white;
+    border: 2px solid #e91e63;
+}
+
+.forecast-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(233, 30, 99, 0.15);
+    border-color: #c2185b;
+}
+
+.forecast-card h3 {
+    color: #e91e63;
+}
+
+.forecast-card h3 i {
+    margin-right: 8px;
+}
+
+.forecast-card .metric-value {
+    color: #e91e63;
+}
+
+.forecast-card small {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
 /* Metric values - matching header accent color */
 .metric-value {
     font-size: 36px;
