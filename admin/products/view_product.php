@@ -152,7 +152,7 @@ $sizes_result = $sizes_stmt->get_result();
                 <div class="product-image-container">
                     <?php 
                     $img = $product['image_url'] 
-                        ? htmlspecialchars($product['image_url']) 
+                        ? '../../' . htmlspecialchars($product['image_url']) 
                         : 'https://via.placeholder.com/600/7c3aed/ec4899?text=' . substr(htmlspecialchars($product['product_name']), 0, 3);
                     ?>
                     <img src="<?= $img ?>" alt="<?= htmlspecialchars($product['product_name']) ?>" class="product-image">

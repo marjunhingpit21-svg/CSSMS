@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Handle image upload
         $image_url = null;
         if (isset($_FILES['product_image']) && $_FILES['product_image']['error'] === UPLOAD_ERR_OK) {
-            $upload_dir = '../uploads/products/';
+            $upload_dir = '../../img/products/';
             if (!is_dir($upload_dir)) {
                 mkdir($upload_dir, 0755, true);
             }
@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $file_path = $upload_dir . $filename;
             
             if (move_uploaded_file($_FILES['product_image']['tmp_name'], $file_path)) {
-                $image_url = 'uploads/products/' . $filename;
+                $image_url = 'img/products/' . $filename;
             }
         }
 

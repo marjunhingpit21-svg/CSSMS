@@ -169,7 +169,7 @@ $sizes_result = $sizes_stmt->get_result();
                             <div id="dropZone">
                                 <input type="file" id="productImage" name="product_image" accept="image/*" style="display:none;">
                                 <?php 
-                                $current_img = $product['image_url'] ?: 'https://via.placeholder.com/600/7c3aed/ec4899?text=' . substr($product['product_name'], 0, 3);
+                                $current_img = $product['image_url'] ? '../../' . $product['image_url'] : 'https://via.placeholder.com/600/7c3aed/ec4899?text=' . substr($product['product_name'], 0, 3);
                                 ?>
                                 <img id="imagePreview" src="<?= htmlspecialchars($current_img) ?>" alt="Product">
                                 <div id="uploadPlaceholder" style="display:none;">

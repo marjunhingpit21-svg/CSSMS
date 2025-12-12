@@ -39,7 +39,7 @@ try {
     // Handle image upload if provided
     $image_url = null;
     if (isset($_FILES['product_image']) && $_FILES['product_image']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = '../uploads/products/';
+        $upload_dir = '../../img/products/';
         
         // Create directory if it doesn't exist
         if (!is_dir($upload_dir)) {
