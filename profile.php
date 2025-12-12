@@ -14,7 +14,7 @@ $success = '';
 $error = '';
 
 // Get user data
-$user_query = $conn->prepare("SELECT u.*, c.customer_id, c.first_name, c.last_name, c.phone, c.address, c.city, c.postal_code 
+$user_query = $conn->prepare("SELECT u.*, c.customer_id, c.first_name, c.last_name, c.phone
                                FROM users u 
                                LEFT JOIN customers c ON u.user_id = c.user_id 
                                WHERE u.user_id = ?");
@@ -28,9 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     $last_name = trim($_POST['last_name']);
     $email = trim($_POST['email']);
     $phone = trim($_POST['phone']);
-    $address = trim($_POST['address']);
-    $city = trim($_POST['city']);
-    $postal_code = trim($_POST['postal_code']);
+    
 
     if (empty($first_name) || empty($last_name) || empty($email)) {
         $error = 'Please fill in all required fields.';
@@ -42,12 +40,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
 
         // Update or insert customer data
         if ($user_data['customer_id']) {
-            $update_customer = $conn->prepare("UPDATE customers SET first_name=?, last_name=?, email=?, phone=?, address=?, city=?, postal_code=? WHERE customer_id=?");
-            $update_customer->bind_param("sssssssi", $first_name, $last_name, $email, $phone, $address, $city, $postal_code, $user_data['customer_id']);
+            $update_customer = $conn->prepare("UPDATE customers SET first_name=?, last_name=?, email=?, phone=? WHERE customer_id=?");
+            $update_customer->bind_param("ssssi", $first_name, $last_name, $email, $phone,  $user_data['customer_id']);
             $update_customer->execute();
         } else {
-            $insert_customer = $conn->prepare("INSERT INTO customers (user_id, first_name, last_name, email, phone, address, city, postal_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            $insert_customer->bind_param("isssssss", $user_id, $first_name, $last_name, $email, $phone, $address, $city, $postal_code);
+            $insert_customer = $conn->prepare("INSERT INTO customers (user_id, first_name, last_name, email, phone) VALUES (?, ?, ?, ?, ?)");
+            $insert_customer->bind_param("issss", $user_id, $first_name, $last_name, $email, $phone);
             $insert_customer->execute();
         }
 
