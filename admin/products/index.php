@@ -196,7 +196,7 @@ $end_item    = min($current_page * $products_per_page, $totalQ);
                     <?php while ($p = $products->fetch_assoc()): 
                         $status = $p['total_stock'] > 20 ? 'in-stock' : ($p['total_stock'] > 0 ? 'low-stock' : 'out-of-stock');
                         $statusText = $p['total_stock'] > 20 ? 'In Stock' : ($p['total_stock'] > 0 ? 'Low Stock' : 'Out of Stock');
-                        $img = $p['image_url'] ?: 'https://via.placeholder.com/80/7c3aed/ec4899?text=' . urlencode(substr($p['product_name'],0,2));
+                        $img = $p['image_url'] ? '../../' . $p['image_url'] : 'https://via.placeholder.com/80/7c3aed/ec4899?text=' . urlencode(substr($p['product_name'],0,2));
                     ?>
                     <tr product-id="<?= $p['product_id'] ?>">
                         <td>

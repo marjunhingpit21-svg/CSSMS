@@ -38,7 +38,7 @@ try {
         $img_result = $img_stmt->get_result();
         
         if ($img_row = $img_result->fetch_assoc()) {
-            $image_path = '../uploads/products/' . basename($img_row['image_url']);
+            $image_path = '../../img/products/' . basename($img_row['image_url']);
             if ($img_row['image_url'] && file_exists($image_path)) {
                 @unlink($image_path); // Delete image file
             }
