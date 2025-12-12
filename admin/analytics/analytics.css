@@ -1,0 +1,85 @@
+   
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body { font-family: 'Inter', sans-serif; background: #f9f9fc; margin: 0; color: #333; }
+
+main {
+    margin-left: 280px;
+    padding: 120px 40px 60px;
+    min-height: 100vh;
+    z-index: 1;
+    transition: margin-left 0.3s ease;
+}
+body.sidebar-collapsed main { margin-left: 80px; }
+@media (max-width: 992px) { main { margin-left: 0; padding: 100px 20px 40px; } }
+
+/* Header */
+.header-section {
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 3px solid #e91e63;
+}
+.page-title { font-size: 2.4rem; font-weight: 700; color: #e91e63; margin: 0; }
+.header-subtitle { color: #666; font-size: 1.1rem; margin: 8px 0 0; }
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
+}
+.stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    text-align: center;
+    transition: all 0.3s ease;
+}
+.stat-card:hover { transform: translateY(-8px); box-shadow: 0 16px 40px rgba(233,30,99,0.15); }
+.stat-value { font-size: 2.8rem; font-weight: 700; color: #e91e63; margin: 12px 0; }
+.stat-label { color: #666; font-size: 1.1rem; }
+
+/* Charts */
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 60px;
+}
+.chart-card {
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+.chart-card h3 {
+    margin: 0 0 24px;
+    font-size: 1.4rem;
+    color: #e91e63;
+    font-weight: 600;
+}
+
+/* Top Products Table */
+.table-container {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+.table-container h3 {
+    margin: 0;
+    padding: 24px;
+    background: #f8f9fa;
+    color: #e91e63;
+    font-weight: 600;
+}
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 16px 24px; text-align: left; border-bottom: 1px solid #eee; }
+th { background: #fdf2f8; color: #e91e63; font-weight: 600; }
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .charts-grid { grid-template-columns: 1fr; }
+}

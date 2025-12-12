@@ -1,76 +1,161 @@
-<?php include '../includes/auth.php'; ?>
+<?php 
+include '../includes/auth.php';
+include '../includes/db.php';
+
+$total_revenue = 0;
+$q = $conn->query("SELECT COALESCE(SUM(total_amount),0) FROM sales");
+if ($q) $total_revenue = (float)$q->fetch_row()[0];
+
+$total_orders = 0;
+$q = $conn->query("SELECT COUNT(*) FROM sales");
+if ($q) $total_orders = (int)$q->fetch_row()[0];
+
+$avg_order_value = $total_orders > 0 ? $total_revenue / $total_orders : 0;
+
+$gross_profit = 0;
+$q = $conn->query("
+    SELECT COALESCE(SUM(si.quantity * (si.price_at_sale - COALESCE(p.cost_price,0))),0)
+    FROM sale_items si
+    JOIN product_sizes ps ON si.product_size_id = ps.product_size_id
+    JOIN products p ON ps.product_id = p.product_id
+");
+if ($q) $gross_profit = (float)$q->fetch_row()[0];
+
+
+$monthly_data = array_fill(0, 12, 0);
+$q = $conn->query("
+    SELECT MONTH(created_at) AS m, COALESCE(SUM(total_amount),0) AS v
+    FROM sales 
+    WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+    GROUP BY m ORDER BY m
+");
+if ($q) {
+    while ($row = $q->fetch_assoc()) {
+        $monthly_data[$row['m'] - 1] = (float)$row['v'];
+    }
+}
+
+
+$top_products = [];
+$q = $conn->query("
+    SELECT p.product_name, COALESCE(SUM(si.quantity),0) AS units
+    FROM sale_items si
+    JOIN product_sizes ps ON si.product_size_id = ps.product_size_id
+    JOIN products p ON ps.product_id = p.product_id
+    GROUP BY p.product_id
+    ORDER BY units DESC LIMIT 10
+");
+if ($q) {
+    while ($row = $q->fetch_assoc()) $top_products[] = $row;
+}
+?>
+
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analytics & AI • TrendyWear Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <title>Analytics & AI • Altiere Admin</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>body { font-family: 'Inter', sans-serif; background: #0f0f1a; }</style>
 </head>
-<body class="bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 text-gray-100 min-h-screen">
+<body>
     <?php include '../sidebar.php'; ?>
-    <?php include '../header.php'; ?>
+    <?php include '../adminheader.php'; ?>
 
-    <main class="ml-80 pt-20 px-10">
-        <div class="mb-12">
-            <h1 class="text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-violet-400 via-pink-400 to-cyan-400">Analytics & AI Engine</h1>
-            <p class="text-gray-400 mt-3 text-lg">Real-time data • Predictive forecasting • Smart insights</p>
+    <main>
+        <div class="header-section">
+            <h1 class="page-title">Analytics & AI</h1>
+            <p class="header-subtitle">Real-time business insights</p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-            <div class="lg:col-span-2 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl p-10">
-                <h2 class="text-3xl font-bold mb-8">Revenue + AI Forecast (Next 90 Days)</h2>
-                <canvas id="forecastChart" height="100"></canvas>
+      
+        <div class="stats-grid">
+            <div class="stat-card">
+                <p class="stat-label">Total Revenue</p>
+                <p class="stat-value">₱<?= number_format($total_revenue, 0) ?></p>
             </div>
-
-            <div class="space-y-8">
-                <div class="bg-gradient-to-br from-violet-600/30 to-pink-600/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-8">
-                    <h3 class="text-2xl font-bold mb-6">AI Prediction</h3>
-                    <p class="text-6xl font-black text-pink-400">₱8.4M</p>
-                    <p class="text-green-400 text-xl mt-4">+41.2% vs current quarter</p>
-                    <p class="text-gray-400 mt-6">Confidence: <span class="text-pink-400 font-bold">96.7%</span></p>
-                </div>
-
-                <div class="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl p-8">
-                    <h3 class="text-xl font-bold mb-6">Top Categories</h3>
-                    <div class="space-y-4">
-                        <div><span class="text-gray-400">1. Streetwear Hoodies</span> <span class="float-right text-green-400">+87%</span></div>
-                        <div><span class="text-gray-400">2. Denim Collection</span> <span class="float-right text-green-400">+62%</span></div>
-                        <div><span class="text-gray-400">3. Minimal Sneakers</span> <span class="float-right text-amber-400">+18%</span></div>
-                    </div>
-                </div>
+            <div class="stat-card">
+                <p class="stat-label">Total Orders</p>
+                <p class="stat-value"><?= number_format($total_orders) ?></p>
             </div>
+            <div class="stat-card">
+                <p class="stat-label">Avg Order Value</p>
+                <p class="stat-value">₱<?= number_format($avg_order_value, 0) ?></p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-label">Gross Profit</p>
+                <p class="stat-value">₱<?= number_format($gross_profit, 0) ?></p>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h2>Monthly Sales Trend</h2>
+                <canvas id="monthlyChart" height="300"></canvas>
+            </div>
+            <div class="chart-card">
+                <h2>Top Selling Products</h2>
+                <canvas id="topProductsChart" height="300"></canvas>
+            </div>
+        </div>
+
+    
+        <div class="quick-actions">
+            <a href="../products/index.php" class="action-btn">
+                <span class="material-icons">inventory_2</span> Products
+            </a>
+            <a href="../suppliers/" class="action-btn">
+                <span class="material-icons">local_shipping</span> Suppliers
+            </a>
+            <a href="../reports/" class="action-btn">
+                <span class="material-icons">bar_chart</span> Reports
+            </a>
         </div>
     </main>
 
     <script>
-        new Chart(document.getElementById('forecastChart'), {
-            type: 'line',
-            data: {
-                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'],
-                datasets: [{
-                    label: 'Actual Sales',
-                    data: [620000, 780000, 920000, 880000, 1100000, 1380000, 1620000, 1840000],
-                    borderColor: '#a78bfa',
-                    backgroundColor: 'rgba(167, 139, 250, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }, {
-                    label: 'AI Forecast',
-                    data: [null, null, null, null, null, 1380000, 2100000, 2840000],
-                    borderColor: '#f472b6',
-                    borderDash: [10, 5],
-                    tension: 0.4
-                }]
-            },
-            options: {
-                plugins: { legend: { labels: { color: '#e2e8f0' } } },
-                scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } }
-            }
-        });
+    
+    new Chart(document.getElementById('monthlyChart'), {
+        type: 'line',
+        data: {
+            labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+            datasets: [{
+                label: 'Sales',
+                data: <?= json_encode($monthly_data) ?>,
+                borderColor: '#e91e63',
+                backgroundColor: 'rgba(233,30,99,0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    
+    new Chart(document.getElementById('topProductsChart'), {
+        type: 'bar',
+        data: {
+            labels: <?= json_encode(array_column($top_products, 'product_name') ?: []) ?>,
+            datasets: [{
+                label: 'Units Sold',
+                data: <?= json_encode(array_column($top_products, 'units') ?: []) ?>,
+                backgroundColor: '#e91e63',
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } }
+        }
+    });
     </script>
 </body>
 </html>
