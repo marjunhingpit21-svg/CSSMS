@@ -172,7 +172,7 @@ try {
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" action="cashier_login.php" class="login-form">
+                <form method="POST" action="index.php" class="login-form">
                     <div class="form-row">
                         <div class="input-group">
                             <label for="employee_number">Employee ID</label>

@@ -34,18 +34,58 @@ try {
     $subtotal = isset($input['subtotal']) ? floatval($input['subtotal']) : 0;
     $tax = isset($input['tax']) ? floatval($input['tax']) : 0;
     $discount = isset($input['discount']) ? floatval($input['discount']) : 0;
+    $discount_percentage = isset($input['discount_percentage']) ? floatval($input['discount_percentage']) : 0;
     $total_amount = floatval($input['total_amount']);
     
-    // Insert sale with transaction reference
+    // Prepare comprehensive notes combining all item notes and metadata
+    $sale_notes_array = [];
+    
+    // Add discount info if applicable
+    if ($discount_percentage > 0) {
+        $sale_notes_array[] = "Transaction Discount: {$discount_percentage}%";
+    }
+    
+    // Collect all item-specific notes
+    foreach ($input['items'] as $item) {
+        $item_note_parts = [];
+        
+        // Add product name for context
+        $item_note_parts[] = $item['product_name'] . " (" . $item['size_name'] . ")";
+        
+        // Add user notes if any
+        if (!empty($item['notes'])) {
+            $item_note_parts[] = "Note: " . trim($item['notes']);
+        }
+        
+        // Add clerk info if different
+        if (!empty($item['clerk_name'])) {
+            $item_note_parts[] = "Clerk: " . trim($item['clerk_name']);
+        }
+        
+        // Add price change indicator
+        if (isset($item['price_changed']) && $item['price_changed']) {
+            $item_note_parts[] = "Price Changed from ₱" . number_format($item['original_price'], 2) . " to ₱" . number_format($item['final_price'], 2);
+        }
+        
+        // Only add to notes if there's something to note
+        if (count($item_note_parts) > 1) { // More than just the product name
+            $sale_notes_array[] = implode(" - ", $item_note_parts);
+        }
+    }
+    
+    // Combine all notes
+    $sale_notes = implode(" | ", $sale_notes_array);
+    
+    // Insert sale with transaction reference and notes
     $stmt = $conn->prepare("
         INSERT INTO sales 
         (employee_id, branch_id, subtotal, tax, total_amount, discount, payment_method, 
-         payment_status, cash_received, transaction_reference, sale_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, NOW())
+         payment_status, cash_received, transaction_reference, notes, sale_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, NOW())
     ");
     
     $stmt->bind_param(
-        "iiddddsds",
+        "iiddddsdss",
         $input['employee_id'],
         $input['branch_id'],
         $subtotal,
@@ -54,7 +94,8 @@ try {
         $discount,
         $input['payment_method'],
         $cash_received,
-        $transaction_reference
+        $transaction_reference,
+        $sale_notes
     );
     
     if (!$stmt->execute()) {
@@ -71,7 +112,7 @@ try {
     $sale_number = $row['sale_number'];
     $sale_date = $row['sale_date'];
 
-    // Insert sale items & reduce stock
+    // Insert sale items & reduce stock (NO NOTES in sale_items)
     $itemStmt = $conn->prepare("
         INSERT INTO sale_items 
         (sale_id, product_size_id, product_name, size_display, quantity, unit_price, unit_cost, subtotal, total)
@@ -115,13 +156,13 @@ try {
         }
         $unit_cost = $costPrices[$item['product_size_id']];
             
-        $subtotal = $unit_price * $quantity;
-        $total = $subtotal; // No item-level discount in this implementation
+        $subtotal_item = $unit_price * $quantity;
+        $total = $subtotal_item; // No item-level discount in this implementation
         
         $product_name = $item['product_name'];
         $size_display = $item['size_name'];
         
-        // Insert sale item
+        // Insert sale item WITHOUT notes
         $itemStmt->bind_param(
             "iissidddd", 
             $sale_id, 
@@ -131,7 +172,7 @@ try {
             $quantity, 
             $unit_price, 
             $unit_cost,
-            $subtotal,
+            $subtotal_item,
             $total
         );
         
