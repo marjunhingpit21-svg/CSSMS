@@ -97,48 +97,7 @@ function getSizeOptions() {
     }
 }
 
-// Add this function to detect shoe category
-function isShoeCategory() {
-    const categorySelect = document.querySelector('[name="category_id"]');
-    const selectedCategory = categorySelect.options[categorySelect.selectedIndex].text.toLowerCase();
-    return selectedCategory.includes('shoe') || selectedCategory.includes('footwear');
-}
-
-// Update the getSizeOptions function
-function getSizeOptions() {
-    if (isShoeCategory()) {
-        return `
-            <option value="">Select shoe size...</option>
-            <option value="6.0">6.0 US</option>
-            <option value="6.5">6.5 US</option>
-            <option value="7.0">7.0 US</option>
-            <option value="7.5">7.5 US</option>
-            <option value="8.0">8.0 US</option>
-            <option value="8.5">8.5 US</option>
-            <option value="9.0">9.0 US</option>
-            <option value="9.5">9.5 US</option>
-            <option value="10.0">10.0 US</option>
-            <option value="10.5">10.5 US</option>
-            <option value="11.0">11.0 US</option>
-            <option value="11.5">11.5 US</option>
-            <option value="12.0">12.0 US</option>
-            <option value="13.0">13.0 US</option>
-        `;
-    } else {
-        return `
-            <option value="">Select size...</option>
-            <option value="XS">XS</option>
-            <option value="S">S</option>
-            <option value="M">M</option>
-            <option value="L">L</option>
-            <option value="XL">XL</option>
-            <option value="XXL">XXL</option>
-            <option value="XXXL">XXXL</option>
-        `;
-    }
-}
-
-// Update addSizeRow function to use the new detection
+// Update addSizeRow function - REMOVED BARCODE FIELD
 function addSizeRow() {
     const tbody = document.getElementById('sizesTableBody');
     const table = tbody.closest('table');
@@ -157,9 +116,6 @@ function addSizeRow() {
             <select name="sizes[]" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white w-full size-select" required>
                 ${getSizeOptions()}
             </select>
-        </td>
-        <td class="px-8 py-4">
-            <input type="text" name="barcodes[]" placeholder="Auto-generated" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm font-mono w-full">
         </td>
         <td class="px-8 py-4">
             <input type="number" name="quantities[]" value="0" min="0" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white w-24" required>

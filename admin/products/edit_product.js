@@ -110,6 +110,7 @@ function updateCategoryIndicator() {
     }
 }
 
+// Update addSizeRow function - REMOVED BARCODE FIELD
 function addSizeRow() {
     const tbody = document.getElementById('sizesTableBody');
     const table = document.getElementById('sizesTable');
@@ -128,9 +129,6 @@ function addSizeRow() {
             <select name="new_sizes[]" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white w-full size-select" required>
                 ${getSizeOptions()}
             </select>
-        </td>
-        <td class="px-8 py-4">
-            <input type="text" name="new_barcodes[]" placeholder="Auto-generated" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm font-mono w-full">
         </td>
         <td class="px-8 py-4">
             <input type="number" name="new_quantities[]" value="0" min="0" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white w-24" required>
@@ -249,25 +247,21 @@ function updateProfit() {
     const cost = parseFloat(costInput.value) || 0;
     const profit = price - cost;
     
-    const profitDisplay = document.querySelector('.text-violet-300 strong');
+    const profitDisplay = document.querySelector('.profit-box strong');
     if (profitDisplay) {
         profitDisplay.textContent = '₱' + profit.toFixed(2);
         
         // Color code based on profit margin
-        const parent = profitDisplay.closest('.bg-violet-900');
+        const parent = profitDisplay.closest('.profit-box');
         if (profit < 0) {
-            parent.className = 'bg-red-900 bg-opacity-20 border border-red-700 rounded-lg p-4';
-            profitDisplay.parentElement.className = 'text-red-300 text-sm';
+            parent.className = 'profit-box bg-red-900 bg-opacity-20 border border-red-700 rounded-lg p-4 text-red-300';
         } else if (profit === 0) {
-            parent.className = 'bg-gray-900 bg-opacity-20 border border-gray-700 rounded-lg p-4';
-            profitDisplay.parentElement.className = 'text-gray-300 text-sm';
+            parent.className = 'profit-box bg-gray-900 bg-opacity-20 border border-gray-700 rounded-lg p-4 text-gray-300';
         } else {
-            parent.className = 'bg-violet-900 bg-opacity-20 border border-violet-700 rounded-lg p-4';
-            profitDisplay.parentElement.className = 'text-violet-300 text-sm';
+            parent.className = 'profit-box bg-violet-900 bg-opacity-20 border border-violet-700 rounded-lg p-4 text-violet-300';
         }
     }
 }
 
 priceInput.addEventListener('input', updateProfit);
 costInput.addEventListener('input', updateProfit);
-

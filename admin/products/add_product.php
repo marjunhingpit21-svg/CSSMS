@@ -148,7 +148,6 @@ $age_groups = $conn->query("SELECT age_group_id, age_group_name FROM age_groups 
                             <thead>
                                 <tr>
                                     <th>Size</th>
-                                    <th>Barcode</th>
                                     <th>Stock Quantity</th>
                                     <th>Price Adjustment</th>
                                     <th>Available</th>
