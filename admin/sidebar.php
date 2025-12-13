@@ -23,13 +23,26 @@
             <span>Dashboard</span>
         </a>
 
-        <a href="/CSSMS/admin/products/index.php" class="<?= strpos($current, '/products') !== false ? 'active' : '' ?>">
-            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-            </svg>
-            <span>Products & Stock</span>
-        </a>
+        <div class="sidebar-dropdown <?= (strpos($current, '/products/index.php') !== false || 
+                                        strpos($current, '/products/index_2.php') !== false ) ? 'open' : '' ?>">
 
+            <a href="#" class="sidebar-nav-link dropdown-toggle <?= (strpos($current, '/products/index.php') !== false || 
+                                                                strpos($current, '/products/index_2.php') !== false) ? 'active' : '' ?>">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                </svg>
+                <span>Products & Stock</span>
+                <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </a>
+
+            <div class="dropdown-items">
+                <a href="/CSSMS/admin/products/index.php" class="<?= strpos($current, 'products/index.php') !== false ? 'active' : '' ?>">Online</a>
+                <a href="/CSSMS/admin/products/index_2.php" class="<?= strpos($current, 'products/index_2.php') !== false ? 'active' : '' ?>">Instore</a>
+            </div>
+        </div>
+        
         <a href="/CSSMS/admin/inventory/index.php" class="<?= strpos($current, '/inventory') !== false ? 'active' : '' ?>">
             <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"/>
