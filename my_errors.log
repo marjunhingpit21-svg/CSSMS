@@ -898,3 +898,173 @@
 [12-Dec-2025 03:18:42 Europe/Berlin] === Script Started at 2025-12-12 03:18:42 ===
 >>>>>>> 906c6d0769da940294ccec30365b7d9a61f5b735
 [12-Dec-2025 03:31:26 Europe/Berlin] === Script Started at 2025-12-12 03:31:26 ===
+[12-Dec-2025 08:36:30 Europe/Berlin] === Script Started at 2025-12-12 08:36:30 ===
+[12-Dec-2025 08:36:35 Europe/Berlin] === Script Started at 2025-12-12 08:36:35 ===
+[12-Dec-2025 08:36:38 Europe/Berlin] === Script Started at 2025-12-12 08:36:38 ===
+[12-Dec-2025 09:47:34 Europe/Berlin] === Script Started at 2025-12-12 09:47:34 ===
+[12-Dec-2025 09:48:41 Europe/Berlin] === Script Started at 2025-12-12 09:48:41 ===
+[14-Dec-2025 16:30:29 Europe/Berlin] === Script Started at 2025-12-14 16:30:29 ===
+[14-Dec-2025 16:36:13 Europe/Berlin] === Script Started at 2025-12-14 16:36:13 ===
+[14-Dec-2025 16:51:57 Europe/Berlin] === Script Started at 2025-12-14 16:51:57 ===
+[14-Dec-2025 16:52:29 Europe/Berlin] === Script Started at 2025-12-14 16:52:29 ===
+[14-Dec-2025 16:52:46 Europe/Berlin] === Script Started at 2025-12-14 16:52:46 ===
+[14-Dec-2025 16:53:28 Europe/Berlin] === Script Started at 2025-12-14 16:53:28 ===
+[14-Dec-2025 16:53:58 Europe/Berlin] === Script Started at 2025-12-14 16:53:58 ===
+[14-Dec-2025 17:04:22 Europe/Berlin] === Script Started at 2025-12-14 17:04:22 ===
+[14-Dec-2025 17:13:49 Europe/Berlin] === Script Started at 2025-12-14 17:13:49 ===
+[14-Dec-2025 17:13:55 Europe/Berlin] === Script Started at 2025-12-14 17:13:55 ===
+[14-Dec-2025 17:13:56 Europe/Berlin] === Script Started at 2025-12-14 17:13:56 ===
+[14-Dec-2025 17:14:24 Europe/Berlin] === Script Started at 2025-12-14 17:14:24 ===
+[14-Dec-2025 17:14:24 Europe/Berlin] === RATING SUBMISSION START ===
+[14-Dec-2025 17:14:24 Europe/Berlin] POST data: Array
+(
+    [order_id] => 18
+    [rating_16] => 2
+    [quality_16] => 2
+    [fit_16] => 2
+    [value_16] => 2
+    [review_title_16] => 
+    [review_text_16] => 
+    [recommend_16] => 1
+    [submit_rating] => 
+)
+
+[14-Dec-2025 17:14:24 Europe/Berlin] FILES data: Array
+(
+    [rating_images_16] => Array
+        (
+            [name] => Array
+                (
+                    [0] => 525710070_730633292936362_2506937323371925193_n.jpg
+                )
+
+            [full_path] => Array
+                (
+                    [0] => 525710070_730633292936362_2506937323371925193_n.jpg
+                )
+
+            [type] => Array
+                (
+                    [0] => image/jpeg
+                )
+
+            [tmp_name] => Array
+                (
+                    [0] => C:\xamppNEW\tmp\php6B1B.tmp
+                )
+
+            [error] => Array
+                (
+                    [0] => 0
+                )
+
+            [size] => Array
+                (
+                    [0] => 23509
+                )
+
+        )
+
+)
+
+[14-Dec-2025 17:14:24 Europe/Berlin] Processing item - order_item_id: 16
+[14-Dec-2025 17:14:24 Europe/Berlin] === DETAILED DEBUG FOR ITEM 16 ===
+[14-Dec-2025 17:14:24 Europe/Berlin] Existing ratings found: 0
+[14-Dec-2025 17:14:24 Europe/Berlin] No existing rating, proceeding...
+[14-Dec-2025 17:14:24 Europe/Berlin] Rating key: rating_16
+[14-Dec-2025 17:14:24 Europe/Berlin] Rating value from POST: 2
+[14-Dec-2025 17:14:24 Europe/Berlin] Rating after intval: 2
+[14-Dec-2025 17:14:24 Europe/Berlin] SUCCESS: Inserted rating ID: 15
+[14-Dec-2025 17:14:24 Europe/Berlin] Looking for images with name: rating_images_16
+[14-Dec-2025 17:14:24 Europe/Berlin] FILES array: Array
+(
+    [rating_images_16] => Array
+        (
+            [name] => Array
+                (
+                    [0] => 525710070_730633292936362_2506937323371925193_n.jpg
+                )
+
+            [full_path] => Array
+                (
+                    [0] => 525710070_730633292936362_2506937323371925193_n.jpg
+                )
+
+            [type] => Array
+                (
+                    [0] => image/jpeg
+                )
+
+            [tmp_name] => Array
+                (
+                    [0] => C:\xamppNEW\tmp\php6B1B.tmp
+                )
+
+            [error] => Array
+                (
+                    [0] => 0
+                )
+
+            [size] => Array
+                (
+                    [0] => 23509
+                )
+
+        )
+
+)
+
+[14-Dec-2025 17:14:24 Europe/Berlin] Found images for rating_images_16
+[14-Dec-2025 17:14:24 Europe/Berlin] File array structure: Array
+(
+    [name] => Array
+        (
+            [0] => 525710070_730633292936362_2506937323371925193_n.jpg
+        )
+
+    [full_path] => Array
+        (
+            [0] => 525710070_730633292936362_2506937323371925193_n.jpg
+        )
+
+    [type] => Array
+        (
+            [0] => image/jpeg
+        )
+
+    [tmp_name] => Array
+        (
+            [0] => C:\xamppNEW\tmp\php6B1B.tmp
+        )
+
+    [error] => Array
+        (
+            [0] => 0
+        )
+
+    [size] => Array
+        (
+            [0] => 23509
+        )
+
+)
+
+[14-Dec-2025 17:14:24 Europe/Berlin] Found 1 images to upload
+[14-Dec-2025 17:14:24 Europe/Berlin] Processing image 0
+[14-Dec-2025 17:14:24 Europe/Berlin] Upload error code: 0
+[14-Dec-2025 17:14:24 Europe/Berlin] File: 525710070_730633292936362_2506937323371925193_n.jpg, Size: 23509, Type: image/jpeg
+[14-Dec-2025 17:14:24 Europe/Berlin] Attempting to move file to: ratingimages/693ee260d6e77_1765728864_0.jpg
+[14-Dec-2025 17:14:24 Europe/Berlin] SUCCESS: File moved to ratingimages/693ee260d6e77_1765728864_0.jpg
+[14-Dec-2025 17:14:24 Europe/Berlin] SUCCESS: Thumbnail created at ratingimages/thumbnails/thumb_693ee260d6e77_1765728864_0.jpg
+[14-Dec-2025 17:14:24 Europe/Berlin] === IMAGE INSERT DEBUG ===
+[14-Dec-2025 17:14:24 Europe/Berlin] Rating ID: 15
+[14-Dec-2025 17:14:24 Europe/Berlin] Upload Path: ratingimages/693ee260d6e77_1765728864_0.jpg
+[14-Dec-2025 17:14:24 Europe/Berlin] Thumbnail Path: ratingimages/thumbnails/thumb_693ee260d6e77_1765728864_0.jpg
+[14-Dec-2025 17:14:24 Europe/Berlin] File Name: 525710070_730633292936362_2506937323371925193_n.jpg
+[14-Dec-2025 17:14:24 Europe/Berlin] File Size: 23509
+[14-Dec-2025 17:14:24 Europe/Berlin] File Type: image/jpeg
+[14-Dec-2025 17:14:24 Europe/Berlin] Image Order: 1
+[14-Dec-2025 17:14:24 Europe/Berlin] SUCCESS: Image record inserted into database with ID: 10
+[14-Dec-2025 17:14:24 Europe/Berlin] Verification - Rows found: 1
+[14-Dec-2025 17:14:24 Europe/Berlin] === RATING SUBMISSION END ===
+[14-Dec-2025 17:14:24 Europe/Berlin] === Script Started at 2025-12-14 17:14:24 ===
