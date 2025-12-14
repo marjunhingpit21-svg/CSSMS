@@ -63,6 +63,13 @@ $items_result = $items_stmt->get_result();
 
 // Get cart count for header
 $cart_count = isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart'], 'quantity')) : 0;
+
+// Get orders count for header
+  $orders_count = 0;
+  if (isset($_SESSION['user_id'])) {
+      include 'orders_count.php';
+      $orders_count = getOrdersCount($conn, $_SESSION['user_id']);
+  }
 ?>
 
 <!DOCTYPE html>
