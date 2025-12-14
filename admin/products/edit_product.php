@@ -223,7 +223,6 @@ $sizes_result = $sizes_stmt->get_result();
                             <thead>
                                 <tr>
                                     <th id="sizeHeader"><?= $is_shoe_product ? 'Shoe Size (US)' : 'Size' ?></th>
-                                    <th>Barcode</th>
                                     <th>Stock Quantity</th>
                                     <th>Price Adjustment</th>
                                     <th>Available</th>
@@ -238,7 +237,6 @@ $sizes_result = $sizes_stmt->get_result();
                                             <span class="size-tag"><?= htmlspecialchars($size['display_size']) ?></span>
                                             <input type="hidden" name="size_ids[]" value="<?= $size['product_size_id'] ?>">
                                         </td>
-                                        <td><input type="text" name="barcodes[]" value="<?= htmlspecialchars($size['barcode']) ?>" style="width:100%;font-family:monospace;"></td>
                                         <td><input type="number" name="quantities[]" value="<?= $size['stock_quantity'] ?>" min="0" style="width:6rem;"></td>
                                         <td>
                                             <div class="input-with-prefix">

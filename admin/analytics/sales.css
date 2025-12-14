@@ -63,8 +63,8 @@
 /* Grid layout */
 .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
     margin-bottom: 30px;
 }
 
@@ -90,6 +90,12 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+/* Full width card - spans entire row */
+.card.full-width {
+    grid-column: 1 / -1;
+    margin-bottom: 30px;
 }
 
 /* Forecast card styling - consistent with other cards */
@@ -215,6 +221,49 @@ td strong {
 .badge-warning { 
     background: #fff3cd; 
     color: #856404; 
+}
+
+.ai-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 15px 0;
+}
+
+.ai-confidence {
+    font-size: 14px;
+    color: #555;
+}
+
+.ai-insights {
+    margin-top: 20px;
+    padding: 16px;
+    background: #fff8f9;
+    border-radius: 10px;
+    border-left: 4px solid #e91e63;
+}
+
+.ai-insights h4 {
+    margin: 0 0 12px 0;
+    color: #c2185b;
+    font-size: 15px;
+}
+
+.ai-insights ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13.5px;
+    line-height: 1.6;
+}
+
+.ai-insights li {
+    margin-bottom: 8px;
+    color: #333;
+}
+
+#lastUpdated {
+    font-weight: 600;
+    color: #e91e63;
 }
 
 /* Responsive adjustments */
