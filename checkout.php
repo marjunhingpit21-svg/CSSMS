@@ -270,6 +270,13 @@ $order_id = $conn->insert_id;
         }
     }
 }
+
+// Get orders count for header
+  $orders_count = 0;
+  if (isset($_SESSION['user_id'])) {
+      include 'orders_count.php';
+      $orders_count = getOrdersCount($conn, $_SESSION['user_id']);
+  }
 ?>
 
 <!DOCTYPE html>
