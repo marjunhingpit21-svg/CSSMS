@@ -77,27 +77,32 @@ if (!file_exists($forecast_file) || (time() - filemtime($forecast_file)) > 7200)
     <div class="card forecast-card full-width">
         <h3>AI Demand Forecasting</h3>
         
-        <div class="ai-header">
-            <div>
-                <div class="metric-value" id="forecastTotal">—</div>
-                <small id="forecastChange">Loading forecast...</small>
+        <div class="forecast-header-section">
+            <div class="ai-header">
+                <div>
+                    <div class="metric-value" id="forecastTotal">—</div>
+                    <small id="forecastChange">Loading forecast...</small>
+                </div>
             </div>
+            
             <div class="ai-confidence">
                 <span>Confidence: <strong id="confidenceLevel">—</strong></span>
                 <i class="fas fa-circle" id="confidenceDot"></i>
             </div>
         </div>
 
-        <div class="chart-container" style="margin-top: 20px;">
-            <canvas id="forecastChart"></canvas>
-        </div>
+        <div class="forecast-content">
+            <div class="chart-container" style="margin-top: 20px;">
+                <canvas id="forecastChart"></canvas>
+            </div>
 
-        <!-- Will be hidden when no forecast data -->
-        <div class="ai-insights" id="aiInsightsSection" style="display: none;">
-            <h4>AI Insights & Recommendations</h4>
-            <ul id="aiRecommendations">
-                <li>Loading insights...</li>
-            </ul>
+            <!-- Will be hidden when no forecast data -->
+            <div class="ai-insights" id="aiInsightsSection" style="display: none;">
+                <h4>AI Insights & Recommendations</h4>
+                <ul id="aiRecommendations">
+                    <li>Loading insights...</li>
+                </ul>
+            </div>
         </div>
 
         <small style="display:block; text-align:right; margin-top:10px; color:#888;">

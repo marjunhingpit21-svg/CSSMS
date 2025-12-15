@@ -1,5 +1,1643 @@
 {
-  "generated_at": "2025-12-15 03:36",
-  "status": "no_data",
-  "message": "Not enough sales data yet (in-store + online combined)"
+  "generated_at": "2025-12-16 06:02",
+  "status": "ready",
+  "forecasts": {
+    "7": {
+      "total": 0,
+      "growth": -100,
+      "confidence": 82,
+      "daily": [
+        {
+          "date": "2026-01-02",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-03",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-04",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-05",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-06",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-07",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-08",
+          "predicted": 0
+        }
+      ]
+    },
+    "30": {
+      "total": 1668,
+      "growth": 12731,
+      "confidence": 87,
+      "daily": [
+        {
+          "date": "2026-01-02",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-03",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-04",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-05",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-06",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-07",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-08",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-09",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-10",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-11",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-12",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-13",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-14",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-15",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-16",
+          "predicted": 1
+        },
+        {
+          "date": "2026-01-17",
+          "predicted": 20
+        },
+        {
+          "date": "2026-01-18",
+          "predicted": 37
+        },
+        {
+          "date": "2026-01-19",
+          "predicted": 57
+        },
+        {
+          "date": "2026-01-20",
+          "predicted": 76
+        },
+        {
+          "date": "2026-01-21",
+          "predicted": 93
+        },
+        {
+          "date": "2026-01-22",
+          "predicted": 110
+        },
+        {
+          "date": "2026-01-23",
+          "predicted": 123
+        },
+        {
+          "date": "2026-01-24",
+          "predicted": 138
+        },
+        {
+          "date": "2026-01-25",
+          "predicted": 146
+        },
+        {
+          "date": "2026-01-26",
+          "predicted": 153
+        },
+        {
+          "date": "2026-01-27",
+          "predicted": 156
+        },
+        {
+          "date": "2026-01-28",
+          "predicted": 152
+        },
+        {
+          "date": "2026-01-29",
+          "predicted": 147
+        },
+        {
+          "date": "2026-01-30",
+          "predicted": 135
+        },
+        {
+          "date": "2026-01-31",
+          "predicted": 124
+        }
+      ]
+    },
+    "365": {
+      "total": 58009,
+      "growth": 175685,
+      "confidence": 90,
+      "daily": [
+        {
+          "date": "2026-01-02",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-03",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-04",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-05",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-06",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-07",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-08",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-09",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-10",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-11",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-12",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-13",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-14",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-15",
+          "predicted": 0
+        },
+        {
+          "date": "2026-01-16",
+          "predicted": 1
+        },
+        {
+          "date": "2026-01-17",
+          "predicted": 20
+        },
+        {
+          "date": "2026-01-18",
+          "predicted": 37
+        },
+        {
+          "date": "2026-01-19",
+          "predicted": 57
+        },
+        {
+          "date": "2026-01-20",
+          "predicted": 76
+        },
+        {
+          "date": "2026-01-21",
+          "predicted": 93
+        },
+        {
+          "date": "2026-01-22",
+          "predicted": 110
+        },
+        {
+          "date": "2026-01-23",
+          "predicted": 123
+        },
+        {
+          "date": "2026-01-24",
+          "predicted": 138
+        },
+        {
+          "date": "2026-01-25",
+          "predicted": 146
+        },
+        {
+          "date": "2026-01-26",
+          "predicted": 153
+        },
+        {
+          "date": "2026-01-27",
+          "predicted": 156
+        },
+        {
+          "date": "2026-01-28",
+          "predicted": 152
+        },
+        {
+          "date": "2026-01-29",
+          "predicted": 147
+        },
+        {
+          "date": "2026-01-30",
+          "predicted": 135
+        },
+        {
+          "date": "2026-01-31",
+          "predicted": 124
+        },
+        {
+          "date": "2026-02-01",
+          "predicted": 105
+        },
+        {
+          "date": "2026-02-02",
+          "predicted": 86
+        },
+        {
+          "date": "2026-02-03",
+          "predicted": 63
+        },
+        {
+          "date": "2026-02-04",
+          "predicted": 35
+        },
+        {
+          "date": "2026-02-05",
+          "predicted": 9
+        },
+        {
+          "date": "2026-02-06",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-07",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-08",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-09",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-10",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-11",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-12",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-13",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-14",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-15",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-16",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-17",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-18",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-19",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-20",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-21",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-22",
+          "predicted": 0
+        },
+        {
+          "date": "2026-02-23",
+          "predicted": 11
+        },
+        {
+          "date": "2026-02-24",
+          "predicted": 46
+        },
+        {
+          "date": "2026-02-25",
+          "predicted": 77
+        },
+        {
+          "date": "2026-02-26",
+          "predicted": 112
+        },
+        {
+          "date": "2026-02-27",
+          "predicted": 139
+        },
+        {
+          "date": "2026-02-28",
+          "predicted": 174
+        },
+        {
+          "date": "2026-03-01",
+          "predicted": 194
+        },
+        {
+          "date": "2026-03-02",
+          "predicted": 217
+        },
+        {
+          "date": "2026-03-03",
+          "predicted": 232
+        },
+        {
+          "date": "2026-03-04",
+          "predicted": 236
+        },
+        {
+          "date": "2026-03-05",
+          "predicted": 239
+        },
+        {
+          "date": "2026-03-06",
+          "predicted": 230
+        },
+        {
+          "date": "2026-03-07",
+          "predicted": 226
+        },
+        {
+          "date": "2026-03-08",
+          "predicted": 205
+        },
+        {
+          "date": "2026-03-09",
+          "predicted": 186
+        },
+        {
+          "date": "2026-03-10",
+          "predicted": 159
+        },
+        {
+          "date": "2026-03-11",
+          "predicted": 122
+        },
+        {
+          "date": "2026-03-12",
+          "predicted": 88
+        },
+        {
+          "date": "2026-03-13",
+          "predicted": 45
+        },
+        {
+          "date": "2026-03-14",
+          "predicted": 14
+        },
+        {
+          "date": "2026-03-15",
+          "predicted": 0
+        },
+        {
+          "date": "2026-03-16",
+          "predicted": 0
+        },
+        {
+          "date": "2026-03-17",
+          "predicted": 0
+        },
+        {
+          "date": "2026-03-18",
+          "predicted": 0
+        },
+        {
+          "date": "2026-03-19",
+          "predicted": 0
+        },
+        {
+          "date": "2026-03-20",
+          "predicted": 0
+        },
+        {
+          "date": "2026-03-21",
+          "predicted": 0
+        },
+        {
+          "date": "2026-03-22",
+          "predicted": 0
+        },
+        {
+          "date": "2026-03-23",
+          "predicted": 0
+        },
+        {
+          "date": "2026-03-24",
+          "predicted": 0
+        },
+        {
+          "date": "2026-03-25",
+          "predicted": 0
+        },
+        {
+          "date": "2026-03-26",
+          "predicted": 0
+        },
+        {
+          "date": "2026-03-27",
+          "predicted": 0
+        },
+        {
+          "date": "2026-03-28",
+          "predicted": 0
+        },
+        {
+          "date": "2026-03-29",
+          "predicted": 0
+        },
+        {
+          "date": "2026-03-30",
+          "predicted": 0
+        },
+        {
+          "date": "2026-03-31",
+          "predicted": 17
+        },
+        {
+          "date": "2026-04-01",
+          "predicted": 55
+        },
+        {
+          "date": "2026-04-02",
+          "predicted": 102
+        },
+        {
+          "date": "2026-04-03",
+          "predicted": 138
+        },
+        {
+          "date": "2026-04-04",
+          "predicted": 187
+        },
+        {
+          "date": "2026-04-05",
+          "predicted": 218
+        },
+        {
+          "date": "2026-04-06",
+          "predicted": 254
+        },
+        {
+          "date": "2026-04-07",
+          "predicted": 279
+        },
+        {
+          "date": "2026-04-08",
+          "predicted": 290
+        },
+        {
+          "date": "2026-04-09",
+          "predicted": 303
+        },
+        {
+          "date": "2026-04-10",
+          "predicted": 297
+        },
+        {
+          "date": "2026-04-11",
+          "predicted": 301
+        },
+        {
+          "date": "2026-04-12",
+          "predicted": 281
+        },
+        {
+          "date": "2026-04-13",
+          "predicted": 264
+        },
+        {
+          "date": "2026-04-14",
+          "predicted": 237
+        },
+        {
+          "date": "2026-04-15",
+          "predicted": 194
+        },
+        {
+          "date": "2026-04-16",
+          "predicted": 156
+        },
+        {
+          "date": "2026-04-17",
+          "predicted": 104
+        },
+        {
+          "date": "2026-04-18",
+          "predicted": 68
+        },
+        {
+          "date": "2026-04-19",
+          "predicted": 13
+        },
+        {
+          "date": "2026-04-20",
+          "predicted": 0
+        },
+        {
+          "date": "2026-04-21",
+          "predicted": 0
+        },
+        {
+          "date": "2026-04-22",
+          "predicted": 0
+        },
+        {
+          "date": "2026-04-23",
+          "predicted": 0
+        },
+        {
+          "date": "2026-04-24",
+          "predicted": 0
+        },
+        {
+          "date": "2026-04-25",
+          "predicted": 0
+        },
+        {
+          "date": "2026-04-26",
+          "predicted": 0
+        },
+        {
+          "date": "2026-04-27",
+          "predicted": 0
+        },
+        {
+          "date": "2026-04-28",
+          "predicted": 0
+        },
+        {
+          "date": "2026-04-29",
+          "predicted": 0
+        },
+        {
+          "date": "2026-04-30",
+          "predicted": 0
+        },
+        {
+          "date": "2026-05-01",
+          "predicted": 0
+        },
+        {
+          "date": "2026-05-02",
+          "predicted": 0
+        },
+        {
+          "date": "2026-05-03",
+          "predicted": 0
+        },
+        {
+          "date": "2026-05-04",
+          "predicted": 0
+        },
+        {
+          "date": "2026-05-05",
+          "predicted": 0
+        },
+        {
+          "date": "2026-05-06",
+          "predicted": 35
+        },
+        {
+          "date": "2026-05-07",
+          "predicted": 93
+        },
+        {
+          "date": "2026-05-08",
+          "predicted": 137
+        },
+        {
+          "date": "2026-05-09",
+          "predicted": 202
+        },
+        {
+          "date": "2026-05-10",
+          "predicted": 242
+        },
+        {
+          "date": "2026-05-11",
+          "predicted": 291
+        },
+        {
+          "date": "2026-05-12",
+          "predicted": 328
+        },
+        {
+          "date": "2026-05-13",
+          "predicted": 346
+        },
+        {
+          "date": "2026-05-14",
+          "predicted": 368
+        },
+        {
+          "date": "2026-05-15",
+          "predicted": 367
+        },
+        {
+          "date": "2026-05-16",
+          "predicted": 380
+        },
+        {
+          "date": "2026-05-17",
+          "predicted": 360
+        },
+        {
+          "date": "2026-05-18",
+          "predicted": 347
+        },
+        {
+          "date": "2026-05-19",
+          "predicted": 319
+        },
+        {
+          "date": "2026-05-20",
+          "predicted": 270
+        },
+        {
+          "date": "2026-05-21",
+          "predicted": 228
+        },
+        {
+          "date": "2026-05-22",
+          "predicted": 166
+        },
+        {
+          "date": "2026-05-23",
+          "predicted": 125
+        },
+        {
+          "date": "2026-05-24",
+          "predicted": 57
+        },
+        {
+          "date": "2026-05-25",
+          "predicted": 6
+        },
+        {
+          "date": "2026-05-26",
+          "predicted": 0
+        },
+        {
+          "date": "2026-05-27",
+          "predicted": 0
+        },
+        {
+          "date": "2026-05-28",
+          "predicted": 0
+        },
+        {
+          "date": "2026-05-29",
+          "predicted": 0
+        },
+        {
+          "date": "2026-05-30",
+          "predicted": 0
+        },
+        {
+          "date": "2026-05-31",
+          "predicted": 0
+        },
+        {
+          "date": "2026-06-01",
+          "predicted": 0
+        },
+        {
+          "date": "2026-06-02",
+          "predicted": 0
+        },
+        {
+          "date": "2026-06-03",
+          "predicted": 0
+        },
+        {
+          "date": "2026-06-04",
+          "predicted": 0
+        },
+        {
+          "date": "2026-06-05",
+          "predicted": 0
+        },
+        {
+          "date": "2026-06-06",
+          "predicted": 0
+        },
+        {
+          "date": "2026-06-07",
+          "predicted": 0
+        },
+        {
+          "date": "2026-06-08",
+          "predicted": 0
+        },
+        {
+          "date": "2026-06-09",
+          "predicted": 0
+        },
+        {
+          "date": "2026-06-10",
+          "predicted": 7
+        },
+        {
+          "date": "2026-06-11",
+          "predicted": 78
+        },
+        {
+          "date": "2026-06-12",
+          "predicted": 134
+        },
+        {
+          "date": "2026-06-13",
+          "predicted": 217
+        },
+        {
+          "date": "2026-06-14",
+          "predicted": 270
+        },
+        {
+          "date": "2026-06-15",
+          "predicted": 336
+        },
+        {
+          "date": "2026-06-16",
+          "predicted": 387
+        },
+        {
+          "date": "2026-06-17",
+          "predicted": 416
+        },
+        {
+          "date": "2026-06-18",
+          "predicted": 450
+        },
+        {
+          "date": "2026-06-19",
+          "predicted": 456
+        },
+        {
+          "date": "2026-06-20",
+          "predicted": 480
+        },
+        {
+          "date": "2026-06-21",
+          "predicted": 463
+        },
+        {
+          "date": "2026-06-22",
+          "predicted": 454
+        },
+        {
+          "date": "2026-06-23",
+          "predicted": 425
+        },
+        {
+          "date": "2026-06-24",
+          "predicted": 370
+        },
+        {
+          "date": "2026-06-25",
+          "predicted": 322
+        },
+        {
+          "date": "2026-06-26",
+          "predicted": 247
+        },
+        {
+          "date": "2026-06-27",
+          "predicted": 198
+        },
+        {
+          "date": "2026-06-28",
+          "predicted": 115
+        },
+        {
+          "date": "2026-06-29",
+          "predicted": 50
+        },
+        {
+          "date": "2026-06-30",
+          "predicted": 0
+        },
+        {
+          "date": "2026-07-01",
+          "predicted": 0
+        },
+        {
+          "date": "2026-07-02",
+          "predicted": 0
+        },
+        {
+          "date": "2026-07-03",
+          "predicted": 0
+        },
+        {
+          "date": "2026-07-04",
+          "predicted": 0
+        },
+        {
+          "date": "2026-07-05",
+          "predicted": 0
+        },
+        {
+          "date": "2026-07-06",
+          "predicted": 0
+        },
+        {
+          "date": "2026-07-07",
+          "predicted": 0
+        },
+        {
+          "date": "2026-07-08",
+          "predicted": 0
+        },
+        {
+          "date": "2026-07-09",
+          "predicted": 0
+        },
+        {
+          "date": "2026-07-10",
+          "predicted": 0
+        },
+        {
+          "date": "2026-07-11",
+          "predicted": 0
+        },
+        {
+          "date": "2026-07-12",
+          "predicted": 0
+        },
+        {
+          "date": "2026-07-13",
+          "predicted": 0
+        },
+        {
+          "date": "2026-07-14",
+          "predicted": 0
+        },
+        {
+          "date": "2026-07-15",
+          "predicted": 0
+        },
+        {
+          "date": "2026-07-16",
+          "predicted": 43
+        },
+        {
+          "date": "2026-07-17",
+          "predicted": 115
+        },
+        {
+          "date": "2026-07-18",
+          "predicted": 224
+        },
+        {
+          "date": "2026-07-19",
+          "predicted": 297
+        },
+        {
+          "date": "2026-07-20",
+          "predicted": 388
+        },
+        {
+          "date": "2026-07-21",
+          "predicted": 462
+        },
+        {
+          "date": "2026-07-22",
+          "predicted": 509
+        },
+        {
+          "date": "2026-07-23",
+          "predicted": 563
+        },
+        {
+          "date": "2026-07-24",
+          "predicted": 582
+        },
+        {
+          "date": "2026-07-25",
+          "predicted": 624
+        },
+        {
+          "date": "2026-07-26",
+          "predicted": 614
+        },
+        {
+          "date": "2026-07-27",
+          "predicted": 613
+        },
+        {
+          "date": "2026-07-28",
+          "predicted": 586
+        },
+        {
+          "date": "2026-07-29",
+          "predicted": 525
+        },
+        {
+          "date": "2026-07-30",
+          "predicted": 471
+        },
+        {
+          "date": "2026-07-31",
+          "predicted": 382
+        },
+        {
+          "date": "2026-08-01",
+          "predicted": 320
+        },
+        {
+          "date": "2026-08-02",
+          "predicted": 214
+        },
+        {
+          "date": "2026-08-03",
+          "predicted": 128
+        },
+        {
+          "date": "2026-08-04",
+          "predicted": 29
+        },
+        {
+          "date": "2026-08-05",
+          "predicted": 0
+        },
+        {
+          "date": "2026-08-06",
+          "predicted": 0
+        },
+        {
+          "date": "2026-08-07",
+          "predicted": 0
+        },
+        {
+          "date": "2026-08-08",
+          "predicted": 0
+        },
+        {
+          "date": "2026-08-09",
+          "predicted": 0
+        },
+        {
+          "date": "2026-08-10",
+          "predicted": 0
+        },
+        {
+          "date": "2026-08-11",
+          "predicted": 0
+        },
+        {
+          "date": "2026-08-12",
+          "predicted": 0
+        },
+        {
+          "date": "2026-08-13",
+          "predicted": 0
+        },
+        {
+          "date": "2026-08-14",
+          "predicted": 0
+        },
+        {
+          "date": "2026-08-15",
+          "predicted": 0
+        },
+        {
+          "date": "2026-08-16",
+          "predicted": 0
+        },
+        {
+          "date": "2026-08-17",
+          "predicted": 0
+        },
+        {
+          "date": "2026-08-18",
+          "predicted": 0
+        },
+        {
+          "date": "2026-08-19",
+          "predicted": 0
+        },
+        {
+          "date": "2026-08-20",
+          "predicted": 0
+        },
+        {
+          "date": "2026-08-21",
+          "predicted": 40
+        },
+        {
+          "date": "2026-08-22",
+          "predicted": 188
+        },
+        {
+          "date": "2026-08-23",
+          "predicted": 296
+        },
+        {
+          "date": "2026-08-24",
+          "predicted": 429
+        },
+        {
+          "date": "2026-08-25",
+          "predicted": 545
+        },
+        {
+          "date": "2026-08-26",
+          "predicted": 630
+        },
+        {
+          "date": "2026-08-27",
+          "predicted": 724
+        },
+        {
+          "date": "2026-08-28",
+          "predicted": 777
+        },
+        {
+          "date": "2026-08-29",
+          "predicted": 854
+        },
+        {
+          "date": "2026-08-30",
+          "predicted": 870
+        },
+        {
+          "date": "2026-08-31",
+          "predicted": 891
+        },
+        {
+          "date": "2026-09-01",
+          "predicted": 878
+        },
+        {
+          "date": "2026-09-02",
+          "predicted": 821
+        },
+        {
+          "date": "2026-09-03",
+          "predicted": 765
+        },
+        {
+          "date": "2026-09-04",
+          "predicted": 662
+        },
+        {
+          "date": "2026-09-05",
+          "predicted": 585
+        },
+        {
+          "date": "2026-09-06",
+          "predicted": 450
+        },
+        {
+          "date": "2026-09-07",
+          "predicted": 330
+        },
+        {
+          "date": "2026-09-08",
+          "predicted": 189
+        },
+        {
+          "date": "2026-09-09",
+          "predicted": 20
+        },
+        {
+          "date": "2026-09-10",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-11",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-12",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-13",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-14",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-15",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-16",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-17",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-18",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-19",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-20",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-21",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-22",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-23",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-24",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-25",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-26",
+          "predicted": 0
+        },
+        {
+          "date": "2026-09-27",
+          "predicted": 90
+        },
+        {
+          "date": "2026-09-28",
+          "predicted": 304
+        },
+        {
+          "date": "2026-09-29",
+          "predicted": 508
+        },
+        {
+          "date": "2026-09-30",
+          "predicted": 685
+        },
+        {
+          "date": "2026-10-01",
+          "predicted": 881
+        },
+        {
+          "date": "2026-10-02",
+          "predicted": 1033
+        },
+        {
+          "date": "2026-10-03",
+          "predicted": 1217
+        },
+        {
+          "date": "2026-10-04",
+          "predicted": 1329
+        },
+        {
+          "date": "2026-10-05",
+          "predicted": 1447
+        },
+        {
+          "date": "2026-10-06",
+          "predicted": 1521
+        },
+        {
+          "date": "2026-10-07",
+          "predicted": 1537
+        },
+        {
+          "date": "2026-10-08",
+          "predicted": 1545
+        },
+        {
+          "date": "2026-10-09",
+          "predicted": 1486
+        },
+        {
+          "date": "2026-10-10",
+          "predicted": 1441
+        },
+        {
+          "date": "2026-10-11",
+          "predicted": 1312
+        },
+        {
+          "date": "2026-10-12",
+          "predicted": 1181
+        },
+        {
+          "date": "2026-10-13",
+          "predicted": 1005
+        },
+        {
+          "date": "2026-10-14",
+          "predicted": 776
+        },
+        {
+          "date": "2026-10-15",
+          "predicted": 549
+        },
+        {
+          "date": "2026-10-16",
+          "predicted": 271
+        },
+        {
+          "date": "2026-10-17",
+          "predicted": 30
+        },
+        {
+          "date": "2026-10-18",
+          "predicted": 0
+        },
+        {
+          "date": "2026-10-19",
+          "predicted": 0
+        },
+        {
+          "date": "2026-10-20",
+          "predicted": 0
+        },
+        {
+          "date": "2026-10-21",
+          "predicted": 0
+        },
+        {
+          "date": "2026-10-22",
+          "predicted": 0
+        },
+        {
+          "date": "2026-10-23",
+          "predicted": 0
+        },
+        {
+          "date": "2026-10-24",
+          "predicted": 0
+        },
+        {
+          "date": "2026-10-25",
+          "predicted": 0
+        },
+        {
+          "date": "2026-10-26",
+          "predicted": 0
+        },
+        {
+          "date": "2026-10-27",
+          "predicted": 0
+        },
+        {
+          "date": "2026-10-28",
+          "predicted": 0
+        },
+        {
+          "date": "2026-10-29",
+          "predicted": 0
+        },
+        {
+          "date": "2026-10-30",
+          "predicted": 0
+        },
+        {
+          "date": "2026-10-31",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-01",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-02",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-03",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-04",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-05",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-06",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-07",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-08",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-09",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-10",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-11",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-12",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-13",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-14",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-15",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-16",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-17",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-18",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-19",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-20",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-21",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-22",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-23",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-24",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-25",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-26",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-27",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-28",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-29",
+          "predicted": 0
+        },
+        {
+          "date": "2026-11-30",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-01",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-02",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-03",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-04",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-05",
+          "predicted": 3
+        },
+        {
+          "date": "2026-12-06",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-07",
+          "predicted": 7
+        },
+        {
+          "date": "2026-12-08",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-09",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-10",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-11",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-12",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-13",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-14",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-15",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-16",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-17",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-18",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-19",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-20",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-21",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-22",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-23",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-24",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-25",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-26",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-27",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-28",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-29",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-30",
+          "predicted": 0
+        },
+        {
+          "date": "2026-12-31",
+          "predicted": 0
+        },
+        {
+          "date": "2027-01-01",
+          "predicted": 0
+        }
+      ]
+    }
+  },
+  "insights": [
+    "7-day projected demand: 0 items (-100%)",
+    "30-day projected demand: 1,668 items (+12731%)",
+    "1-year projected demand: 58,009 items (+175685%)",
+    "Soon restock \u2192 Cropped Shirt (6 left, ~runs out by Jan 15)",
+    "Strong performer \u2192 Classic White T-Shirt s (8 sold in last 30 days)",
+    "Strong performer \u2192 Urban Sneakers (8 sold in last 30 days)"
+  ]
 }
