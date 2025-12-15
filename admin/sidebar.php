@@ -23,7 +23,13 @@
             <span>Dashboard</span>
         </a>
 
-        <div class="sidebar-dropdown <?= (strpos($current, '/products/index.php') !== false || 
+        <a href="/CSSMS/admin/products/index.php" class="<?= strpos($current, '/products') !== false ? 'active' : '' ?>">
+            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+            <span>Products & Stock</span>
+        </a>
+        <!-- <div class="sidebar-dropdown <?= (strpos($current, '/products/index.php') !== false || 
                                         strpos($current, '/products/index_2.php') !== false ) ? 'open' : '' ?>">
 
             <a href="#" class="sidebar-nav-link dropdown-toggle <?= (strpos($current, '/products/index.php') !== false || 
@@ -41,7 +47,7 @@
                 <a href="/CSSMS/admin/products/index.php" class="<?= strpos($current, 'products/index.php') !== false ? 'active' : '' ?>">Online</a>
                 <a href="/CSSMS/admin/products/index_2.php" class="<?= strpos($current, 'products/index_2.php') !== false ? 'active' : '' ?>">Instore</a>
             </div>
-        </div>
+        </div> -->
         
         <a href="/CSSMS/admin/inventory/index.php" class="<?= strpos($current, '/inventory') !== false ? 'active' : '' ?>">
             <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -58,11 +64,11 @@
         </a>
 
         <div class="sidebar-dropdown <?= (strpos($current, '/analytics/sales_') !== false || 
-                                        strpos($current, '/analytics/branches_') !== false || 
+                                        // strpos($current, '/analytics/branches_') !== false || 
                                         strpos($current, '/analytics/emp_') !== false) ? 'open' : '' ?>">
 
             <a href="#" class="sidebar-nav-link dropdown-toggle <?= (strpos($current, '/analytics/sales_') !== false || 
-                                                                strpos($current, '/analytics/branches_') !== false || 
+                                                                // strpos($current, '/analytics/branches_') !== false || 
                                                                 strpos($current, '/analytics/emp_') !== false) ? 'active' : '' ?>">
                 <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
@@ -75,7 +81,7 @@
 
             <div class="dropdown-items">
                 <a href="/CSSMS/admin/analytics/sales_index.php" class="<?= strpos($current, 'sales_index.php') !== false ? 'active' : '' ?>">Sales</a>
-                <a href="/CSSMS/admin/analytics/branches_index.php" class="<?= strpos($current, 'branches_index.php') !== false ? 'active' : '' ?>">Branches</a>
+                <!-- <a href="/CSSMS/admin/analytics/branches_index.php" class="<?= strpos($current, 'branches_index.php') !== false ? 'active' : '' ?>">Branches</a> -->
                 <a href="/CSSMS/admin/analytics/emp_index.php" class="<?= strpos($current, 'emp_index.php') !== false ? 'active' : '' ?>">Employees</a>
             </div>
         </div>
