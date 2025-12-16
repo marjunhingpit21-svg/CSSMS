@@ -65,6 +65,43 @@ if (isset($_POST['login_submit'])) {
     }
 }
 
+// Handle cancel order request
+if (isset($_POST['cancel_order'])) {
+    $order_id = intval($_POST['order_id']);
+    $user_id = $_SESSION['user_id'];
+
+    // Verify the order belongs to the logged in user and is in a cancellable state
+    $check_stmt = $conn->prepare("
+        SELECT o.order_id 
+        FROM orders o 
+        INNER JOIN customers c ON o.customer_id = c.customer_id 
+        WHERE o.order_id = ? AND c.user_id = ? 
+        AND o.status IN ('pending', 'processing', 'cancellation_requested')
+    ");
+    $check_stmt->bind_param("ii", $order_id, $user_id);
+    $check_stmt->execute();
+    $check_result = $check_stmt->get_result();
+
+    if ($check_result->num_rows > 0) {
+        // Update order status to 'cancellation_requested'
+        $update_stmt = $conn->prepare("UPDATE orders SET status = 'cancellation_requested' WHERE order_id = ?");
+        $update_stmt->bind_param("i", $order_id);
+
+        if ($update_stmt->execute()) {
+            $_SESSION['success_message'] = 'Cancellation request submitted successfully! The request will be processed shortly.';
+        } else {
+            $_SESSION['error_message'] = 'Failed to submit cancellation request. Please try again.';
+        }
+        $update_stmt->close();
+    } else {
+        $_SESSION['error_message'] = 'Order not found or cannot be cancelled at this stage.';
+    }
+    $check_stmt->close();
+
+    header('Location: orders.php');
+    exit();
+}
+
 // Handle mark as received
 if (isset($_POST['mark_received'])) {
     $order_id = intval($_POST['order_id']);
@@ -623,7 +660,8 @@ try {
                 'delivered' => 'to_receive', // Now "delivered" shows in "to_receive" section
                 'received' => 'to_rate', // New status that shows in "to_rate" section
                 'completed' => 'completed',
-                'cancelled' => 'cancelled'
+                'cancelled' => 'cancelled',
+                'cancellation_requested' => 'cancellation_requested' // New status mapping
             ];
 
             $frontend_status = $status_map[$order['status']] ?? 'to_ship';
@@ -658,7 +696,8 @@ $status_display = [
     'to_receive' => 'To Receive',
     'to_rate' => 'To Rate',
     'completed' => 'Completed',
-    'cancelled' => 'Cancelled'
+    'cancelled' => 'Cancelled',
+    'cancellation_requested' => 'Cancellation Requested'
 ];
 
 // Status descriptions
@@ -667,7 +706,8 @@ $status_description = [
     'to_receive' => 'Your order has been shipped and is on its way',
     'to_rate' => 'Your order has been delivered. Please rate your items',
     'completed' => 'Your order has been completed',
-    'cancelled' => 'Your order has been cancelled'
+    'cancelled' => 'Your order has been cancelled',
+    'cancellation_requested' => 'Your cancellation request is being processed'
 ];
 
 // Count orders by status for filter badges
@@ -677,7 +717,8 @@ $status_counts = [
     'to_receive' => 0,
     'to_rate' => 0,
     'completed' => 0,
-    'cancelled' => 0
+    'cancelled' => 0,
+    'cancellation_requested' => 0
 ];
 
 foreach ($orders as $order) {
@@ -791,6 +832,14 @@ foreach ($orders as $order) {
                             </svg>
                             Completed
                             <span class="filter-badge"><?php echo $status_counts['completed']; ?></span>
+                        </button>
+                        <button class="filter-btn" data-filter="cancelled">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Cancelled
+                            <span class="filter-badge"><?php echo $status_counts['cancelled']; ?></span>
                         </button>
                     </div>
 
@@ -922,8 +971,14 @@ foreach ($orders as $order) {
                                     <?php if ($order['status'] === 'to_ship'): ?>
                                         <!-- <button class="btn-track" onclick="trackOrder(<?php echo $order['db_order_id']; ?>)">Track
                                             Order</button> -->
-                                        <button class="btn-cancel"
-                                            onclick="cancelOrder(<?php echo $order['db_order_id']; ?>)">Cancel Order</button>
+                                        <?php if ($order['db_status'] === 'cancellation_requested'): ?>
+                                            <span class="cancellation-pending">Cancellation Pending</span>
+                                        <?php else: ?>
+                                            <form method="POST" action="orders.php" style="display: inline;">
+                                                <input type="hidden" name="order_id" value="<?php echo $order['db_order_id']; ?>">
+                                                <button type="submit" name="cancel_order" class="btn-cancel">Cancel Order</button>
+                                            </form>
+                                        <?php endif; ?>
                                     <?php elseif ($order['status'] === 'to_receive'): ?>
                                         <?php if ($order['db_status'] === 'delivered'): ?>
                                             <!-- Show "Mark as Received" button for delivered orders -->
@@ -943,10 +998,10 @@ foreach ($orders as $order) {
                                             onclick="openRatingModal(<?php echo $order['db_order_id']; ?>, <?php echo htmlspecialchars(json_encode($order['items'])); ?>)">Rate
                                             Products</button>
                                         <button class="btn-view" onclick="viewOrderDetails(<?php echo $order['db_order_id']; ?>)">Order Details</button>
-                                    <?php elseif ($order['status'] === 'cancelled'): ?>
+                                    <?php elseif ($order['status'] === 'cancelled' || $order['status'] === 'cancellation_requested'): ?>
                                         <button class="btn-view" onclick="viewOrderDetails(<?php echo $order['db_order_id']; ?>)">View Details</button>
-                                        <button class="btn-rate"
-                                            onclick="reorder(<?php echo $order['db_order_id']; ?>)">Reorder</button>
+                                        <!-- <button class="btn-rate"
+                                            onclick="reorder(<?php echo $order['db_order_id']; ?>)">Reorder</button> -->
                                     <?php else: ?>
                                         <button class="btn-view" onclick="viewOrderDetails(<?php echo $order['db_order_id']; ?>)">View Details</button>
                                         <button class="btn-rate" onclick="reorder(<?php echo $order['db_order_id']; ?>, <?php echo $order['items'][0]['product_id'] ?? 0; ?>)">Buy Again</button>
@@ -1093,13 +1148,6 @@ foreach ($orders as $order) {
         // Order action functions
         function trackOrder(orderId) {
             alert('Tracking order #' + orderId + '\nThis feature will be implemented soon!');
-        }
-
-        function cancelOrder(orderId) {
-            if (confirm('Are you sure you want to cancel order #' + orderId + '?')) {
-                alert('Order cancellation request sent for order #' + orderId);
-                // In a real application, you would make an AJAX call here
-            }
         }
 
         function viewOrderDetails(orderId) {

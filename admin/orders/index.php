@@ -21,9 +21,11 @@ $status_workflow = [
     'pending' => ['label' => 'Pending', 'color' => 'bg-yellow-100 text-yellow-800', 'next' => 'processing'],
     'processing' => ['label' => 'Processing', 'color' => 'bg-blue-100 text-blue-800', 'next' => 'shipped'],
     'shipped' => ['label' => 'Shipped', 'color' => 'bg-indigo-100 text-indigo-800', 'next' => 'delivered'],
-    'delivered' => ['label' => 'Delivered', 'color' => 'bg-green-100 text-green-800', 'next' => null],
+    'delivered' => ['label' => 'Delivered', 'color' => 'bg-green-100 text-green-800', 'next' => 'completed'],
     'completed' => ['label' => 'Completed', 'color' => 'bg-emerald-100 text-emerald-800', 'next' => null],
     'cancelled' => ['label' => 'Cancelled', 'color' => 'bg-red-100 text-red-800', 'next' => null],
+    'cancellation_requested' => ['label' => 'Cancellation Requested', 'color' => 'bg-orange-100 text-orange-800', 'next' => null],
+    'received' => ['label' => 'Received', 'color' => 'bg-teal-100 text-teal-800', 'next' => 'completed'],
 ];
 
 // Build query with filters
@@ -116,13 +118,15 @@ $stats_query = "SELECT
     SUM(CASE WHEN status = 'shipped' THEN 1 ELSE 0 END) as shipped,
     SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered,
     SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-    SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
+    SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
+    SUM(CASE WHEN status = 'cancellation_requested' THEN 1 ELSE 0 END) as cancellation_requested,
+    SUM(CASE WHEN status = 'received' THEN 1 ELSE 0 END) as received
     FROM orders";
 $stats_result = $conn->query($stats_query);
 $stats = $stats_result->fetch_assoc();
 
-// Get total revenue from delivered and completed orders only
-$revenue_query = "SELECT SUM(total_amount) as total_revenue FROM orders WHERE status IN ('delivered', 'completed')";
+// Get total revenue from delivered, completed, and received orders only
+$revenue_query = "SELECT SUM(total_amount) as total_revenue FROM orders WHERE status IN ('delivered', 'completed', 'received')";
 $revenue_result = $conn->query($revenue_query);
 $revenue_data = $revenue_result->fetch_assoc();
 $total_revenue = $revenue_data['total_revenue'] ?? 0;
@@ -189,6 +193,18 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
             border: 1px solid #ef9a9a;
         }
         
+        .status-badge.bg-orange-100 {
+            background: #fff3e0 !important;
+            color: #ef6c00 !important;
+            border: 1px solid #ffb74d;
+        }
+        
+        .status-badge.bg-teal-100 {
+            background: #e0f2f1 !important;
+            color: #00796b !important;
+            border: 1px solid #4db6ac;
+        }
+        
         /* Button styles to match orders.php */
         .btn-primary, .btn-success {
             background: #e91e63 !important;
@@ -226,6 +242,22 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
             background: #ffebee !important;
         }
         
+        .btn-warning {
+            background: white !important;
+            color: #f57c00 !important;
+            border: 1px solid #f57c00 !important;
+            padding: 10px 20px !important;
+            border-radius: 6px !important;
+            font-weight: 500 !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important;
+            text-decoration: none !important;
+        }
+        
+        .btn-warning:hover {
+            background: #fff3e0 !important;
+        }
+        
         .action-btn {
             background: transparent !important;
             border: none !important;
@@ -252,6 +284,14 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
         
         .action-btn.text-danger:hover {
             background: #ffebee !important;
+        }
+        
+        .action-btn.text-warning {
+            color: #f57c00 !important;
+        }
+        
+        .action-btn.text-warning:hover {
+            background: #fff3e0 !important;
         }
         
         /* Progress bar styles */
@@ -427,6 +467,23 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
             display: inline-block;
         }
         
+        /* Cancellation request info */
+        .cancellation-info {
+            background: #fff3e0;
+            border: 1px solid #ffb74d;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+        }
+        
+        .cancellation-reason {
+            background: #fff9e6;
+            border-left: 3px solid #f57c00;
+            padding: 10px;
+            margin: 8px 0;
+            font-size: 0.9rem;
+        }
+        
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .admin-main-content {
@@ -489,7 +546,7 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                 gap: 8px;
             }
             
-            .btn-success, .btn-danger, .btn-primary {
+            .btn-success, .btn-danger, .btn-primary, .btn-warning {
                 width: 100%;
                 justify-content: center;
             }
@@ -529,15 +586,15 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                     <div class="stat-value"><?php echo number_format($stats['processing'] ?? 0); ?></div>
                 </div>
                 <div class="stat-card red-rose">
-                    <div class="stat-label">Shipped</div>
-                    <div class="stat-value"><?php echo number_format($stats['shipped'] ?? 0); ?></div>
+                    <div class="stat-label">Cancellation Requested</div>
+                    <div class="stat-value"><?php echo number_format($stats['cancellation_requested'] ?? 0); ?></div>
                 </div>
                 <div class="stat-card blue-sky">
                     <div class="stat-label">Delivered</div>
                     <div class="stat-value"><?php echo number_format($stats['delivered'] ?? 0); ?></div>
                 </div>
                 <div class="stat-card purple-deep">
-                    <div class="stat-label">Total Revenue (Delivered & Completed)</div>
+                    <div class="stat-label">Total Revenue</div>
                     <div class="stat-value">₱<?php echo number_format($total_revenue, 2); ?></div>
                 </div>
             </div>
@@ -567,6 +624,13 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                         Processing
                         <span class="filter-badge"><?php echo $stats['processing'] ?? 0; ?></span>
                     </a>
+                    <a href="?status=cancellation_requested" class="filter-btn <?php echo $current_status === 'cancellation_requested' ? 'active' : ''; ?>" data-filter="cancellation_requested">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        Cancellation Request
+                        <span class="filter-badge"><?php echo $stats['cancellation_requested'] ?? 0; ?></span>
+                    </a>
                     <a href="?status=shipped" class="filter-btn <?php echo $current_status === 'shipped' ? 'active' : ''; ?>" data-filter="shipped">
                         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -582,6 +646,15 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                         </svg>
                         Delivered
                         <span class="filter-badge"><?php echo $stats['delivered'] ?? 0; ?></span>
+                    </a>
+                    <!-- ADDED RECEIVED FILTER BUTTON -->
+                    <a href="?status=received" class="filter-btn <?php echo $current_status === 'received' ? 'active' : ''; ?>" data-filter="received">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618 4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        Received
+                        <span class="filter-badge"><?php echo $stats['received'] ?? 0; ?></span>
                     </a>
                     <a href="?status=completed" class="filter-btn <?php echo $current_status === 'completed' ? 'active' : ''; ?>" data-filter="completed">
                         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -626,23 +699,21 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                                value="<?php echo htmlspecialchars($date_filter); ?>"
                                id="dateSelect"
                                onchange="this.form.submit()">
-                        
-                        <a href="?" class="action-btn">
-                            <i class="fas fa-redo"></i> Reset
-                        </a>
                     </form>
                 </div>
             </div>
 
             <!-- Status Progress Indicator - Match orders.php timeline -->
-            <?php if ($current_status !== 'all' && $current_status !== 'cancelled'): ?>
+            <?php if ($current_status !== 'all' && $current_status !== 'cancelled' && $current_status !== 'cancellation_requested'): ?>
             <div class="table-container mb-4">
                 <div class="p-3">
                     <h4 class="mb-3" style="color: #e91e63; font-weight: 600;">Order Workflow Progress</h4>
                     <div class="status-timeline">
                         <?php 
-                        $steps = ['pending', 'processing', 'shipped', 'delivered', 'completed'];
+                        // Define the workflow steps including 'received'
+                        $steps = ['pending', 'processing', 'shipped', 'delivered', 'received', 'completed'];
                         $current_index = array_search($current_status, $steps);
+                        $current_index = $current_index !== false ? $current_index : 0;
                         
                         foreach ($steps as $index => $step): 
                             $step_class = '';
@@ -654,12 +725,15 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                             } elseif ($index == $current_index) {
                                 $step_class = 'active';
                             }
+                            
+                            // Safely get the step label from status_workflow
+                            $step_label = isset($status_workflow[$step]) ? ucfirst($status_workflow[$step]['label']) : ucfirst($step);
                         ?>
                         <div class="timeline-step <?php echo $step_class; ?>">
                             <div class="timeline-icon">
                                 <?php echo $icon; ?>
                             </div>
-                            <span class="timeline-label"><?php echo ucfirst($step); ?></span>
+                            <span class="timeline-label"><?php echo $step_label; ?></span>
                         </div>
                         <?php endforeach; ?>
                     </div>
@@ -699,7 +773,11 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                                 </tr>
                             <?php } else { 
                                 foreach ($orders as $order) { 
-                                    $next_status = $status_workflow[$order['status']]['next'] ?? null;
+                                    // Safely get status workflow data
+                                    $status_config = isset($status_workflow[$order['status']]) ? 
+                                        $status_workflow[$order['status']] : 
+                                        ['label' => ucfirst($order['status']), 'color' => 'bg-gray-100 text-gray-800', 'next' => null];
+                                    $next_status = $status_config['next'] ?? null;
                                 ?>
                                 <tr data-order-id="<?php echo $order['order_id']; ?>">
                                     <td>
@@ -735,9 +813,14 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                                         ₱<?php echo number_format($order['order_total'] ?? $order['total_amount'], 2); ?>
                                     </td>
                                     <td>
-                                        <span class="status-badge <?php echo $status_workflow[$order['status']]['color']; ?>">
+                                        <span class="status-badge <?php echo $status_config['color']; ?>">
                                             <?php echo ucfirst($order['status']); ?>
                                         </span>
+                                        <?php if ($order['status'] === 'cancellation_requested' && !empty($order['cancellation_reason'])): ?>
+                                            <div class="cancellation-reason mt-2">
+                                                <strong>Reason:</strong> <?php echo htmlspecialchars($order['cancellation_reason']); ?>
+                                            </div>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
                                         <div class="shipping-info">
@@ -750,7 +833,7 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                                     </td>
                                     <td>
                                         <div class="actions-cell">
-                                            <?php if ($next_status && $order['status'] !== 'delivered'): ?>
+                                            <?php if ($next_status && $order['status'] !== 'delivered' && $order['status'] !== 'cancellation_requested' && $order['status'] !== 'received'): ?>
                                                 <button type="button" 
                                                         class="btn-success mark-as-next"
                                                         data-order-id="<?php echo $order['order_id']; ?>"
@@ -760,8 +843,25 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                                                 </button>
                                             <?php elseif ($order['status'] === 'delivered'): ?>
                                                 <span class="review-text">
-                                                    <i class="fas fa-clock"></i> To be reviewed by buyer
+                                                    <i class="fas fa-clock"></i> To be received by buyer.
                                                 </span>
+                                            <?php elseif ($order['status'] === 'received'): ?>
+                                                 <span class="review-text">
+                                                    <i class="fas fa-clock"></i> To be reviewed by buyer.
+                                                </span>
+                                            <?php elseif ($order['status'] === 'cancellation_requested'): ?>
+                                                <div class="cancellation-actions">
+                                                    <button type="button" 
+                                                            class="btn-danger approve-cancellation"
+                                                            data-order-id="<?php echo $order['order_id']; ?>">
+                                                        <i class="fas fa-check"></i> Approve Cancellation
+                                                    </button>
+                                                    <button type="button" 
+                                                            class="btn-warning reject-cancellation"
+                                                            data-order-id="<?php echo $order['order_id']; ?>">
+                                                        <i class="fas fa-times"></i> Reject Cancellation
+                                                    </button>
+                                                </div>
                                             <?php endif; ?>
                                             
                                             <button type="button" 
@@ -771,7 +871,7 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                                                 <i class="fas fa-eye"></i>
                                             </button>
                                             
-                                            <?php if ($order['status'] !== 'cancelled' && $order['status'] !== 'completed' && $order['status'] !== 'delivered') { ?>
+                                            <?php if ($order['status'] !== 'cancelled' && $order['status'] !== 'completed' && $order['status'] !== 'delivered' && $order['status'] !== 'cancellation_requested' && $order['status'] !== 'received') { ?>
                                                 <button type="button" 
                                                         class="action-btn text-danger cancel-order"
                                                         data-order-id="<?php echo $order['order_id']; ?>"
@@ -857,148 +957,214 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
     ?>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-    $(document).ready(function() {
-        // Mark as Next Status
-        $('.mark-as-next').click(function() {
-            const orderId = $(this).data('order-id');
-            const currentStatus = $(this).data('current-status');
-            const nextStatus = $(this).data('next-status');
-            
-            if (confirm('Mark order #' + orderId + ' as ' + nextStatus + '?')) {
-                updateOrderStatus(orderId, nextStatus, 'Order moved to next status');
-            }
-        });
+<script>
+$(document).ready(function() {
+    // Mark as Next Status
+    $('.mark-as-next').click(function() {
+        const orderId = $(this).data('order-id');
+        const currentStatus = $(this).data('current-status');
+        const nextStatus = $(this).data('next-status');
         
-        // Cancel Order
-        $('.cancel-order').click(function() {
-            const orderId = $(this).data('order-id');
-            
-            if (confirm('Cancel order #' + orderId + '? This action cannot be undone.')) {
-                updateOrderStatus(orderId, 'cancelled', 'Order cancelled');
-            }
-        });
+        if (confirm('Mark order #' + orderId + ' as ' + nextStatus + '?')) {
+            updateOrderStatus(orderId, nextStatus, 'Order moved to next status');
+        }
+    });
+    
+    // Cancel Order (Admin initiated)
+    $('.cancel-order').click(function() {
+        const orderId = $(this).data('order-id');
         
-        // Update Order Status Function
-        function updateOrderStatus(orderId, newStatus, notes = '') {
-            $.ajax({
-                url: 'update_status.php',
-                type: 'POST',
-                data: {
-                    order_id: orderId,
-                    new_status: newStatus,
-                    admin_notes: notes
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        showFlashMessage(response.message, 'success');
-                        // Reload page after 1 second
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
-                    } else {
-                        showFlashMessage(response.message, 'error');
-                    }
-                },
-                error: function() {
-                    showFlashMessage('Error updating order status', 'error');
+        if (confirm('Cancel order #' + orderId + '? This action cannot be undone.')) {
+            updateOrderStatus(orderId, 'cancelled', 'Order cancelled by admin');
+        }
+    });
+    
+    // Approve Cancellation Request
+    $('.approve-cancellation').click(function() {
+        const orderId = $(this).data('order-id');
+        
+        if (confirm('Approve cancellation for order #' + orderId + '? This will cancel the order and restock items.')) {
+            processCancellationRequest(orderId, 'approve');
+        }
+    });
+    
+    // Reject Cancellation Request
+    $('.reject-cancellation').click(function() {
+        const orderId = $(this).data('order-id');
+        
+        if (confirm('Reject cancellation request for order #' + orderId + '? Order will return to processing status.')) {
+            processCancellationRequest(orderId, 'reject');
+        }
+    });
+    
+    // Process Cancellation Request
+    function processCancellationRequest(orderId, action) {
+        $.ajax({
+            url: 'process_cancellation.php',
+            type: 'POST',
+            data: {
+                order_id: orderId,
+                action: action
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    showFlashMessage(response.message, 'success');
+                    // Reload page after 1 second
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showFlashMessage(response.message, 'error');
                 }
-            });
-        }
-        
-        // View Order Details
-        $('.view-order-details').click(function() {
-            const orderId = $(this).data('order-id');
-            
-            $('#modalOrderId').text(orderId.toString().padStart(6, '0'));
-            $('#orderDetailsModal').show();
-            
-            // Load order details
-            $.ajax({
-                url: 'order_details.php',
-                type: 'GET',
-                data: { order_id: orderId },
-                success: function(response) {
-                    $('#modalContent').html(response);
-                },
-                error: function() {
-                    $('#modalContent').html('<p class="text-danger">Error loading order details.</p>');
-                }
-            });
-        });
-        
-        // Close modal
-        $('#closeModal').click(function() {
-            $('#orderDetailsModal').hide();
-        });
-        
-        // Close modal when clicking outside
-        $(window).click(function(e) {
-            if ($(e.target).is('#orderDetailsModal')) {
-                $('#orderDetailsModal').hide();
+            },
+            error: function() {
+                showFlashMessage('Error processing cancellation request', 'error');
             }
         });
+    }
+    
+    // Update Order Status Function
+    function updateOrderStatus(orderId, newStatus, notes = '') {
+        $.ajax({
+            url: 'update_status.php',
+            type: 'POST',
+            data: {
+                order_id: orderId,
+                new_status: newStatus,
+                admin_notes: notes
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    showFlashMessage(response.message, 'success');
+                    // Reload page after 1 second
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showFlashMessage(response.message, 'error');
+                }
+            },
+            error: function() {
+                showFlashMessage('Error updating order status', 'error');
+            }
+        });
+    }
+    
+    // View Order Details - FIXED VERSION
+    $('.view-order-details').click(function() {
+        const orderId = $(this).data('order-id');
         
-        // Auto-hide flash message
-        setTimeout(() => {
-            $('.flash-message').removeClass('show');
-            setTimeout(() => $('.flash-message').remove(), 300);
-        }, 4000);
+        $('#modalOrderId').text(orderId.toString().padStart(6, '0'));
         
-        // Show flash message function
-        function showFlashMessage(message, type) {
-            // Remove existing flash message
-            $('.flash-message').remove();
-            
-            // Create new flash message
-            const flash = $('<div class="flash-message flash-' + type + '">' +
-                '<i class="fas fa-' + (type === 'success' ? 'check' : 'exclamation') + '-circle text-' + type + '"></i>' +
-                '<span>' + message + '</span>' +
-                '</div>');
-            
-            $('body').append(flash);
-            
-            // Show with animation
-            setTimeout(() => flash.addClass('show'), 100);
-            
-            // Auto hide after 4 seconds
-            setTimeout(() => {
-                flash.removeClass('show');
-                setTimeout(() => flash.remove(), 300);
-            }, 4000);
-        }
+        // Show modal with proper display for centering
+        $('#orderDetailsModal').css('display', 'flex').addClass('show');
         
-        // Initialize sticky filters
-        initializeStickyFilter();
+        // Prevent body scroll when modal is open
+        $('body').css('overflow', 'hidden');
         
-        function initializeStickyFilter() {
-            const filters = document.querySelector('.orders-filters');
-            if (!filters) return;
-            
-            const observer = new IntersectionObserver(
-                ([e]) => {
-                    if (e.intersectionRatio < 1) {
-                        filters.classList.add('sticky');
-                    } else {
-                        filters.classList.remove('sticky');
-                    }
-                },
-                { threshold: [1], rootMargin: '-90px 0px 0px 0px' }
-            );
-            
-            observer.observe(filters);
-        }
-        
-        // Debounce function for search input
-        let searchTimeout;
-        $('#searchInput').on('keyup', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                $('#filterForm').submit();
-            }, 500);
+        // Load order details
+        $.ajax({
+            url: 'order_details.php',
+            type: 'GET',
+            data: { order_id: orderId },
+            success: function(response) {
+                $('#modalContent').html(response);
+            },
+            error: function() {
+                $('#modalContent').html('<p class="text-danger">Error loading order details.</p>');
+            }
         });
     });
-    </script>
+    
+    // Close modal function
+    function closeModal() {
+        $('#orderDetailsModal').removeClass('show');
+        setTimeout(() => {
+            $('#orderDetailsModal').css('display', 'none');
+            $('body').css('overflow', 'auto');
+        }, 200);
+    }
+    
+    // Close modal with X button
+    $(document).on('click', '#closeModal, .close-modal', function() {
+        closeModal();
+    });
+    
+    // Close modal when clicking outside
+    $('#orderDetailsModal').click(function(e) {
+        if ($(e.target).is('#orderDetailsModal')) {
+            closeModal();
+        }
+    });
+    
+    // Close modal with ESC key
+    $(document).keydown(function(e) {
+        if (e.key === 'Escape' && $('#orderDetailsModal').hasClass('show')) {
+            closeModal();
+        }
+    });
+    
+    // Auto-hide flash message
+    setTimeout(() => {
+        $('.flash-message').removeClass('show');
+        setTimeout(() => $('.flash-message').remove(), 300);
+    }, 4000);
+    
+    // Show flash message function
+    function showFlashMessage(message, type) {
+        // Remove existing flash message
+        $('.flash-message').remove();
+        
+        // Create new flash message
+        const flash = $('<div class="flash-message flash-' + type + '">' +
+            '<i class="fas fa-' + (type === 'success' ? 'check' : 'exclamation') + '-circle text-' + type + '"></i>' +
+            '<span>' + message + '</span>' +
+            '</div>');
+        
+        $('body').append(flash);
+        
+        // Show with animation
+        setTimeout(() => flash.addClass('show'), 100);
+        
+        // Auto hide after 4 seconds
+        setTimeout(() => {
+            flash.removeClass('show');
+            setTimeout(() => flash.remove(), 300);
+        }, 4000);
+    }
+    
+    // Initialize sticky filters
+    initializeStickyFilter();
+    
+    function initializeStickyFilter() {
+        const filters = document.querySelector('.orders-filters');
+        if (!filters) return;
+        
+        const observer = new IntersectionObserver(
+            ([e]) => {
+                if (e.intersectionRatio < 1) {
+                    filters.classList.add('sticky');
+                } else {
+                    filters.classList.remove('sticky');
+                }
+            },
+            { threshold: [1], rootMargin: '-90px 0px 0px 0px' }
+        );
+        
+        observer.observe(filters);
+    }
+    
+    // Debounce function for search input
+    let searchTimeout;
+    $('#searchInput').on('keyup', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            $('#filterForm').submit();
+        }, 500);
+    });
+});
+</script>
 </body>
 </html>

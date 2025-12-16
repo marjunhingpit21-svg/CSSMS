@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $conn->begin_transaction();
     
     try {
-        // Update order status (removed updated_at)
+        // Update order status
         $update_stmt = $conn->prepare("UPDATE orders SET status = ? WHERE order_id = ?");
         $update_stmt->bind_param('si', $new_status, $order_id);
         
@@ -53,17 +53,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Failed to update order status');
         }
         $update_stmt->close();
-        
-        // Log the activity
-        $log_stmt = $conn->prepare("INSERT INTO activity_logs (employee_id, action, description, created_at) VALUES (?, 'order_status_update', ?, NOW())");
-        $employee_id = $_SESSION['user_id'];
-        $description = "Updated order #{$order_id} from {$order['status']} to {$new_status}";
-        if (!empty($admin_notes)) {
-            $description .= ". Notes: {$admin_notes}";
-        }
-        $log_stmt->bind_param('is', $employee_id, $description);
-        $log_stmt->execute();
-        $log_stmt->close();
         
         // If order is cancelled, restock items
         if ($new_status === 'cancelled') {
@@ -126,3 +115,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 } else {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
 }
+?>
