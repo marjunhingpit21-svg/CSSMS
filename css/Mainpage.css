@@ -389,6 +389,157 @@
     animation: slideIn 0.3s ease;
 }
 
+/* Add these styles to your MainPage.css file */
+
+/* Featured Section Styling */
+.featured-section {
+    margin-bottom: 3rem;
+    padding: 2rem 0;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.section-header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #e91e63;
+    margin-bottom: 0.5rem;
+}
+
+.section-subtitle {
+    color: #666;
+    font-size: 1rem;
+}
+
+/* Badge Styles */
+.trending-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    z-index: 2;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.new-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    z-index: 2;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.new-arrival-tag {
+    text-align: center;
+    color: #4CAF50;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0.5rem 0;
+    padding: 4px 8px;
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 6px;
+    display: inline-block;
+}
+
+/* Product card adjustments for badges */
+.product-card {
+    position: relative;
+}
+
+/* Ensure badges don't overlap */
+.stock-badge {
+    z-index: 3;
+}
+
+/* Grid adjustments for featured sections */
+.trending-grid .product-card,
+.new-arrival-grid .product-card {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* Section Navigation Styles - REMOVED ANIMATION STYLES */
+.section-nav {
+    background: white;
+    padding: 0.1rem 0;
+    margin-bottom: 0.5rem;
+}
+
+.section-nav-links {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.5rem;
+    gap: 1.5rem;
+}
+
+.section-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1.5rem;
+    color: #374151;
+    text-decoration: none;
+    background: #f8f9fa;
+    font-weight: 600;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+}
+
+.section-nav-link:hover {
+    background: #e5e7eb;
+}
+
+.section-nav-link.active {
+    background: #e91e63;
+    color: white;
+    border-color: #e91e63;
+}
+
+.section-nav-link svg {
+    width: 18px;
+    height: 18px;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .section-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .featured-section {
+        padding: 1.5rem 0;
+    }
+}
+
 .toast.show {
     display: flex;
 }
