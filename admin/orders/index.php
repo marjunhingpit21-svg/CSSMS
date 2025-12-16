@@ -25,6 +25,7 @@ $status_workflow = [
     'completed' => ['label' => 'Completed', 'color' => 'bg-emerald-100 text-emerald-800', 'next' => null],
     'cancelled' => ['label' => 'Cancelled', 'color' => 'bg-red-100 text-red-800', 'next' => null],
     'cancellation_requested' => ['label' => 'Cancellation Requested', 'color' => 'bg-orange-100 text-orange-800', 'next' => null],
+    'received' => ['label' => 'Received', 'color' => 'bg-teal-100 text-teal-800', 'next' => 'completed'],
 ];
 
 // Build query with filters
@@ -118,13 +119,14 @@ $stats_query = "SELECT
     SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered,
     SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
     SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
-    SUM(CASE WHEN status = 'cancellation_requested' THEN 1 ELSE 0 END) as cancellation_requested
+    SUM(CASE WHEN status = 'cancellation_requested' THEN 1 ELSE 0 END) as cancellation_requested,
+    SUM(CASE WHEN status = 'received' THEN 1 ELSE 0 END) as received
     FROM orders";
 $stats_result = $conn->query($stats_query);
 $stats = $stats_result->fetch_assoc();
 
-// Get total revenue from delivered and completed orders only
-$revenue_query = "SELECT SUM(total_amount) as total_revenue FROM orders WHERE status IN ('delivered', 'completed')";
+// Get total revenue from delivered, completed, and received orders only
+$revenue_query = "SELECT SUM(total_amount) as total_revenue FROM orders WHERE status IN ('delivered', 'completed', 'received')";
 $revenue_result = $conn->query($revenue_query);
 $revenue_data = $revenue_result->fetch_assoc();
 $total_revenue = $revenue_data['total_revenue'] ?? 0;
@@ -195,6 +197,12 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
             background: #fff3e0 !important;
             color: #ef6c00 !important;
             border: 1px solid #ffb74d;
+        }
+        
+        .status-badge.bg-teal-100 {
+            background: #e0f2f1 !important;
+            color: #00796b !important;
+            border: 1px solid #4db6ac;
         }
         
         /* Button styles to match orders.php */
@@ -639,6 +647,15 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                         Delivered
                         <span class="filter-badge"><?php echo $stats['delivered'] ?? 0; ?></span>
                     </a>
+                    <!-- ADDED RECEIVED FILTER BUTTON -->
+                    <a href="?status=received" class="filter-btn <?php echo $current_status === 'received' ? 'active' : ''; ?>" data-filter="received">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618 4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        Received
+                        <span class="filter-badge"><?php echo $stats['received'] ?? 0; ?></span>
+                    </a>
                     <a href="?status=completed" class="filter-btn <?php echo $current_status === 'completed' ? 'active' : ''; ?>" data-filter="completed">
                         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -693,8 +710,10 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                     <h4 class="mb-3" style="color: #e91e63; font-weight: 600;">Order Workflow Progress</h4>
                     <div class="status-timeline">
                         <?php 
-                        $steps = ['pending', 'processing', 'shipped', 'delivered', 'completed'];
+                        // Define the workflow steps including 'received'
+                        $steps = ['pending', 'processing', 'shipped', 'delivered', 'received', 'completed'];
                         $current_index = array_search($current_status, $steps);
+                        $current_index = $current_index !== false ? $current_index : 0;
                         
                         foreach ($steps as $index => $step): 
                             $step_class = '';
@@ -706,12 +725,15 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                             } elseif ($index == $current_index) {
                                 $step_class = 'active';
                             }
+                            
+                            // Safely get the step label from status_workflow
+                            $step_label = isset($status_workflow[$step]) ? ucfirst($status_workflow[$step]['label']) : ucfirst($step);
                         ?>
                         <div class="timeline-step <?php echo $step_class; ?>">
                             <div class="timeline-icon">
                                 <?php echo $icon; ?>
                             </div>
-                            <span class="timeline-label"><?php echo ucfirst($step); ?></span>
+                            <span class="timeline-label"><?php echo $step_label; ?></span>
                         </div>
                         <?php endforeach; ?>
                     </div>
@@ -751,7 +773,11 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                                 </tr>
                             <?php } else { 
                                 foreach ($orders as $order) { 
-                                    $next_status = $status_workflow[$order['status']]['next'] ?? null;
+                                    // Safely get status workflow data
+                                    $status_config = isset($status_workflow[$order['status']]) ? 
+                                        $status_workflow[$order['status']] : 
+                                        ['label' => ucfirst($order['status']), 'color' => 'bg-gray-100 text-gray-800', 'next' => null];
+                                    $next_status = $status_config['next'] ?? null;
                                 ?>
                                 <tr data-order-id="<?php echo $order['order_id']; ?>">
                                     <td>
@@ -787,7 +813,7 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                                         ₱<?php echo number_format($order['order_total'] ?? $order['total_amount'], 2); ?>
                                     </td>
                                     <td>
-                                        <span class="status-badge <?php echo $status_workflow[$order['status']]['color']; ?>">
+                                        <span class="status-badge <?php echo $status_config['color']; ?>">
                                             <?php echo ucfirst($order['status']); ?>
                                         </span>
                                         <?php if ($order['status'] === 'cancellation_requested' && !empty($order['cancellation_reason'])): ?>
@@ -807,7 +833,7 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                                     </td>
                                     <td>
                                         <div class="actions-cell">
-                                            <?php if ($next_status && $order['status'] !== 'delivered' && $order['status'] !== 'cancellation_requested'): ?>
+                                            <?php if ($next_status && $order['status'] !== 'delivered' && $order['status'] !== 'cancellation_requested' && $order['status'] !== 'received'): ?>
                                                 <button type="button" 
                                                         class="btn-success mark-as-next"
                                                         data-order-id="<?php echo $order['order_id']; ?>"
@@ -817,7 +843,11 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                                                 </button>
                                             <?php elseif ($order['status'] === 'delivered'): ?>
                                                 <span class="review-text">
-                                                    <i class="fas fa-clock"></i> To be reviewed by buyer
+                                                    <i class="fas fa-clock"></i> To be received by buyer.
+                                                </span>
+                                            <?php elseif ($order['status'] === 'received'): ?>
+                                                 <span class="review-text">
+                                                    <i class="fas fa-clock"></i> To be reviewed by buyer.
                                                 </span>
                                             <?php elseif ($order['status'] === 'cancellation_requested'): ?>
                                                 <div class="cancellation-actions">
@@ -841,7 +871,7 @@ $total_revenue = $revenue_data['total_revenue'] ?? 0;
                                                 <i class="fas fa-eye"></i>
                                             </button>
                                             
-                                            <?php if ($order['status'] !== 'cancelled' && $order['status'] !== 'completed' && $order['status'] !== 'delivered' && $order['status'] !== 'cancellation_requested') { ?>
+                                            <?php if ($order['status'] !== 'cancelled' && $order['status'] !== 'completed' && $order['status'] !== 'delivered' && $order['status'] !== 'cancellation_requested' && $order['status'] !== 'received') { ?>
                                                 <button type="button" 
                                                         class="action-btn text-danger cancel-order"
                                                         data-order-id="<?php echo $order['order_id']; ?>"
