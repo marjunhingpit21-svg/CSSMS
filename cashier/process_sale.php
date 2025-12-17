@@ -76,18 +76,17 @@ try {
     // Combine all notes
     $sale_notes = implode(" | ", $sale_notes_array);
     
-    // Insert sale with transaction reference and notes
+    // Insert sale WITHOUT branch_id - transaction reference and notes included
     $stmt = $conn->prepare("
         INSERT INTO sales 
-        (employee_id, branch_id, subtotal, tax, total_amount, discount, payment_method, 
+        (employee_id, subtotal, tax, total_amount, discount, payment_method, 
          payment_status, cash_received, transaction_reference, notes, sale_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, NOW())
+        VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, NOW())
     ");
     
     $stmt->bind_param(
-        "iiddddsdss",
+        "iddddsdss",
         $input['employee_id'],
-        $input['branch_id'],
         $subtotal,
         $tax,
         $total_amount,
@@ -112,7 +111,7 @@ try {
     $sale_number = $row['sale_number'];
     $sale_date = $row['sale_date'];
 
-    // Insert sale items & reduce stock (NO NOTES in sale_items)
+    // Insert sale items & reduce stock
     $itemStmt = $conn->prepare("
         INSERT INTO sale_items 
         (sale_id, product_size_id, product_name, size_display, quantity, unit_price, unit_cost, subtotal, total)
@@ -157,12 +156,12 @@ try {
         $unit_cost = $costPrices[$item['product_size_id']];
             
         $subtotal_item = $unit_price * $quantity;
-        $total = $subtotal_item; // No item-level discount in this implementation
+        $total = $subtotal_item;
         
         $product_name = $item['product_name'];
         $size_display = $item['size_name'];
         
-        // Insert sale item WITHOUT notes
+        // Insert sale item
         $itemStmt->bind_param(
             "iissidddd", 
             $sale_id, 
@@ -197,7 +196,7 @@ try {
     // UPDATE AGGREGATED SALES TABLES USING STORED PROCEDURES
     // ========================================
     
-    // Update employee daily sales
+    // Update employee daily sales (no branch_id needed)
     $empProc = $conn->prepare("CALL update_employee_daily_sales(?)");
     $empProc->bind_param("s", $sale_date);
     if (!$empProc->execute()) {
@@ -205,16 +204,7 @@ try {
     }
     $empProc->close();
     
-    // Update branch daily sales
-    $branchProc = $conn->prepare("CALL update_branch_daily_sales(?)");
-    $branchProc->bind_param("s", $sale_date);
-    if (!$branchProc->execute()) {
-        error_log("Failed to update branch_daily_sales: " . $branchProc->error);
-    }
-    $branchProc->close();
-    
     // Update daily sales (company-wide)
-    // Calculate totals for daily_sales table
     $total_cost = 0;
     $total_items_sold = 0;
     
