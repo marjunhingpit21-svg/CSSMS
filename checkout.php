@@ -57,6 +57,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
 
     $payment_method = $_POST['payment_method'] ?? 'cash';
 
+    // - Get transaction reference from form
+    $transaction_reference = isset($_POST['transaction_reference']) ? trim($_POST['transaction_reference']) : null;
+
     // Initialize variables
     $first_name = trim($_POST['first_name'] ?? '');
     $last_name = trim($_POST['last_name'] ?? '');
@@ -177,22 +180,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
                     ", $city, $province $postal_code";
             }
 
-           $final_address_id = null;
+            $final_address_id = null;
 
-if ($selected_address_id > 0) {
-    // Using existing address
-    $final_address_id = $selected_address_id;
-} else {
-    // Just inserted new address above, get its ID
-    $final_address_id = $conn->insert_id;
-}
+            if ($selected_address_id > 0) {
+                // Using existing address
+                $final_address_id = $selected_address_id;
+            } else {
+                // Just inserted new address above, get its ID
+                $final_address_id = $conn->insert_id;
+            }
 
-// Create order - ADD address_id parameter
-$discount = 0.00;
-$insert_order = $conn->prepare("INSERT INTO orders (customer_id, address_id, subtotal, tax, discount, total_amount, payment_method, status, shipping_address) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)");
-$insert_order->bind_param("iidddsss", $customer_id, $final_address_id, $subtotal, $tax, $discount, $total, $payment_method, $shipping_address);
-$insert_order->execute();
-$order_id = $conn->insert_id;
+            // Create order - ADD address_id parameter
+            $discount = 0.00;
+            // WITH THIS (adds transaction_reference field):
+            $insert_order = $conn->prepare("INSERT INTO orders (customer_id, address_id, subtotal, tax, discount, total_amount, payment_method, transaction_reference, status, shipping_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)");
+            $insert_order->bind_param("iidddssss", $customer_id, $final_address_id, $subtotal, $tax, $discount, $total, $payment_method, $transaction_reference, $shipping_address);
+            $insert_order->execute();
+            $order_id = $conn->insert_id;
 
             // Insert order items (rest of your code remains the same)
             foreach ($_SESSION['cart'] as $item) {
@@ -273,11 +277,11 @@ $order_id = $conn->insert_id;
 }
 
 // Get orders count for header
-  $orders_count = 0;
-  if (isset($_SESSION['user_id'])) {
-      include 'orders_count.php';
-      $orders_count = getOrdersCount($conn, $_SESSION['user_id']);
-  }
+$orders_count = 0;
+if (isset($_SESSION['user_id'])) {
+    include 'orders_count.php';
+    $orders_count = getOrdersCount($conn, $_SESSION['user_id']);
+}
 ?>
 
 <!DOCTYPE html>
@@ -290,6 +294,8 @@ $order_id = $conn->insert_id;
     <link rel="stylesheet" href="css/Header.css">
     <link rel="stylesheet" href="css/checkout.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+
 </head>
 
 <body>
@@ -477,6 +483,7 @@ $order_id = $conn->insert_id;
                         </div>
 
                         <!-- Payment Method -->
+                        <!-- Payment Method Section - Updated with Transaction Reference and QR Code -->
                         <div class="checkout-section">
                             <h2>
                                 <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -546,6 +553,49 @@ $order_id = $conn->insert_id;
                                         </div>
                                     </div>
                                 </label>
+                            </div>
+
+                            <!-- QR Code Display (shown for online payment) -->
+                            <div id="qr-code-section" style="display: none; margin-top: 20px;">
+                                <div class="qr-payment-container">
+                                    <div class="qr-header">
+                                        <h3>Scan QR Code to Pay</h3>
+                                        <p>Scan this code using your GCash or InstaPay app</p>
+                                    </div>
+                                    <div class="qr-code-display">
+                                        <img src="cashier/img/gcash.jpg" alt="GCash QR Code" id="gcash-qr-image">
+                                    </div>
+                                    <div class="qr-amount">
+                                        <strong>Amount to Pay:</strong>
+                                        <span class="amount-display">₱<?php echo number_format($total, 2); ?></span>
+                                    </div>
+                                    <div class="qr-instructions">
+                                        <ol>
+                                            <li>Open your GCash or PayMaya app</li>
+                                            <li>Select "Scan QR" or "Pay via QR"</li>
+                                            <li>Scan the QR code above</li>
+                                            <li>Enter the exact amount:
+                                                <strong>₱<?php echo number_format($total, 2); ?></strong></li>
+                                            <li>Complete the payment and save the reference number</li>
+                                            <li>Enter the transaction reference below after payment</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Transaction Reference Field (shown for card, bank_transfer, and online) -->
+                            <div id="transaction-reference-field" style="display: none; margin-top: 20px;">
+                                <div class="form-group">
+                                    <label for="transaction_reference">
+                                        Transaction Reference Number *
+                                        <small
+                                            style="display: block; color: #666; font-weight: normal; margin-top: 4px;">
+                                            Enter the reference number from your payment confirmation
+                                        </small>
+                                    </label>
+                                    <input type="text" id="transaction_reference" name="transaction_reference"
+                                        placeholder="e.g., TXN123456789" maxlength="50">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -618,140 +668,202 @@ $order_id = $conn->insert_id;
 
     <script>
         // Replace the entire script section in your checkout.php with this:
-
         document.addEventListener('DOMContentLoaded', function () {
-            const addNewAddressLink = document.getElementById('add-new-address');
-            const addressFormContainer = document.getElementById('address-form-container');
-            const savedAddresses = document.querySelector('.saved-addresses');
+    const addNewAddressLink = document.getElementById('add-new-address');
+    const addressFormContainer = document.getElementById('address-form-container');
+    const savedAddresses = document.querySelector('.saved-addresses');
+    const paymentMethodRadios = document.querySelectorAll('input[name="payment_method"]');
+    const transactionReferenceField = document.getElementById('transaction-reference-field');
+    const transactionReferenceInput = document.getElementById('transaction_reference');
+    const qrCodeSection = document.getElementById('qr-code-section');
+    const checkoutForm = document.querySelector('.checkout-form');
 
-            // Function to remove required attributes from address form
-            function disableAddressFormValidation() {
+    // Function to remove required attributes from address form
+    function disableAddressFormValidation() {
+        if (addressFormContainer) {
+            addressFormContainer.querySelectorAll('input').forEach(field => {
+                field.removeAttribute('required');
+            });
+        }
+    }
+
+    // Function to enable required attributes for address form
+    function enableAddressFormValidation() {
+        const fieldsToRequire = ['first_name', 'last_name', 'phone', 'address_line1', 'city', 'province', 'postal_code'];
+        fieldsToRequire.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.setAttribute('required', 'required');
+            }
+        });
+    }
+
+    // Check if a saved address is already selected on page load
+    const savedAddressSelected = document.querySelector('input[name="use_address_id"]:checked');
+    if (savedAddressSelected) {
+        disableAddressFormValidation();
+    }
+
+    // Handle "add new address" link click
+    if (addNewAddressLink && addressFormContainer) {
+        addNewAddressLink.addEventListener('click', function (e) {
+            e.preventDefault();
+            document.querySelectorAll('input[name="use_address_id"]').forEach(radio => {
+                radio.checked = false;
+            });
+            addressFormContainer.style.display = 'block';
+            if (savedAddresses) {
+                savedAddresses.style.opacity = '0.5';
+            }
+            enableAddressFormValidation();
+        });
+    }
+
+    // When a saved address is selected, disable form validation
+    document.querySelectorAll('input[name="use_address_id"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            if (this.checked) {
                 if (addressFormContainer) {
-                    addressFormContainer.querySelectorAll('input').forEach(field => {
-                        field.removeAttribute('required');
-                    });
+                    addressFormContainer.style.display = 'none';
+                }
+                if (savedAddresses) {
+                    savedAddresses.style.opacity = '1';
+                }
+                disableAddressFormValidation();
+            }
+        });
+    });
+
+    // Update cart count in header
+    const cartBadge = document.getElementById('cart-count');
+    if (cartBadge) {
+        const count = <?php echo $cart_count; ?>;
+        cartBadge.textContent = count;
+        cartBadge.style.display = count > 0 ? 'flex' : 'none';
+    }
+
+    // Payment Method handling
+    function updateTransactionReferenceField() {
+        const selectedMethod = document.querySelector('input[name="payment_method"]:checked');
+
+        if (selectedMethod) {
+            const methodValue = selectedMethod.value;
+            const requiresReference = ['card', 'bank_transfer', 'online'].includes(methodValue);
+            const showQR = methodValue === 'online';
+
+            // Show/hide QR code section
+            if (showQR) {
+                qrCodeSection.style.display = 'block';
+            } else {
+                qrCodeSection.style.display = 'none';
+            }
+
+            // Show/hide transaction reference field
+            if (requiresReference) {
+                transactionReferenceField.style.display = 'block';
+                transactionReferenceInput.setAttribute('required', 'required');
+            } else {
+                transactionReferenceField.style.display = 'none';
+                transactionReferenceInput.removeAttribute('required');
+                transactionReferenceInput.value = '';
+            }
+        }
+    }
+
+    // Add event listeners to payment method radios
+    paymentMethodRadios.forEach(radio => {
+        radio.addEventListener('change', updateTransactionReferenceField);
+    });
+
+    // Initialize payment method on page load
+    updateTransactionReferenceField();
+
+    // Remove error styling when user starts typing
+    if (transactionReferenceInput) {
+        transactionReferenceInput.addEventListener('input', function () {
+            this.classList.remove('error');
+        });
+    }
+
+    // SINGLE Form validation - handles both address and payment
+    if (checkoutForm) {
+        checkoutForm.addEventListener('submit', function (e) {
+            // === PAYMENT VALIDATION ===
+            const selectedPaymentMethod = document.querySelector('input[name="payment_method"]:checked');
+            if (selectedPaymentMethod) {
+                const methodValue = selectedPaymentMethod.value;
+                const requiresReference = ['card', 'bank_transfer', 'online'].includes(methodValue);
+
+                if (requiresReference) {
+                    const referenceValue = transactionReferenceInput.value.trim();
+                    if (!referenceValue) {
+                        e.preventDefault();
+                        transactionReferenceInput.classList.add('error');
+                        alert('Please enter a transaction reference number for this payment method.');
+                        transactionReferenceInput.focus();
+                        return false;
+                    }
                 }
             }
 
-            // Function to enable required attributes for address form
-            function enableAddressFormValidation() {
-                const fieldsToRequire = ['first_name', 'last_name', 'phone', 'address_line1', 'city', 'province', 'postal_code'];
-                fieldsToRequire.forEach(fieldId => {
-                    const field = document.getElementById(fieldId);
-                    if (field) {
-                        field.setAttribute('required', 'required');
-                    }
-                });
-            }
-
-            // Check if a saved address is already selected on page load
+            // === ADDRESS VALIDATION ===
             const savedAddressSelected = document.querySelector('input[name="use_address_id"]:checked');
+
+            // If saved address is selected, allow submission (payment validation already passed)
             if (savedAddressSelected) {
-                // Disable validation since we're using a saved address
-                disableAddressFormValidation();
+                return true;
             }
 
-            // Handle "add new address" link click
-            if (addNewAddressLink && addressFormContainer) {
-                addNewAddressLink.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    // Uncheck all saved address radios
-                    document.querySelectorAll('input[name="use_address_id"]').forEach(radio => {
-                        radio.checked = false;
-                    });
-                    // Show address form
-                    addressFormContainer.style.display = 'block';
-                    if (savedAddresses) {
-                        savedAddresses.style.opacity = '0.5';
-                    }
-                    // Enable validation for new address
-                    enableAddressFormValidation();
-                });
+            // If no saved address selected, check if new address form is visible and filled
+            const addressFormVisible = addressFormContainer &&
+                window.getComputedStyle(addressFormContainer).display !== 'none';
+
+            if (!addressFormVisible) {
+                e.preventDefault();
+                alert('Please select a saved address or add a new one.');
+                return false;
             }
 
-            // When a saved address is selected, disable form validation
-            document.querySelectorAll('input[name="use_address_id"]').forEach(radio => {
-                radio.addEventListener('change', function () {
-                    if (this.checked) {
-                        if (addressFormContainer) {
-                            addressFormContainer.style.display = 'none';
-                        }
-                        if (savedAddresses) {
-                            savedAddresses.style.opacity = '1';
-                        }
-                        // Remove required attributes since we're using saved address
-                        disableAddressFormValidation();
-                    }
-                });
+            // Validate phone number
+            const phone = document.getElementById('phone');
+            if (phone && phone.value.trim().length < 10) {
+                e.preventDefault();
+                alert('Please enter a valid phone number (at least 10 characters)');
+                phone.focus();
+                return false;
+            }
+
+            // Validate required address fields
+            const requiredFields = [
+                document.getElementById('first_name'),
+                document.getElementById('last_name'),
+                document.getElementById('phone'),
+                document.getElementById('address_line1'),
+                document.getElementById('city'),
+                document.getElementById('province'),
+                document.getElementById('postal_code')
+            ];
+
+            let allFilled = true;
+            requiredFields.forEach(field => {
+                if (field && !field.value.trim()) {
+                    allFilled = false;
+                    field.style.borderColor = '#ff0000';
+                } else if (field) {
+                    field.style.borderColor = '';
+                }
             });
 
-            // Update cart count in header
-            const cartBadge = document.getElementById('cart-count');
-            if (cartBadge) {
-                const count = <?php echo $cart_count; ?>;
-                cartBadge.textContent = count;
-                cartBadge.style.display = count > 0 ? 'flex' : 'none';
+            if (!allFilled) {
+                e.preventDefault();
+                alert('Please fill in all required address fields.');
+                return false;
             }
 
-            // Form validation - simplified
-            const checkoutForm = document.querySelector('.checkout-form');
-            if (checkoutForm) {
-                checkoutForm.addEventListener('submit', function (e) {
-                    // Check if a saved address is selected
-                    const savedAddressSelected = document.querySelector('input[name="use_address_id"]:checked');
-
-                    // If saved address is selected, allow submission immediately
-                    if (savedAddressSelected) {
-                        return true;
-                    }
-
-                    // If no saved address selected, check if new address form is visible and filled
-                    const addressFormVisible = addressFormContainer &&
-                        window.getComputedStyle(addressFormContainer).display !== 'none';
-
-                    if (!addressFormVisible) {
-                        e.preventDefault();
-                        alert('Please select a saved address or add a new one.');
-                        return false;
-                    }
-
-                    // Validate new address form fields
-                    const phone = document.getElementById('phone');
-                    if (phone && phone.value.trim().length < 10) {
-                        e.preventDefault();
-                        alert('Please enter a valid phone number (at least 10 characters)');
-                        phone.focus();
-                        return false;
-                    }
-
-                    const requiredFields = [
-                        document.getElementById('first_name'),
-                        document.getElementById('last_name'),
-                        document.getElementById('phone'),
-                        document.getElementById('address_line1'),
-                        document.getElementById('city'),
-                        document.getElementById('province'),
-                        document.getElementById('postal_code')
-                    ];
-
-                    let allFilled = true;
-                    requiredFields.forEach(field => {
-                        if (field && !field.value.trim()) {
-                            allFilled = false;
-                            field.style.borderColor = '#ff0000';
-                        } else if (field) {
-                            field.style.borderColor = '';
-                        }
-                    });
-
-                    if (!allFilled) {
-                        e.preventDefault();
-                        alert('Please fill in all required address fields.');
-                        return false;
-                    }
-                });
-            }
+            return true;
         });
+    }
+});
     </script>
 </body>
 
