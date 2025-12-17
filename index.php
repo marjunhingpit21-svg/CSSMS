@@ -23,6 +23,95 @@ if (isset($_POST['close_ad'])) {
     $_SESSION['ad_closed'] = true;
 }
 
+// Get trending products (most bought this month with completed/received status)
+$trending_products = [];
+$current_month = date('Y-m');
+$trending_query = "
+    SELECT 
+        p.product_id,
+        p.product_name,
+        p.description,
+        p.price,
+        p.cost_price,
+        p.image_url,
+        p.category_id,
+        p.gender_id,
+        p.age_group_id,
+        c.category_name,
+        COALESCE(SUM(oi.quantity), 0) as total_sold
+    FROM products p
+    LEFT JOIN categories c ON p.category_id = c.category_id
+    LEFT JOIN order_items oi ON p.product_id = (
+        SELECT i.product_id 
+        FROM inventory i 
+        WHERE i.inventory_id = oi.inventory_id
+        LIMIT 1
+    )
+    LEFT JOIN orders o ON oi.order_id = o.order_id 
+        AND DATE_FORMAT(o.order_date, '%Y-%m') = ?
+        AND o.status IN ('received', 'completed', 'delivered')
+    GROUP BY p.product_id
+    HAVING total_sold > 0
+    ORDER BY total_sold DESC
+    LIMIT 8
+";
+
+$trending_stmt = $conn->prepare($trending_query);
+$trending_stmt->bind_param("s", $current_month);
+$trending_stmt->execute();
+$trending_result = $trending_stmt->get_result();
+
+while($trending_row = $trending_result->fetch_assoc()) {
+    // Get stock for trending products
+    $stock_sql = "SELECT COALESCE(SUM(stock_quantity), 0) as total_stock 
+                  FROM product_sizes WHERE product_id = ?";
+    $stock_stmt = $conn->prepare($stock_sql);
+    $stock_stmt->bind_param("i", $trending_row['product_id']);
+    $stock_stmt->execute();
+    $stock_result = $stock_stmt->get_result();
+    $stock_row = $stock_result->fetch_assoc();
+    
+    $trending_row['total_stock'] = $stock_row['total_stock'];
+    $trending_row['total_sold'] = intval($trending_row['total_sold']);
+    $trending_products[] = $trending_row;
+    $stock_stmt->close();
+}
+$trending_stmt->close();
+
+// Get new arrival products (added this month, excluding existing items with new stock)
+$new_arrival_products = [];
+$new_arrival_query = "
+    SELECT 
+        p.*,
+        c.category_name,
+        COALESCE(SUM(ps.stock_quantity), 0) as total_stock
+    FROM products p 
+    LEFT JOIN categories c ON p.category_id = c.category_id 
+    LEFT JOIN product_sizes ps ON p.product_id = ps.product_id
+    WHERE DATE_FORMAT(p.created_at, '%Y-%m') = ?
+        AND NOT EXISTS (
+            SELECT 1 FROM order_items oi
+            JOIN inventory i ON oi.inventory_id = i.inventory_id
+            JOIN orders o ON oi.order_id = o.order_id
+            WHERE i.product_id = p.product_id
+                AND o.status IN ('received', 'completed', 'delivered')
+        )
+    GROUP BY p.product_id
+    ORDER BY p.created_at DESC
+    LIMIT 8
+";
+
+$new_arrival_stmt = $conn->prepare($new_arrival_query);
+$new_arrival_stmt->bind_param("s", $current_month);
+$new_arrival_stmt->execute();
+$new_arrival_result = $new_arrival_stmt->get_result();
+
+while($new_arrival_row = $new_arrival_result->fetch_assoc()) {
+    $new_arrival_row['total_stock'] = intval($new_arrival_row['total_stock']);
+    $new_arrival_products[] = $new_arrival_row;
+}
+$new_arrival_stmt->close();
+
 // Handle login
 $login_error = '';
 if (isset($_POST['login_submit'])) {
@@ -152,6 +241,9 @@ if (isset($_POST['signup_submit'])) {
 
 <div class="page-wrapper">
 
+    <!-- Section Navigation Links -->
+    
+
     <section class="filters-section">
         <div class="container">
             <div class="filters-bar">
@@ -198,10 +290,172 @@ if (isset($_POST['signup_submit'])) {
                 </div>
             </div>
         </div>
+        <section class="section-nav">
+        <div class="container">
+            <nav class="section-nav-links">
+                <a href="#trendingSection" class="section-nav-link <?php echo !empty($trending_products) ? 'active' : ''; ?>" id="navTrending">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd"/>
+                    </svg>
+                    Trending
+                </a>
+                <a href="#newArrivalSection" class="section-nav-link <?php echo empty($trending_products) && !empty($new_arrival_products) ? 'active' : ''; ?>" id="navNewArrivals">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                    </svg>
+                    New Arrivals
+                </a>
+                <a href="#allProductsSection" class="section-nav-link <?php echo empty($trending_products) && empty($new_arrival_products) ? 'active' : ''; ?>" id="navAllItems">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    All Items
+                </a>
+            </nav>
+        </div>
+    </section>
     </section>
 
-    <section class="products-section">
+    <!-- Trending Section -->
+    <section class="featured-section" id="trendingSection">
         <div class="container">
+            <div class="section-header">
+                <h2>Trending This Month</h2>
+                <p class="section-subtitle">Most popular items bought this month</p>
+            </div>
+            <?php if (!empty($trending_products)): ?>
+            <div class="products-grid trending-grid" id="trendingGrid">
+                <?php foreach($trending_products as $trending): 
+                    $stock = intval($trending['total_stock']);
+                    $stock_status = '';
+                    $stock_class = '';
+                    
+                    if ($stock > 10) {
+                        $stock_status = 'In Stock';
+                        $stock_class = 'in-stock';
+                    } elseif ($stock > 0) {
+                        $stock_status = 'Only ' . $stock . ' left';
+                        $stock_class = 'low-stock';
+                    } else {
+                        $stock_status = 'Out of Stock';
+                        $stock_class = 'out-of-stock';
+                    }
+                ?>
+                <div class="product-card" data-category="<?php echo $trending['category_id']; ?>" 
+                     data-price="<?php echo $trending['price']; ?>" 
+                     data-age-group="<?php echo $trending['age_group_id']; ?>">
+                    <span class="stock-badge <?php echo $stock_class; ?>"><?php echo $stock_status; ?></span>
+                    <?php if ($trending['total_sold'] > 0): ?>
+                    <span class="trending-badge"> <?php echo $trending['total_sold']; ?> sold</span>
+                    <?php endif; ?>
+                    <img src="<?php echo $trending['image_url']; ?>" 
+                         alt="<?php echo htmlspecialchars($trending['product_name']); ?>" 
+                         onerror="this.src='https://via.placeholder.com/300x400?text=No+Image'">
+                    <h3><?php echo htmlspecialchars($trending['product_name']); ?></h3>
+                    <p class="price">₱<?php echo number_format($trending['price'], 2); ?></p>
+                    <div class="product-actions">
+                        <a href="product_details.php?id=<?php echo $trending['product_id']; ?>" 
+                           class="btn-add-cart" 
+                           style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;"
+                           <?php echo ($stock <= 0 ? 'style="opacity: 0.5; cursor: not-allowed;"' : ''); ?>>
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                            </svg>
+                            <?php echo ($stock <= 0 ? 'View' : 'Add to cart'); ?>
+                        </a>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php else: ?>
+            <div class="empty-state">
+                <svg width="64" height="64" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-7.536 5.879a1 1 0 001.415 0 3 3 0 014.242 0 1 1 0 001.415-1.415 5 5 0 00-7.072 0 1 1 0 000 1.415z" clip-rule="evenodd"/>
+                </svg>
+                <h3>No Trending Items Yet</h3>
+                <p>Be the first to make a purchase this month!</p>
+            </div>
+            <?php endif; ?>
+        </div>
+    </section>
+
+    <!-- New Arrival Section -->
+    <section class="featured-section" id="newArrivalSection">
+        <div class="container">
+            <div class="section-header">
+                <h2>New Arrivals</h2>
+                <p class="section-subtitle">Freshly added items this month</p>
+            </div>
+            <?php if (!empty($new_arrival_products)): ?>
+            <div class="products-grid new-arrival-grid" id="newArrivalGrid">
+                <?php foreach($new_arrival_products as $new_arrival): 
+                    $stock = intval($new_arrival['total_stock']);
+                    $stock_status = '';
+                    $stock_class = '';
+                    
+                    if ($stock > 10) {
+                        $stock_status = 'In Stock';
+                        $stock_class = 'in-stock';
+                    } elseif ($stock > 0) {
+                        $stock_status = 'Only ' . $stock . ' left';
+                        $stock_class = 'low-stock';
+                    } else {
+                        $stock_status = 'Out of Stock';
+                        $stock_class = 'out-of-stock';
+                    }
+                    
+                    // Calculate how many days since added
+                    $created_date = new DateTime($new_arrival['created_at']);
+                    $current_date = new DateTime();
+                    $interval = $current_date->diff($created_date);
+                    $days_ago = $interval->days;
+                ?>
+                <div class="product-card" data-category="<?php echo $new_arrival['category_id']; ?>" 
+                     data-price="<?php echo $new_arrival['price']; ?>" 
+                     data-age-group="<?php echo $new_arrival['age_group_id']; ?>">
+                    <span class="stock-badge <?php echo $stock_class; ?>"><?php echo $stock_status; ?></span>
+                    <span class="new-badge">NEW</span>
+                    <img src="<?php echo $new_arrival['image_url']; ?>" 
+                         alt="<?php echo htmlspecialchars($new_arrival['product_name']); ?>" 
+                         onerror="this.src='https://via.placeholder.com/300x400?text=No+Image'">
+                    <h3><?php echo htmlspecialchars($new_arrival['product_name']); ?></h3>
+                    <p class="price">₱<?php echo number_format($new_arrival['price'], 2); ?></p>
+                    <?php if ($days_ago <= 7): ?>
+                    <p class="new-arrival-tag">Just Added!</p>
+                    <?php endif; ?>
+                    <div class="product-actions">
+                        <a href="product_details.php?id=<?php echo $new_arrival['product_id']; ?>" 
+                           class="btn-add-cart" 
+                           style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;"
+                           <?php echo ($stock <= 0 ? 'style="opacity: 0.5; cursor: not-allowed;"' : ''); ?>>
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                            </svg>
+                            <?php echo ($stock <= 0 ? 'View' : 'Add to cart'); ?>
+                        </a>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php else: ?>
+            <div class="empty-state">
+                <svg width="64" height="64" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-7.536 5.879a1 1 0 001.415 0 3 3 0 014.242 0 1 1 0 001.415-1.415 5 5 0 00-7.072 0 1 1 0 000 1.415z" clip-rule="evenodd"/>
+                </svg>
+                <h3>No New Arrivals</h3>
+                <p>Check back soon for new items!</p>
+            </div>
+            <?php endif; ?>
+        </div>
+    </section>
+
+    <!-- All Products Section -->
+    <section class="products-section" id="allProductsSection">
+        <div class="container">
+            <div class="section-header">
+                <h2>All Products</h2>
+                <p class="section-subtitle">Browse our complete collection</p>
+            </div>
             <div class="products-grid" id="productsGrid">
                 <?php
                 // Updated query to get total stock from product_sizes table and include age_group_id
@@ -248,7 +502,13 @@ if (isset($_POST['signup_submit'])) {
                         </div>';
                     }
                 } else {
-                    echo '<p>No products found.</p>';
+                    echo '<div class="empty-state">
+                            <svg width="64" height="64" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-7.536 5.879a1 1 0 001.415 0 3 3 0 014.242 0 1 1 0 001.415-1.415 5 5 0 00-7.072 0 1 1 0 000 1.415z" clip-rule="evenodd"/>
+                            </svg>
+                            <h3>No Products Found</h3>
+                            <p>No products are available at the moment.</p>
+                          </div>';
                 }
                 ?>
             </div>
@@ -449,12 +709,90 @@ if (isset($_POST['signup_submit'])) {
 
         updateCartBadge();
 
+        // Section Navigation
+        const sectionNavLinks = document.querySelectorAll('.section-nav-link');
+        const sections = {
+            trending: document.getElementById('trendingSection'),
+            newArrivals: document.getElementById('newArrivalSection'),
+            allItems: document.getElementById('allProductsSection')
+        };
+
+        // Set active nav link based on URL hash on page load
+        function setActiveNavFromHash() {
+            const hash = window.location.hash;
+            
+            // Remove active class from all links
+            sectionNavLinks.forEach(link => link.classList.remove('active'));
+            
+            if (hash === '#newArrivalSection') {
+                document.getElementById('navNewArrivals').classList.add('active');
+            } else if (hash === '#allProductsSection') {
+                document.getElementById('navAllItems').classList.add('active');
+            } else {
+                // Default to trending or first available
+                if (sections.trending && sections.trending.children.length > 1) {
+                    document.getElementById('navTrending').classList.add('active');
+                } else if (sections.newArrivals && sections.newArrivals.children.length > 1) {
+                    document.getElementById('navNewArrivals').classList.add('active');
+                } else {
+                    document.getElementById('navAllItems').classList.add('active');
+                }
+            }
+        }
+
+        // Smooth scroll to section
+        function scrollToSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                const headerHeight = document.querySelector('header').offsetHeight || 80;
+                const sectionPosition = section.offsetTop - headerHeight - 20;
+                
+                window.scrollTo({
+                    top: sectionPosition,
+                    behavior: 'smooth'
+                });
+                
+                // Update URL hash without jumping
+                history.pushState(null, null, `#${sectionId}`);
+                
+                // Update active nav link
+                sectionNavLinks.forEach(link => link.classList.remove('active'));
+                document.querySelector(`[href="#${sectionId}"]`).classList.add('active');
+            }
+        }
+
+        // Add click events to nav links
+        sectionNavLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                scrollToSection(targetId);
+            });
+        });
+
+        // Initialize on page load
+        window.addEventListener('load', function() {
+            setActiveNavFromHash();
+            
+            // If there's a hash in URL, scroll to that section
+            if (window.location.hash) {
+                setTimeout(() => {
+                    scrollToSection(window.location.hash.substring(1));
+                }, 100);
+            }
+        });
+
         // Product filtering & sorting
         const searchBar = document.getElementById('searchBar');
         const categoryFilter = document.getElementById('categoryFilter');
         const priceSort = document.getElementById('priceSort');
         const productsGrid = document.getElementById('productsGrid');
-        const products = document.querySelectorAll('.product-card');
+        const trendingGrid = document.getElementById('trendingGrid');
+        const newArrivalGrid = document.getElementById('newArrivalGrid');
+        const allProducts = document.querySelectorAll('.product-card');
+        const regularProducts = document.querySelectorAll('#productsGrid .product-card');
+        const trendingProducts = trendingGrid ? trendingGrid.querySelectorAll('.product-card') : [];
+        const newArrivalProducts = newArrivalGrid ? newArrivalGrid.querySelectorAll('.product-card') : [];
 
         // Age Group Filtering
         const ageGroupLinks = document.querySelectorAll('.age-group-link');
@@ -475,6 +813,9 @@ if (isset($_POST['signup_submit'])) {
                 
                 // Filter products
                 filterProducts();
+                
+                // Scroll to All Items section when filtering
+                scrollToSection('allProductsSection');
             });
         });
 
@@ -483,7 +824,7 @@ if (isset($_POST['signup_submit'])) {
             const selectedCategory = categoryFilter.value;
             const sortOrder = priceSort.value;
 
-            let productArray = Array.from(products);
+            let productArray = Array.from(regularProducts);
 
             productArray = productArray.filter(product => {
                 const title = product.querySelector('h3').textContent.toLowerCase();
@@ -505,12 +846,39 @@ if (isset($_POST['signup_submit'])) {
 
             productsGrid.innerHTML = '';
             productArray.forEach(p => productsGrid.appendChild(p));
+            
+            // If no products after filtering
+            if (productArray.length === 0) {
+                productsGrid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+                        <svg width="64" height="64" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-7.536 5.879a1 1 0 001.415 0 3 3 0 014.242 0 1 1 0 001.415-1.415 5 5 0 00-7.072 0 1 1 0 000 1.415z" clip-rule="evenodd"/>
+                        </svg>
+                        <h3>No Products Match Your Filters</h3>
+                        <p>Try adjusting your search or filters</p>
+                    </div>
+                `;
+            }
         }
 
-        searchBar.addEventListener('input', filterProducts);
-        categoryFilter.addEventListener('change', filterProducts);
-        priceSort.addEventListener('change', filterProducts);
+        // Function to handle search/filter actions and scroll to All Items
+        function handleFilterAction() {
+            filterProducts();
+            // Scroll to All Items section
+            scrollToSection('allProductsSection');
+        }
 
+        // Event listeners for filter actions
+        searchBar.addEventListener('input', function() {
+            if (this.value.length > 0) {
+                handleFilterAction();
+            }
+        });
+        
+        categoryFilter.addEventListener('change', handleFilterAction);
+        priceSort.addEventListener('change', handleFilterAction);
+
+        // Also call filterProducts on page load
         filterProducts();
     </script>
 </body>
