@@ -184,6 +184,60 @@ body {
     background: #ffeef2;
 }
 
+/* Authorization Modal Styles */
+.authorization-required {
+    background: linear-gradient(45deg, #fff3cd, #fff8e1);
+    border: 2px solid #ff9800;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 15px 0;
+    position: relative;
+}
+
+.authorization-required::before {
+    content: "🔒";
+    position: absolute;
+    top: -10px;
+    left: 15px;
+    background: white;
+    padding: 0 10px;
+    font-size: 14px;
+}
+
+.authorization-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: #e8f5e9;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+.auth-badge {
+    background: #4caf50;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Error states for auth inputs */
+.auth-input-error {
+    border-color: #d32f2f !important;
+    background-color: #ffebee !important;
+}
+
+.auth-success {
+    background: #e8f5e9;
+    border-left: 4px solid #4caf50;
+    padding: 10px;
+    border-radius: 6px;
+    margin: 10px 0;
+}
+
 /* Product Preview */
 .product-preview {
     background: white;
