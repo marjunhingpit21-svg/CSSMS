@@ -29,13 +29,13 @@ $age_groups = $conn->query("SELECT age_group_id, age_group_name FROM age_groups 
                 <h1 class="page-title">Add New Product</h1>
             </div>
             <div class="header-right">
-                <a href="index.php" class="back-button">
+                <a href="index_2.php" class="back-button">
                     <span class="material-icons text-lg" style="font-size:1.25rem;">arrow_back</span> Back to Product
                 </a>
             </div>
         </div>
 
-        <form id="addForm" method="POST" action="save_product.php" enctype="multipart/form-data">
+        <form id="addForm" method="POST" action="save_prod.php" enctype="multipart/form-data">
             <div class="form-grid">
                 <div>
                     <div class="card">
@@ -162,7 +162,7 @@ $age_groups = $conn->query("SELECT age_group_id, age_group_name FROM age_groups 
 
                     <!-- Action Buttons -->
                     <div class="actions">
-                        <a href="index.php" class="btn-cancel">Cancel</a>
+                        <a href="index_2.php" class="btn-cancel">Cancel</a>
                         <button type="submit" class="btn-save">Add Product</button>
                     </div>
                 </div>
@@ -170,6 +170,6 @@ $age_groups = $conn->query("SELECT age_group_id, age_group_name FROM age_groups 
         </form>
     </main>
 
-    <script src="add_product.js"></script>
+    <script src="add_prod.js"></script>
 </body>
 </html>

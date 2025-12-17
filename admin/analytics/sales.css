@@ -102,6 +102,7 @@
 .forecast-card {
     background: white;
     border: 2px solid #e91e63;
+    padding: 20px; /* Reduced from default 24px */
 }
 
 .forecast-card:hover {
@@ -112,6 +113,8 @@
 
 .forecast-card h3 {
     color: #e91e63;
+    margin: 0 0 12px 0; /* Reduced bottom margin */
+    font-size: 16px;
 }
 
 .forecast-card h3 i {
@@ -120,14 +123,35 @@
 
 .forecast-card .metric-value {
     color: #e91e63;
+    font-size: 32px; /* Slightly smaller */
+    font-weight: 700;
+    margin: 0; /* Remove default margin */
+    line-height: 1;
 }
 
 .forecast-card small {
     display: inline-block;
-    padding: 4px 12px;
+    padding: 3px 10px; /* Reduced vertical padding */
     border-radius: 20px;
     font-weight: 600;
-    font-size: 12px;
+    font-size: 11px; /* Slightly smaller */
+    margin-top: 6px; /* Reduced from potential default */
+}
+
+/* Side-by-side layout container */
+.forecast-content {
+    display: grid;
+    /* allow the insights column to shrink on smaller viewports to avoid overflow when sidebar is visible */
+    grid-template-columns: 1fr minmax(260px, 360px);
+    gap: 24px;
+    align-items: start;
+}
+
+/* Chart takes left side */
+.forecast-card .chart-container {
+    margin-top: 0;
+    height: 300px;
+    min-height: 280px;
 }
 
 /* Metric values - matching header accent color */
@@ -228,32 +252,50 @@ td strong {
     justify-content: space-between;
     align-items: center;
     margin: 15px 0;
+    margin: 0 0 16px 0; /* Reduced from 15px 0 */
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f0f0f0;
 }
 
 .ai-confidence {
-    font-size: 14px;
+    font-size: 13px; /* Slightly smaller */
     color: #555;
+    margin: 0;
 }
 
 .ai-insights {
-    margin-top: 20px;
+    margin-top: 0;
     padding: 16px;
     background: #fff8f9;
     border-radius: 10px;
     border-left: 4px solid #e91e63;
+    height: fit-content;
+    position: relative; /* default to document flow to avoid sticky positioning issues */
+    top: auto;
+    max-width: 100%;
+}
+
+/* Enable sticky behavior only on wide viewports where there is sufficient horizontal space */
+@media (min-width: 1200px) {
+    .ai-insights {
+        position: sticky;
+        /* account for fixed header + small offset */
+        top: 90px;
+    }
 }
 
 .ai-insights h4 {
-    margin: 0 0 12px 0;
+    margin: 0 0 10px 0;
     color: #c2185b;
     font-size: 15px;
+    font-weight: 600;
 }
 
 .ai-insights ul {
     margin: 0;
     padding-left: 18px;
     font-size: 13.5px;
-    line-height: 1.6;
+    line-height: 1.5;
 }
 
 .ai-insights li {
@@ -304,6 +346,29 @@ td strong {
     .metric-value {
         font-size: 28px;
     }
+
+    .forecast-card {
+        padding: 16px;
+    }
+    
+    .forecast-card .metric-value {
+        font-size: 28px;
+    }
+    
+    .ai-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .ai-insights {
+        padding: 12px 14px;
+    }
+    
+    .ai-insights ul {
+        font-size: 12px;
+        padding-left: 16px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -321,6 +386,19 @@ td strong {
 
     th, td {
         padding: 10px 8px;
+        font-size: 13px;
+    }
+
+    .forecast-card {
+        padding: 14px;
+    }
+    
+    .forecast-card h3 {
+        font-size: 15px;
+        margin-bottom: 10px;
+    }
+    
+    .ai-insights h4 {
         font-size: 13px;
     }
 }

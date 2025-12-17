@@ -3,7 +3,7 @@ include '../includes/auth.php';
 include '../includes/db.php';
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    header('Location: index.php');
+    header('Location: index_2.php');
     exit;
 }
 
@@ -42,7 +42,7 @@ $stmt->execute();
 $product = $stmt->get_result()->fetch_assoc();
 
 if (!$product) {
-    header('Location: index.php');
+    header('Location: index_2.php');
     exit;
 }
 
@@ -101,13 +101,13 @@ $sizes_result = $sizes_stmt->get_result();
                 <h1 class="page-title">Edit Product</h1>
             </div>
             <div class="header-right">
-                <a href="view_product.php?id=<?= $product_id ?>" class="back-button">
+                <a href="view_prod.php?id=<?= $product_id ?>" class="back-button">
                     <span class="material-icons text-lg" style="font-size:1.25rem;">arrow_back</span> Back to Product
                 </a>
             </div>
         </div>
 
-        <form id="editForm" method="POST" action="update_product.php" enctype="multipart/form-data">
+        <form id="editForm" method="POST" action="update_prod.php" enctype="multipart/form-data">
             <input type="hidden" name="product_id" value="<?= $product_id ?>">
             <input type="hidden" id="isShoeProduct" value="<?= $is_shoe_product ? 'true' : 'false' ?>">
 
@@ -271,7 +271,7 @@ $sizes_result = $sizes_stmt->get_result();
 
                     <!-- Action Buttons -->
                     <div class="actions">
-                        <a href="view_product.php?id=<?= $product_id ?>" class="btn-cancel">Cancel</a>
+                        <a href="view_prod.php?id=<?= $product_id ?>" class="btn-cancel">Cancel</a>
                         <button type="submit" class="btn-save">Save Changes</button>
                     </div>
                 </div>
@@ -279,6 +279,6 @@ $sizes_result = $sizes_stmt->get_result();
         </form>
     </main>
 
-    <script src="edit_product.js"></script>
+    <script src="edit_prod.js"></script>
 </body>
 </html>

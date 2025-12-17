@@ -1,7 +1,5 @@
 <?php
 session_start();
-
-
 require_once '../includes/db.php';
 
 // Optimized queries using indexes & proper joins
@@ -37,20 +35,53 @@ $trend_query = "
         CONCAT(e.first_name, ' ', e.last_name) AS employee_name,
         COALESCE(SUM(s.total_amount), 0) AS daily_revenue
     FROM employees e
-    LEFT JOIN sales s ON e.employee_id = s.employee_id AND s.sale_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+    LEFT JOIN sales s ON e.employee_id = s.employee_id 
+        AND s.sale_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+        AND s.payment_status = 'completed'
+    WHERE s.sale_id IS NOT NULL
     GROUP BY DATE(s.sale_date), e.employee_id
-    ORDER BY sale_date DESC
+    ORDER BY sale_date ASC, employee_name ASC
 ";
 
 $trend_result = $conn->query($trend_query);
+// Prepare trend data
 $trends = [];
-while ($row = $trend_result->fetch_assoc()) {
-    $trends[$row['employee_id']]['name'] = $row['employee_name'];
-    $trends[$row['employee_id']]['data'][] = [
-        'date' => $row['sale_date'],
-        'revenue' => (float)$row['daily_revenue']
-    ];
+$all_dates = [];
+
+// Get unique dates first
+$dates_query = "
+    SELECT DISTINCT DATE(sale_date) as sale_date 
+    FROM sales 
+    WHERE sale_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+    AND payment_status = 'completed'
+    ORDER BY sale_date ASC
+";
+$dates_result = $conn->query($dates_query);
+while ($date_row = $dates_result->fetch_assoc()) {
+    $all_dates[] = $date_row['sale_date'];
 }
+
+// Get employee trend data
+$trend_result = $conn->query($trend_query);
+while ($row = $trend_result->fetch_assoc()) {
+    $emp_id = $row['employee_id'];
+    if (!isset($trends[$emp_id])) {
+        $trends[$emp_id] = [
+            'name' => $row['employee_name'],
+            'data' => array_fill_keys($all_dates, 0) // Initialize with 0 for all dates
+        ];
+    }
+    $trends[$emp_id]['data'][$row['sale_date']] = (float)$row['daily_revenue'];
+}
+
+sort($all_dates);
+
+// Debug: Check data counts
+echo "<!-- Debug Info: -->";
+echo "<!-- Employees found: " . $employees_result->num_rows . " -->";
+echo "<!-- Trend records: " . $trend_result->num_rows . " -->";
+echo "<!-- All dates count: " . count($all_dates) . " -->";
+echo "<!-- Trends array count: " . count($trends) . " -->";
 ?>
 
 <!DOCTYPE html>
@@ -84,7 +115,7 @@ while ($row = $trend_result->fetch_assoc()) {
                 <p>Branch: <?= htmlspecialchars($top_employee['branch_name'] ?? 'N/A') ?></p>
             </div>
             <div class="stat-card">
-                <h3>Total Revenue</h3>
+                <h3>Total Sales</h3>
                 <div class="stat-value">₱<?= number_format($top_employee['total_revenue'], 2) ?></div>
             </div>
             <div class="stat-card">
@@ -108,7 +139,7 @@ while ($row = $trend_result->fetch_assoc()) {
                         <th>Rank</th>
                         <th>Employee</th>
                         <th>Branch</th>
-                        <th>Revenue</th>
+                        <th>Sales</th>
                         <th>Items Sold</th>
                         <th>Transactions</th>
                         <th>Avg Transaction</th>
@@ -141,7 +172,7 @@ while ($row = $trend_result->fetch_assoc()) {
         <!-- Charts -->
         <div class="charts-grid">
             <div class="chart-box">
-                <h3>Top 10 Employees by Revenue</h3>
+                <h3>Top 10 Employees by Sales</h3>
                 <canvas id="rankingChart"></canvas>
             </div>
             <div class="chart-box">
@@ -154,96 +185,149 @@ while ($row = $trend_result->fetch_assoc()) {
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Ranking Bar Chart
-            const rankingCtx = document.getElementById('rankingChart').getContext('2d');
-            new Chart(rankingCtx, {
-                type: 'bar',
-                data: {
-                    labels: [
-                        <?php 
-                        $employees_result->data_seek(0);
-                        $count = 0;
-                        while ($emp = $employees_result->fetch_assoc() && $count < 10): 
-                            echo "'".addslashes($emp['full_name'])."', ";
-                            $count++;
-                        endwhile; 
-                        ?>
-                    ],
-                    datasets: [{
-                        label: 'Total Revenue (₱)',
-                        data: [
-                            <?php 
-                            $employees_result->data_seek(0);
-                            $count = 0;
-                            while ($emp = $employees_result->fetch_assoc() && $count < 10): 
-                                echo $emp['total_revenue'].", ";
-                                $count++;
-                            endwhile; 
-                            ?>
-                        ],
-                        backgroundColor: 'rgba(102, 126, 234, 0.8)',
-                        borderColor: '#667eea',
-                        borderWidth: 1
-                    }]
+const rankingCtx = document.getElementById('rankingChart').getContext('2d');
+const rankingLabels = [];
+const rankingData = [];
+
+<?php 
+$employees_result->data_seek(0);
+$count = 0;
+while ($emp = $employees_result->fetch_assoc()): 
+    if ($count >= 10) break;
+    // Include even if revenue is 0 to show all employees
+?>
+    rankingLabels.push('<?= addslashes($emp['full_name']) ?>');
+    rankingData.push(<?= $emp['total_revenue'] ?>);
+<?php 
+    $count++;
+endwhile; 
+?>
+
+if (rankingLabels.length > 0) {
+    new Chart(rankingCtx, {
+        type: 'bar',
+        data: {
+            labels: rankingLabels,
+            datasets: [{
+                label: 'Total Revenue (₱)',
+                data: rankingData,
+                backgroundColor: rankingData.map(val => val > 0 ? 'rgba(102, 126, 234, 0.8)' : 'rgba(200, 200, 200, 0.5)'),
+                borderColor: rankingData.map(val => val > 0 ? '#667eea' : '#cccccc'),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: { 
+                legend: { display: false }
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true, 
+                    ticks: { 
+                        callback: value => '₱' + value.toLocaleString() 
+                    } 
                 },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { callback: value => '₱' + value.toLocaleString() } }
+                x: {
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 0
                     }
                 }
-            });
+            }
+        }
+    });
+} else {
+    document.getElementById('rankingChart').parentElement.innerHTML = 
+        '<div style="text-align: center; padding: 40px; color: #666;">' +
+        '<i class="fas fa-chart-bar" style="font-size: 48px; margin-bottom: 15px;"></i><br>' +
+        '<h4>No Sales Data Available</h4>' +
+        '<p>Start making sales to see employee performance data</p>' +
+        '</div>';
+}
 
-            // Daily Trend Line Chart
-            const trendCtx = document.getElementById('trendChart').getContext('2d');
-            const datasets = [];
-            const colors = ['#e91e63', '#667eea', '#4caf50', '#ff9800', '#9c27b0', '#00bcd4'];
+// Daily Trend Line Chart
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+const trendLabels = <?= json_encode($all_dates) ?>;
+const trendDatasets = [];
 
-            <?php 
-            $colorIndex = 0;
-            foreach ($trends as $emp_id => $data):
-                if ($colorIndex >= count($colors)) break;
-                if (empty($data['data'])) continue;
-            ?>
-            datasets.push({
-                label: "<?= addslashes($data['name']) ?>",
-                data: [
-                    <?php 
-                    $dates = [];
-                    $revenues = [];
-                    foreach ($data['data'] as $point) {
-                        $dates[] = $point['date'];
-                        $revenues[] = $point['revenue'];
+<?php 
+$colors = ['#e91e63', '#667eea', '#4caf50', '#ff9800', '#9c27b0', '#00bcd4'];
+$colorIndex = 0;
+
+foreach ($trends as $emp_id => $data):
+    if ($colorIndex >= 6) break;
+    
+    // Check if this employee has any non-zero data
+    $hasData = false;
+    foreach ($data['data'] as $dateVal) {
+        if ($dateVal > 0) {
+            $hasData = true;
+            break;
+        }
+    }
+    
+    if ($hasData):
+?>
+    trendDatasets.push({
+        label: "<?= addslashes($data['name']) ?>",
+        data: <?= json_encode(array_values($data['data'])) ?>,
+        borderColor: "<?= $colors[$colorIndex] ?>",
+        backgroundColor: "<?= $colors[$colorIndex] ?>33",
+        tension: 0.4,
+        fill: false
+    });
+<?php 
+        $colorIndex++;
+    endif;
+endforeach; 
+?>
+
+if (trendDatasets.length > 0 && trendLabels.length > 0) {
+    new Chart(trendCtx, {
+        type: 'line',
+        data: { 
+            labels: trendLabels,
+            datasets: trendDatasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+                x: { 
+                    display: true, 
+                    title: { display: true, text: 'Date' },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 0
                     }
-                    echo implode(', ', $revenues);
-                    ?>
-                ],
-                borderColor: "<?= $colors[$colorIndex] ?>",
-                backgroundColor: "<?= $colors[$colorIndex] ?>33",
-                tension: 0.4,
-                fill: false
-            });
-            <?php $colorIndex++; endforeach; ?>
-
-            new Chart(trendCtx, {
-                type: 'line',
-                data: { datasets },
-                options: {
-                    responsive: true,
-                    interaction: { mode: 'index', intersect: false },
-                    scales: {
-                        x: { display: true, title: { display: true, text: 'Date' } },
-                        y: { beginAtZero: true, ticks: { callback: value => '₱' + value } }
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: ctx => `${ctx.dataset.label}: ₱${ctx.parsed.y.toLocaleString()}`
-                            }
-                        }
+                },
+                y: { 
+                    beginAtZero: true, 
+                    ticks: { 
+                        callback: value => '₱' + value.toLocaleString() 
+                    } 
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.dataset.label}: ₱${ctx.parsed.y.toLocaleString()}`
                     }
                 }
-            });
+            }
+        }
+    });
+} else {
+    document.getElementById('trendChart').parentElement.innerHTML = 
+        '<div style="text-align: center; padding: 40px; color: #666;">' +
+        '<i class="fas fa-chart-line" style="font-size: 48px; margin-bottom: 15px;"></i><br>' +
+        '<h4>No Trend Data Available</h4>' +
+        '<p>No sales recorded in the last 30 days</p>' +
+        '</div>';
+}
         });
     </script>
 </body>

@@ -10,7 +10,7 @@ if (session_status() == PHP_SESSION_NONE) {
 // Check if 'ids' parameter exists
 if (!isset($_GET['ids']) || empty(trim($_GET['ids']))) {
     $_SESSION['error'] = "No products selected for deletion.";
-    header("Location: index.php");
+    header("Location: index_2.php");
     exit();
 }
 
@@ -18,7 +18,7 @@ $ids = array_filter(array_map('intval', explode(',', $_GET['ids'])));
 
 if (empty($ids)) {
     $_SESSION['error'] = "Invalid product IDs.";
-    header("Location: index.php");
+    header("Location: index_2.php");
     exit();
 }
 
@@ -215,6 +215,6 @@ if (!empty($product_size_ids)) {
 // Restore autocommit
 $conn->autocommit(TRUE);
 
-header("Location: index.php");
+header("Location: index_2.php");
 exit();
 ?>

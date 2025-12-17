@@ -178,6 +178,14 @@ function processPayment(method) {
 
     console.log('Processing payment:', saleData);
 
+    // Disable the button to prevent double-clicks
+    const completeBtn = document.querySelector('#paymentModal .btn-primary');
+    const originalBtnText = completeBtn ? completeBtn.innerHTML : '';
+    if (completeBtn) {
+        completeBtn.disabled = true;
+        completeBtn.innerHTML = 'Processing...';
+    }
+
     fetch('process_sale.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -188,11 +196,24 @@ function processPayment(method) {
         console.log('Payment response:', res);
         
         if (res.success) {
-            showFunctionFeedback('Payment successful! Printing receipt...');
+            showFunctionFeedback('Payment successful!');
             
+            // Save cart items for receipt preview BEFORE clearing
+            localStorage.setItem('lastCartItems', JSON.stringify(cart));
+            
+            // Store payment data for receipt preview
+            window.mainReceiptPaymentData = {
+                receipt_number: receiptNum,
+                total: total,
+                method: method,
+                transaction_ref: transactionRef,
+                cash_received: cashReceived
+            };
+            
+            // Show receipt preview instead of immediately printing
             setTimeout(() => {
-                printReceipt();
-            }, 500);
+                showMainReceiptPrintPreview();
+            }, 100);
             
             // Clear cart and reset
             cart = [];
@@ -223,13 +244,220 @@ function processPayment(method) {
             }
             
             closePaymentModal();
-            searchInput.focus();
+            
         } else {
+            // Re-enable button on error
+            if (completeBtn) {
+                completeBtn.disabled = false;
+                completeBtn.innerHTML = originalBtnText;
+            }
             alert('Error: ' + res.message);
         }
     })
     .catch(err => {
         console.error('Payment error:', err);
+        // Re-enable button on error
+        if (completeBtn) {
+            completeBtn.disabled = false;
+            completeBtn.innerHTML = originalBtnText;
+        }
         alert('Payment failed. Please try again.');
     });
+}
+
+// NEW FUNCTION: Show receipt preview for main receipt
+function showMainReceiptPrintPreview() {
+    if (!window.mainReceiptPaymentData) {
+        alert('No receipt data available.');
+        return;
+    }
+    
+    const receiptNum = window.mainReceiptPaymentData.receipt_number;
+    const date = new Date().toLocaleString();
+    const employeeName = EMPLOYEE_NAME;
+    
+    // Get last cart items from localStorage
+    const lastCartItems = JSON.parse(localStorage.getItem('lastCartItems') || '[]');
+    const paymentData = window.mainReceiptPaymentData;
+    
+    // Calculate totals from last cart items
+    const subtotal = lastCartItems.reduce((s,i) => s + i.final_price * i.quantity, 0);
+    const tax = subtotal * 0.12;
+    const discountAmount = subtotal * (globalDiscount / 100);
+    const total = subtotal + tax - discountAmount;
+    
+    const printPreviewHTML = `
+        <div style="padding: 20px;">
+            <h3 style="margin-bottom: 15px; color: #1a1a2e;">Print Preview - Main Receipt</h3>
+            
+            <div style="background: white; border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; font-family: monospace;">
+                <div style="text-align: center; margin-bottom: 10px;">
+                    <h4 style="margin: 0; color: #e91e63;">Altiere</h4>
+                    <div style="font-size: 12px; color: #666;">Receipt #: ${receiptNum}</div>
+                    <div style="font-size: 12px; color: #666;">Date: ${date}</div>
+                    ${paymentData ? `<div style="font-size: 12px; color: #666;">Payment: ${paymentData.method.toUpperCase()}</div>` : ''}
+                </div>
+                <hr style="border: none; border-top: 1px dashed #ccc; margin: 10px 0;">
+                <div style="margin-bottom: 10px;">
+                    ${lastCartItems.map(item => `
+                        <div style="display: flex; justify-content: space-between; margin: 5px 0; font-size: 13px;">
+                            <div style="flex: 1;">
+                                <div>${item.product_name} (${item.size_name})</div>
+                                <div style="font-size: 11px;">${item.quantity} × ₱${item.final_price.toFixed(2)}</div>
+                                ${item.notes ? `<div style="font-size: 10px; color: #666;">${item.notes}</div>` : ''}
+                            </div>
+                            <div style="font-weight: bold;">₱${(item.quantity * item.final_price).toFixed(2)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <hr style="border: none; border-top: 1px dashed #ccc; margin: 10px 0;">
+                <div style="font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between; margin: 3px 0;">
+                        <span>Subtotal:</span>
+                        <span>₱${subtotal.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin: 3px 0;">
+                        <span>Tax (12%):</span>
+                        <span>₱${tax.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin: 3px 0;">
+                        <span>Discount:</span>
+                        <span>₱${discountAmount.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin: 8px 0; font-weight: bold; border-top: 1px solid #000; padding-top: 5px;">
+                        <span>TOTAL:</span>
+                        <span>₱${total.toFixed(2)}</span>
+                    </div>
+                    ${paymentData && paymentData.method === 'cash' ? `
+                        <div style="display: flex; justify-content: space-between; margin: 3px 0;">
+                            <span>Cash Received:</span>
+                            <span>₱${paymentData.cash_received.toFixed(2)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin: 3px 0;">
+                            <span>Change:</span>
+                            <span>₱${(paymentData.cash_received - total).toFixed(2)}</span>
+                        </div>
+                    ` : ''}
+                    ${paymentData && paymentData.transaction_ref ? `
+                        <div style="display: flex; justify-content: space-between; margin: 3px 0; font-size: 11px; color: #666;">
+                            <span>Reference:</span>
+                            <span>${paymentData.transaction_ref}</span>
+                        </div>
+                    ` : ''}
+                </div>
+                <hr style="border: none; border-top: 1px dashed #ccc; margin: 10px 0;">
+                <div style="text-align: center; font-size: 11px; color: #666;">
+                    <div>Cashier: ${employeeName}</div>
+                    <div>Thank you for shopping with us!</div>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="printReceipt()" style="flex: 1;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="margin-right:5px;">
+                        <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" stroke-width="2"/>
+                        <rect x="6" y="14" width="12" height="8" stroke-width="2"/>
+                    </svg>
+                    Print Receipt
+                </button>
+                <button class="btn btn-secondary" onclick="closeCustomModal(); if(searchInput) searchInput.focus();">Print Later</button>
+            </div>
+        </div>
+    `;
+    
+    showCustomModal('Print Preview', printPreviewHTML);
+}
+
+// Updated printReceipt function to work with preview
+function printReceipt() {
+    const receiptNum = window.mainReceiptPaymentData ? window.mainReceiptPaymentData.receipt_number : document.getElementById('receiptNumber').textContent;
+    const date = new Date().toLocaleString();
+    const employeeName = EMPLOYEE_NAME;
+    
+    // Get last cart items from localStorage
+    const lastCartItems = JSON.parse(localStorage.getItem('lastCartItems') || '[]');
+    const paymentData = window.mainReceiptPaymentData;
+    
+    // Calculate totals
+    const subtotal = lastCartItems.reduce((s,i) => s + i.final_price * i.quantity, 0);
+    const tax = subtotal * 0.12;
+    const discountAmount = subtotal * (globalDiscount / 100);
+    const total = subtotal + tax - discountAmount;
+    
+    const printWindow = window.open('', '_blank');
+    
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Receipt #${receiptNum}</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20px; }
+                .receipt { border: 1px solid #000; padding: 20px; width: 80mm; }
+                .header { text-align: center; margin-bottom: 15px; }
+                .header h2 { margin: 0; font-size: 18px; }
+                .header p { margin: 4px 0; font-size: 12px; color: #666; }
+                .items { margin: 15px 0; }
+                .item { display: flex; justify-content: space-between; margin: 5px 0; font-size: 13px; }
+                .item-details { flex: 1; }
+                .item-total { font-weight: bold; }
+                .summary { border-top: 1px dashed #000; margin-top: 10px; padding-top: 10px; }
+                .summary-row { display: flex; justify-content: space-between; margin: 5px 0; }
+                .total { font-weight: bold; border-top: 2px solid #000; padding-top: 10px; margin-top: 10px; }
+                .footer { text-align: center; margin-top: 15px; font-size: 11px; color: #666; border-top: 1px dashed #000; padding-top: 10px; }
+            </style>
+        </head>
+        <body>
+            <div class="receipt">
+                <div class="header">
+                    <h2>Altiere</h2>
+                    <p>Receipt #: ${receiptNum}</p>
+                    <p>Date: ${date}</p>
+                    ${paymentData ? `<p>Payment: ${paymentData.method.toUpperCase()}</p>` : ''}
+                </div>
+                <div class="items">
+                    ${lastCartItems.map(item => `
+                        <div class="item">
+                            <div class="item-details">
+                                <div>${item.product_name} (${item.size_name})</div>
+                                <div style="font-size: 11px;">${item.quantity} × ₱${item.final_price.toFixed(2)}</div>
+                                ${item.notes ? `<div style="font-size: 10px; color: #666;">${item.notes}</div>` : ''}
+                            </div>
+                            <div class="item-total">₱${(item.quantity * item.final_price).toFixed(2)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="summary">
+                    <div class="summary-row"><span>Subtotal:</span><span>₱${subtotal.toFixed(2)}</span></div>
+                    <div class="summary-row"><span>Tax (12%):</span><span>₱${tax.toFixed(2)}</span></div>
+                    <div class="summary-row"><span>Discount:</span><span>₱${discountAmount.toFixed(2)}</span></div>
+                    <div class="summary-row total"><span>TOTAL:</span><span>₱${total.toFixed(2)}</span></div>
+                    ${paymentData && paymentData.method === 'cash' ? `
+                        <div class="summary-row"><span>Cash Received:</span><span>₱${paymentData.cash_received.toFixed(2)}</span></div>
+                        <div class="summary-row"><span>Change:</span><span>₱${(paymentData.cash_received - total).toFixed(2)}</span></div>
+                    ` : ''}
+                    ${paymentData && paymentData.transaction_ref ? `
+                        <div class="summary-row" style="font-size: 10px; color: #666;">
+                            <span>Reference:</span><span>${paymentData.transaction_ref}</span>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="footer">
+                    <p>Cashier: ${employeeName}</p>
+                    <p>Thank you for shopping with us!</p>
+                </div>
+            </div>
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.print();
+    closeCustomModal();
+    
+    // Clear temporary data
+    window.mainReceiptPaymentData = null;
+    localStorage.removeItem('lastCartItems');
+    
+    // Focus on search input
+    if (searchInput) searchInput.focus();
 }

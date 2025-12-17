@@ -171,18 +171,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Redirect to product page with success message
         $_SESSION['success'] = 'Product added successfully';
-        header('Location: index.php');
+        header('Location: index_2.php');
         exit;
 
     } catch (Exception $e) {
         $conn->rollback();
         error_log("Error adding product: " . $e->getMessage());
         $_SESSION['error'] = 'Error adding product: ' . $e->getMessage();
-        header('Location: add_product.php');
+        header('Location: add_prod.php');
         exit;
     }
 } else {
-    header('Location: add_product.php');
+    header('Location: add_prod.php');
     exit;
 }
 ?>

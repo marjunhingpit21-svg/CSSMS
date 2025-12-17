@@ -36,6 +36,11 @@ if (!file_exists($forecast_file) || (time() - filemtime($forecast_file)) > 7200)
     <div class="page-header">
         <h1>Sales Analytics Dashboard</h1>
         <div class="filter-group">
+            <select id="salesTypeFilter">
+                <option value="instore" selected>In-Store Sales</option>
+                <option value="online">Online Sales</option>
+                <option value="all">All Sales (In-Store + Online)</option>
+            </select>
             <select id="timeFilter">
                 <option value="week">Last 7 Days</option>
                 <option value="month" selected>Last 30 Days</option>
@@ -47,7 +52,7 @@ if (!file_exists($forecast_file) || (time() - filemtime($forecast_file)) > 7200)
     <!-- Key Metrics -->
     <div class="grid">
         <div class="card">
-            <h3>Total Revenue</h3>
+            <h3>Total Sales</h3>
             <div class="metric-value" id="totalRevenue">₱0</div>
             <small>Last 30 days</small>
         </div>
@@ -72,27 +77,32 @@ if (!file_exists($forecast_file) || (time() - filemtime($forecast_file)) > 7200)
     <div class="card forecast-card full-width">
         <h3>AI Demand Forecasting</h3>
         
-        <div class="ai-header">
-            <div>
-                <div class="metric-value" id="forecastTotal">—</div>
-                <small id="forecastChange">Loading forecast...</small>
+        <div class="forecast-header-section">
+            <div class="ai-header">
+                <div>
+                    <div class="metric-value" id="forecastTotal">—</div>
+                    <small id="forecastChange">Loading forecast...</small>
+                </div>
             </div>
+            
             <div class="ai-confidence">
                 <span>Confidence: <strong id="confidenceLevel">—</strong></span>
                 <i class="fas fa-circle" id="confidenceDot"></i>
             </div>
         </div>
 
-        <div class="chart-container" style="margin-top: 20px;">
-            <canvas id="forecastChart"></canvas>
-        </div>
+        <div class="forecast-content">
+            <div class="chart-container" style="margin-top: 20px;">
+                <canvas id="forecastChart"></canvas>
+            </div>
 
-        <!-- Will be hidden when no forecast data -->
-        <div class="ai-insights" id="aiInsightsSection" style="display: none;">
-            <h4>AI Insights & Recommendations</h4>
-            <ul id="aiRecommendations">
-                <li>Loading insights...</li>
-            </ul>
+            <!-- Will be hidden when no forecast data -->
+            <div class="ai-insights" id="aiInsightsSection" style="display: none;">
+                <h4>AI Insights & Recommendations</h4>
+                <ul id="aiRecommendations">
+                    <li>Loading insights...</li>
+                </ul>
+            </div>
         </div>
 
         <small style="display:block; text-align:right; margin-top:10px; color:#888;">
@@ -122,7 +132,7 @@ if (!file_exists($forecast_file) || (time() - filemtime($forecast_file)) > 7200)
             <div class="leaderboard">
                 <table id="topProductsTable">
                     <thead>
-                        <tr><th>Rank</th><th>Product</th><th>Category</th><th>Sold</th><th>Revenue</th></tr>
+                        <tr><th>Rank</th><th>Product</th><th>Category</th><th>Sold</th><th>Sales</th></tr>
                     </thead>
                     <tbody></tbody>
                 </table>
@@ -139,26 +149,30 @@ if (!file_exists($forecast_file) || (time() - filemtime($forecast_file)) > 7200)
     let categoryChart = null;
 
     const timeFilter = document.getElementById('timeFilter');
+    const salesTypeFilter = document.getElementById('salesTypeFilter');
     const aiInsightsSection = document.getElementById('aiInsightsSection');
 
-    // ── Map the main filter to forecast periods ──
-    function getForecastPeriodFromFilter() {
-        const val = timeFilter.value;
-        return val === 'week' ? '7' : val === 'month' ? '30' : '365';
+    // ── Map filters to params ──
+    function getParams() {
+        return {
+            period: timeFilter.value,
+            type:   salesTypeFilter.value   // instore | online | all
+        };
     }
 
-    // ── LOAD HISTORICAL ANALYTICS (fixed & safe) ──
-    async function loadAnalytics(period = 'month') {
+    // ── LOAD HISTORICAL ANALYTICS ──
+    async function loadAnalytics() {
+        const params = getParams();
         let data = { summary: {}, charts: {}, top_products: [] };
 
         try {
-            const res = await fetch(`sales_data.php?period=${period}`);
+            const res = await fetch(`sales_data.php?period=${params.period}&type=${params.type}&t=${Date.now()}`);
             if (res.ok) data = await res.json();
         } catch (err) {
             console.error('Failed to fetch analytics:', err);
         }
 
-        // Metrics (safe fallbacks)
+        // ── Metrics ──
         document.getElementById('totalRevenue').textContent = 
             '₱' + Number(data.summary?.revenue ?? 0).toLocaleString();
         document.getElementById('totalProfit').textContent = 
@@ -168,23 +182,46 @@ if (!file_exists($forecast_file) || (time() - filemtime($forecast_file)) > 7200)
         document.getElementById('avgOrder').textContent = 
             '₱' + Number(data.summary?.avg_order ?? 0).toFixed(0);
 
-        // Destroy old charts safely
+        // ── Destroy old charts safely ──
         [salesTrendChart, profitTrendChart, categoryChart].forEach(c => c?.destroy());
 
-        // Empty chart fallback
-        const emptyLine = {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: 'No data', data: [] }] },
-            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-        };
-        const emptyDoughnut = {
-            type: 'doughnut',
-            data: { labels: ['No data'], datasets: [{ data: [1], backgroundColor: ['#e0e0e0'] }] },
-            options: { plugins: { legend: { display: false } } }
-        };
+        const emptyLine = { type: 'line', data: { labels: [], datasets: [{ label: 'No data', data: [] }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } };
+        const emptyDoughnut = { type: 'doughnut', data: { labels: ['No data'], datasets: [{ data: [1], backgroundColor: ['#e0e0e0'] }] }, options: { plugins: { legend: { display: false } } } };
 
-        salesTrendChart = new Chart(document.getElementById('salesTrendChart'), data.charts?.sales_trend ?? emptyLine);
-        profitTrendChart = new Chart(document.getElementById('profitTrendChart'), data.charts?.profit_trend ?? emptyLine);
+        // Sales & Profit Trend
+        salesTrendChart = new Chart(document.getElementById('salesTrendChart'), {
+            type: 'line',
+            data: {
+                labels: data.trend?.labels || [],
+                datasets: [{
+                    label: 'Revenue',
+                    data: data.trend?.revenue || [],
+                    borderColor: '#e91e63',
+                    backgroundColor: 'rgba(233,30,99,0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+
+        profitTrendChart = new Chart(document.getElementById('profitTrendChart'), {
+            type: 'line',
+            data: {
+                labels: data.trend?.labels || [],
+                datasets: [{
+                    label: 'Profit',
+                    data: data.trend?.profit || [],
+                    borderColor: '#4caf50',
+                    backgroundColor: 'rgba(76,175,80,0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+
+        // Category doughnut
         categoryChart = new Chart(document.getElementById('categoryChart'), data.charts?.category ?? emptyDoughnut);
 
         // Top products table
@@ -206,16 +243,14 @@ if (!file_exists($forecast_file) || (time() - filemtime($forecast_file)) > 7200)
         }
     }
 
-    // ── LOAD AI FORECAST (fully intact + hide insights when no data) ──
+    // ── FORECAST (still uses only in-store historical data – most accurate) ──
     function loadForecast() {
-        const periodKey = getForecastPeriodFromFilter();
-
+        const periodKey = timeFilter.value === 'week' ? '7' : timeFilter.value === 'month' ? '30' : '365';
         fetch('../includes/forecast.json?v=' + Date.now())
             .then(r => r.ok ? r.json() : Promise.reject())
             .then(f => {
                 if (forecastChart) forecastChart.destroy();
 
-                // No forecast data available
                 if (!f?.forecasts || f.status === "no_data") {
                     document.querySelector('.forecast-card .chart-container').innerHTML = `
                         <div style="text-align:center;padding:80px;color:#999;font-size:1.2em;">
@@ -231,7 +266,6 @@ if (!file_exists($forecast_file) || (time() - filemtime($forecast_file)) > 7200)
                 const data = f.forecasts[periodKey];
                 const isYear = periodKey === '365';
 
-                // Header numbers
                 document.getElementById('forecastTotal').textContent = Number(data.total).toLocaleString() + ' items';
                 document.getElementById('forecastChange').textContent = 
                     (data.growth > 0 ? '+' : '') + data.growth + '% vs last ' + (isYear ? 'year' : periodKey + ' days');
@@ -241,7 +275,6 @@ if (!file_exists($forecast_file) || (time() - filemtime($forecast_file)) > 7200)
                 document.getElementById('confidenceDot').style.color = 
                     data.confidence >= 90 ? '#4caf50' : data.confidence >= 75 ? '#ff9800' : '#f44336';
 
-                // Forecast chart
                 forecastChart = new Chart(document.getElementById('forecastChart'), {
                     type: 'line',
                     data: {
@@ -268,7 +301,6 @@ if (!file_exists($forecast_file) || (time() - filemtime($forecast_file)) > 7200)
                     }
                 });
 
-                // Show AI insights only when forecast exists
                 const ul = document.getElementById('aiRecommendations');
                 ul.innerHTML = '';
                 f.insights.forEach(text => {
@@ -278,7 +310,6 @@ if (!file_exists($forecast_file) || (time() - filemtime($forecast_file)) > 7200)
                 });
                 aiInsightsSection.style.display = 'block';
 
-                // Last updated time
                 document.getElementById('lastUpdated').textContent = 
                     new Date(f.generated_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
             })
@@ -290,16 +321,15 @@ if (!file_exists($forecast_file) || (time() - filemtime($forecast_file)) > 7200)
             });
     }
 
-    // ── INITIAL LOAD ──
-    loadAnalytics('month');
+    // ── INITIAL LOAD + LISTENERS ──
+    loadAnalytics();
     loadForecast();
 
-    // ── SINGLE FILTER CONTROLS EVERYTHING ──
     timeFilter.addEventListener('change', () => {
-        const period = timeFilter.value;
-        loadAnalytics(period);
-        loadForecast();
+        loadAnalytics();
+        loadForecast();            // forecast still based on in-store (most reliable)
     });
+    salesTypeFilter.addEventListener('change', loadAnalytics);
 </script>
 
 </body>

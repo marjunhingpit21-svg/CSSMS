@@ -3,7 +3,7 @@ include '../includes/auth.php';
 include '../includes/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: index.php');
+    header('Location: index_2.php');
     exit;
 }
 
@@ -19,7 +19,7 @@ $cost_price = !empty($_POST['cost_price']) ? (float)$_POST['cost_price'] : 0.00;
 // Validate required fields
 if (empty($product_name) || $price <= 0 || empty($category_id)) {
     $_SESSION['error'] = 'Missing required fields';
-    header("Location: edit_product.php?id=$product_id");
+    header("Location: edit_prod.php?id=$product_id");
     exit;
 }
 
@@ -218,7 +218,7 @@ try {
     
     // Redirect to view page
     $_SESSION['success'] = 'Product updated successfully';
-    header("Location: view_product.php?id=$product_id");
+    header("Location: view_prod.php?id=$product_id");
     exit;
     
 } catch (Exception $e) {
@@ -226,7 +226,7 @@ try {
     $conn->rollback();
     error_log("Error updating product: " . $e->getMessage());
     $_SESSION['error'] = 'Error updating product: ' . $e->getMessage();
-    header("Location: edit_product.php?id=$product_id");
+    header("Location: edit_prod.php?id=$product_id");
     exit;
 }
 ?>

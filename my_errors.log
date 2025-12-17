@@ -898,3 +898,458 @@
 [12-Dec-2025 03:18:42 Europe/Berlin] === Script Started at 2025-12-12 03:18:42 ===
 >>>>>>> 906c6d0769da940294ccec30365b7d9a61f5b735
 [12-Dec-2025 03:31:26 Europe/Berlin] === Script Started at 2025-12-12 03:31:26 ===
+[12-Dec-2025 08:36:30 Europe/Berlin] === Script Started at 2025-12-12 08:36:30 ===
+[12-Dec-2025 08:36:35 Europe/Berlin] === Script Started at 2025-12-12 08:36:35 ===
+[12-Dec-2025 08:36:38 Europe/Berlin] === Script Started at 2025-12-12 08:36:38 ===
+[12-Dec-2025 09:47:34 Europe/Berlin] === Script Started at 2025-12-12 09:47:34 ===
+[12-Dec-2025 09:48:41 Europe/Berlin] === Script Started at 2025-12-12 09:48:41 ===
+[14-Dec-2025 16:30:29 Europe/Berlin] === Script Started at 2025-12-14 16:30:29 ===
+[14-Dec-2025 16:36:13 Europe/Berlin] === Script Started at 2025-12-14 16:36:13 ===
+[14-Dec-2025 16:51:57 Europe/Berlin] === Script Started at 2025-12-14 16:51:57 ===
+[14-Dec-2025 16:52:29 Europe/Berlin] === Script Started at 2025-12-14 16:52:29 ===
+[14-Dec-2025 16:52:46 Europe/Berlin] === Script Started at 2025-12-14 16:52:46 ===
+[14-Dec-2025 16:53:28 Europe/Berlin] === Script Started at 2025-12-14 16:53:28 ===
+[14-Dec-2025 16:53:58 Europe/Berlin] === Script Started at 2025-12-14 16:53:58 ===
+[14-Dec-2025 17:04:22 Europe/Berlin] === Script Started at 2025-12-14 17:04:22 ===
+[14-Dec-2025 17:13:49 Europe/Berlin] === Script Started at 2025-12-14 17:13:49 ===
+[14-Dec-2025 17:13:55 Europe/Berlin] === Script Started at 2025-12-14 17:13:55 ===
+[14-Dec-2025 17:13:56 Europe/Berlin] === Script Started at 2025-12-14 17:13:56 ===
+[14-Dec-2025 17:14:24 Europe/Berlin] === Script Started at 2025-12-14 17:14:24 ===
+[14-Dec-2025 17:14:24 Europe/Berlin] === RATING SUBMISSION START ===
+[14-Dec-2025 17:14:24 Europe/Berlin] POST data: Array
+(
+    [order_id] => 18
+    [rating_16] => 2
+    [quality_16] => 2
+    [fit_16] => 2
+    [value_16] => 2
+    [review_title_16] => 
+    [review_text_16] => 
+    [recommend_16] => 1
+    [submit_rating] => 
+)
+
+[14-Dec-2025 17:14:24 Europe/Berlin] FILES data: Array
+(
+    [rating_images_16] => Array
+        (
+            [name] => Array
+                (
+                    [0] => 525710070_730633292936362_2506937323371925193_n.jpg
+                )
+
+            [full_path] => Array
+                (
+                    [0] => 525710070_730633292936362_2506937323371925193_n.jpg
+                )
+
+            [type] => Array
+                (
+                    [0] => image/jpeg
+                )
+
+            [tmp_name] => Array
+                (
+                    [0] => C:\xamppNEW\tmp\php6B1B.tmp
+                )
+
+            [error] => Array
+                (
+                    [0] => 0
+                )
+
+            [size] => Array
+                (
+                    [0] => 23509
+                )
+
+        )
+
+)
+
+[14-Dec-2025 17:14:24 Europe/Berlin] Processing item - order_item_id: 16
+[14-Dec-2025 17:14:24 Europe/Berlin] === DETAILED DEBUG FOR ITEM 16 ===
+[14-Dec-2025 17:14:24 Europe/Berlin] Existing ratings found: 0
+[14-Dec-2025 17:14:24 Europe/Berlin] No existing rating, proceeding...
+[14-Dec-2025 17:14:24 Europe/Berlin] Rating key: rating_16
+[14-Dec-2025 17:14:24 Europe/Berlin] Rating value from POST: 2
+[14-Dec-2025 17:14:24 Europe/Berlin] Rating after intval: 2
+[14-Dec-2025 17:14:24 Europe/Berlin] SUCCESS: Inserted rating ID: 15
+[14-Dec-2025 17:14:24 Europe/Berlin] Looking for images with name: rating_images_16
+[14-Dec-2025 17:14:24 Europe/Berlin] FILES array: Array
+(
+    [rating_images_16] => Array
+        (
+            [name] => Array
+                (
+                    [0] => 525710070_730633292936362_2506937323371925193_n.jpg
+                )
+
+            [full_path] => Array
+                (
+                    [0] => 525710070_730633292936362_2506937323371925193_n.jpg
+                )
+
+            [type] => Array
+                (
+                    [0] => image/jpeg
+                )
+
+            [tmp_name] => Array
+                (
+                    [0] => C:\xamppNEW\tmp\php6B1B.tmp
+                )
+
+            [error] => Array
+                (
+                    [0] => 0
+                )
+
+            [size] => Array
+                (
+                    [0] => 23509
+                )
+
+        )
+
+)
+
+[14-Dec-2025 17:14:24 Europe/Berlin] Found images for rating_images_16
+[14-Dec-2025 17:14:24 Europe/Berlin] File array structure: Array
+(
+    [name] => Array
+        (
+            [0] => 525710070_730633292936362_2506937323371925193_n.jpg
+        )
+
+    [full_path] => Array
+        (
+            [0] => 525710070_730633292936362_2506937323371925193_n.jpg
+        )
+
+    [type] => Array
+        (
+            [0] => image/jpeg
+        )
+
+    [tmp_name] => Array
+        (
+            [0] => C:\xamppNEW\tmp\php6B1B.tmp
+        )
+
+    [error] => Array
+        (
+            [0] => 0
+        )
+
+    [size] => Array
+        (
+            [0] => 23509
+        )
+
+)
+
+[14-Dec-2025 17:14:24 Europe/Berlin] Found 1 images to upload
+[14-Dec-2025 17:14:24 Europe/Berlin] Processing image 0
+[14-Dec-2025 17:14:24 Europe/Berlin] Upload error code: 0
+[14-Dec-2025 17:14:24 Europe/Berlin] File: 525710070_730633292936362_2506937323371925193_n.jpg, Size: 23509, Type: image/jpeg
+[14-Dec-2025 17:14:24 Europe/Berlin] Attempting to move file to: ratingimages/693ee260d6e77_1765728864_0.jpg
+[14-Dec-2025 17:14:24 Europe/Berlin] SUCCESS: File moved to ratingimages/693ee260d6e77_1765728864_0.jpg
+[14-Dec-2025 17:14:24 Europe/Berlin] SUCCESS: Thumbnail created at ratingimages/thumbnails/thumb_693ee260d6e77_1765728864_0.jpg
+[14-Dec-2025 17:14:24 Europe/Berlin] === IMAGE INSERT DEBUG ===
+[14-Dec-2025 17:14:24 Europe/Berlin] Rating ID: 15
+[14-Dec-2025 17:14:24 Europe/Berlin] Upload Path: ratingimages/693ee260d6e77_1765728864_0.jpg
+[14-Dec-2025 17:14:24 Europe/Berlin] Thumbnail Path: ratingimages/thumbnails/thumb_693ee260d6e77_1765728864_0.jpg
+[14-Dec-2025 17:14:24 Europe/Berlin] File Name: 525710070_730633292936362_2506937323371925193_n.jpg
+[14-Dec-2025 17:14:24 Europe/Berlin] File Size: 23509
+[14-Dec-2025 17:14:24 Europe/Berlin] File Type: image/jpeg
+[14-Dec-2025 17:14:24 Europe/Berlin] Image Order: 1
+[14-Dec-2025 17:14:24 Europe/Berlin] SUCCESS: Image record inserted into database with ID: 10
+[14-Dec-2025 17:14:24 Europe/Berlin] Verification - Rows found: 1
+[14-Dec-2025 17:14:24 Europe/Berlin] === RATING SUBMISSION END ===
+[14-Dec-2025 17:14:24 Europe/Berlin] === Script Started at 2025-12-14 17:14:24 ===
+[16-Dec-2025 02:50:53 Europe/Berlin] === Script Started at 2025-12-16 02:50:53 ===
+[16-Dec-2025 02:57:34 Europe/Berlin] === Script Started at 2025-12-16 02:57:34 ===
+[16-Dec-2025 02:58:29 Europe/Berlin] === Script Started at 2025-12-16 02:58:29 ===
+[16-Dec-2025 02:59:11 Europe/Berlin] === Script Started at 2025-12-16 02:59:11 ===
+[16-Dec-2025 02:59:46 Europe/Berlin] === Script Started at 2025-12-16 02:59:46 ===
+[16-Dec-2025 03:00:16 Europe/Berlin] === Script Started at 2025-12-16 03:00:16 ===
+[16-Dec-2025 03:20:12 Europe/Berlin] === Script Started at 2025-12-16 03:20:12 ===
+[16-Dec-2025 03:20:36 Europe/Berlin] === Script Started at 2025-12-16 03:20:36 ===
+[16-Dec-2025 03:21:08 Europe/Berlin] === Script Started at 2025-12-16 03:21:08 ===
+[16-Dec-2025 03:23:27 Europe/Berlin] === Script Started at 2025-12-16 03:23:27 ===
+[16-Dec-2025 03:23:31 Europe/Berlin] === Script Started at 2025-12-16 03:23:31 ===
+[16-Dec-2025 03:23:31 Europe/Berlin] === Script Started at 2025-12-16 03:23:31 ===
+[16-Dec-2025 03:46:19 Europe/Berlin] === Script Started at 2025-12-16 03:46:19 ===
+[16-Dec-2025 03:46:25 Europe/Berlin] === Script Started at 2025-12-16 03:46:25 ===
+[16-Dec-2025 03:46:25 Europe/Berlin] === Script Started at 2025-12-16 03:46:25 ===
+[16-Dec-2025 03:47:03 Europe/Berlin] === Script Started at 2025-12-16 03:47:03 ===
+[16-Dec-2025 03:47:13 Europe/Berlin] === Script Started at 2025-12-16 03:47:13 ===
+[16-Dec-2025 03:47:13 Europe/Berlin] === Script Started at 2025-12-16 03:47:13 ===
+[16-Dec-2025 04:18:02 Europe/Berlin] === Script Started at 2025-12-16 04:18:02 ===
+[16-Dec-2025 04:18:57 Europe/Berlin] === Script Started at 2025-12-16 04:18:57 ===
+[16-Dec-2025 04:20:06 Europe/Berlin] === Script Started at 2025-12-16 04:20:06 ===
+[16-Dec-2025 04:20:48 Europe/Berlin] === Script Started at 2025-12-16 04:20:48 ===
+[16-Dec-2025 04:20:51 Europe/Berlin] === Script Started at 2025-12-16 04:20:51 ===
+[16-Dec-2025 04:20:51 Europe/Berlin] === Script Started at 2025-12-16 04:20:51 ===
+[16-Dec-2025 04:21:02 Europe/Berlin] === Script Started at 2025-12-16 04:21:02 ===
+[16-Dec-2025 04:21:02 Europe/Berlin] === Script Started at 2025-12-16 04:21:02 ===
+[16-Dec-2025 04:21:06 Europe/Berlin] === Script Started at 2025-12-16 04:21:06 ===
+[16-Dec-2025 04:21:06 Europe/Berlin] === Script Started at 2025-12-16 04:21:06 ===
+[16-Dec-2025 04:21:49 Europe/Berlin] === Script Started at 2025-12-16 04:21:49 ===
+[16-Dec-2025 04:21:49 Europe/Berlin] === RATING SUBMISSION START ===
+[16-Dec-2025 04:21:49 Europe/Berlin] POST data: Array
+(
+    [order_id] => 21
+    [rating_20] => 4
+    [quality_20] => 3
+    [fit_20] => 2
+    [value_20] => 1
+    [review_title_20] => Titeng may tahi
+    [review_text_20] => sobrang sarap
+    [recommend_20] => 1
+    [submit_rating] => 
+)
+
+[16-Dec-2025 04:21:49 Europe/Berlin] FILES data: Array
+(
+    [rating_images_20] => Array
+        (
+            [name] => Array
+                (
+                    [0] => Lulu in a bag (3).png
+                    [1] => Lulu in a bag (2).png
+                    [2] => Lulu in a bag (1).png
+                    [3] => IMC Five Projects.png
+                )
+
+            [full_path] => Array
+                (
+                    [0] => Lulu in a bag (3).png
+                    [1] => Lulu in a bag (2).png
+                    [2] => Lulu in a bag (1).png
+                    [3] => IMC Five Projects.png
+                )
+
+            [type] => Array
+                (
+                    [0] => image/png
+                    [1] => image/png
+                    [2] => image/png
+                    [3] => image/png
+                )
+
+            [tmp_name] => Array
+                (
+                    [0] => C:\xamppNEW\tmp\phpCE23.tmp
+                    [1] => C:\xamppNEW\tmp\phpCE34.tmp
+                    [2] => C:\xamppNEW\tmp\phpCE35.tmp
+                    [3] => C:\xamppNEW\tmp\phpCE75.tmp
+                )
+
+            [error] => Array
+                (
+                    [0] => 0
+                    [1] => 0
+                    [2] => 0
+                    [3] => 0
+                )
+
+            [size] => Array
+                (
+                    [0] => 50242
+                    [1] => 64288
+                    [2] => 3047337
+                    [3] => 887367
+                )
+
+        )
+
+)
+
+[16-Dec-2025 04:21:49 Europe/Berlin] Processing item - order_item_id: 20
+[16-Dec-2025 04:21:49 Europe/Berlin] === DETAILED DEBUG FOR ITEM 20 ===
+[16-Dec-2025 04:21:49 Europe/Berlin] Existing ratings found: 0
+[16-Dec-2025 04:21:49 Europe/Berlin] No existing rating, proceeding...
+[16-Dec-2025 04:21:49 Europe/Berlin] Rating key: rating_20
+[16-Dec-2025 04:21:49 Europe/Berlin] Rating value from POST: 4
+[16-Dec-2025 04:21:49 Europe/Berlin] Rating after intval: 4
+[16-Dec-2025 04:21:49 Europe/Berlin] SUCCESS: Inserted rating ID: 12
+[16-Dec-2025 04:21:49 Europe/Berlin] Looking for images with name: rating_images_20
+[16-Dec-2025 04:21:49 Europe/Berlin] FILES array: Array
+(
+    [rating_images_20] => Array
+        (
+            [name] => Array
+                (
+                    [0] => Lulu in a bag (3).png
+                    [1] => Lulu in a bag (2).png
+                    [2] => Lulu in a bag (1).png
+                    [3] => IMC Five Projects.png
+                )
+
+            [full_path] => Array
+                (
+                    [0] => Lulu in a bag (3).png
+                    [1] => Lulu in a bag (2).png
+                    [2] => Lulu in a bag (1).png
+                    [3] => IMC Five Projects.png
+                )
+
+            [type] => Array
+                (
+                    [0] => image/png
+                    [1] => image/png
+                    [2] => image/png
+                    [3] => image/png
+                )
+
+            [tmp_name] => Array
+                (
+                    [0] => C:\xamppNEW\tmp\phpCE23.tmp
+                    [1] => C:\xamppNEW\tmp\phpCE34.tmp
+                    [2] => C:\xamppNEW\tmp\phpCE35.tmp
+                    [3] => C:\xamppNEW\tmp\phpCE75.tmp
+                )
+
+            [error] => Array
+                (
+                    [0] => 0
+                    [1] => 0
+                    [2] => 0
+                    [3] => 0
+                )
+
+            [size] => Array
+                (
+                    [0] => 50242
+                    [1] => 64288
+                    [2] => 3047337
+                    [3] => 887367
+                )
+
+        )
+
+)
+
+[16-Dec-2025 04:21:49 Europe/Berlin] Found images for rating_images_20
+[16-Dec-2025 04:21:49 Europe/Berlin] File array structure: Array
+(
+    [name] => Array
+        (
+            [0] => Lulu in a bag (3).png
+            [1] => Lulu in a bag (2).png
+            [2] => Lulu in a bag (1).png
+            [3] => IMC Five Projects.png
+        )
+
+    [full_path] => Array
+        (
+            [0] => Lulu in a bag (3).png
+            [1] => Lulu in a bag (2).png
+            [2] => Lulu in a bag (1).png
+            [3] => IMC Five Projects.png
+        )
+
+    [type] => Array
+        (
+            [0] => image/png
+            [1] => image/png
+            [2] => image/png
+            [3] => image/png
+        )
+
+    [tmp_name] => Array
+        (
+            [0] => C:\xamppNEW\tmp\phpCE23.tmp
+            [1] => C:\xamppNEW\tmp\phpCE34.tmp
+            [2] => C:\xamppNEW\tmp\phpCE35.tmp
+            [3] => C:\xamppNEW\tmp\phpCE75.tmp
+        )
+
+    [error] => Array
+        (
+            [0] => 0
+            [1] => 0
+            [2] => 0
+            [3] => 0
+        )
+
+    [size] => Array
+        (
+            [0] => 50242
+            [1] => 64288
+            [2] => 3047337
+            [3] => 887367
+        )
+
+)
+
+[16-Dec-2025 04:21:49 Europe/Berlin] Found 4 images to upload
+[16-Dec-2025 04:21:49 Europe/Berlin] Processing image 0
+[16-Dec-2025 04:21:49 Europe/Berlin] Upload error code: 0
+[16-Dec-2025 04:21:49 Europe/Berlin] File: Lulu in a bag (3).png, Size: 50242, Type: image/png
+[16-Dec-2025 04:21:49 Europe/Berlin] Attempting to move file to: ratingimages/6940d04d3c0b0_1765855309_0.png
+[16-Dec-2025 04:21:49 Europe/Berlin] SUCCESS: File moved to ratingimages/6940d04d3c0b0_1765855309_0.png
+[16-Dec-2025 04:21:49 Europe/Berlin] SUCCESS: Thumbnail created at ratingimages/thumbnails/thumb_6940d04d3c0b0_1765855309_0.png
+[16-Dec-2025 04:21:49 Europe/Berlin] === IMAGE INSERT DEBUG ===
+[16-Dec-2025 04:21:49 Europe/Berlin] Rating ID: 12
+[16-Dec-2025 04:21:49 Europe/Berlin] Upload Path: ratingimages/6940d04d3c0b0_1765855309_0.png
+[16-Dec-2025 04:21:49 Europe/Berlin] Thumbnail Path: ratingimages/thumbnails/thumb_6940d04d3c0b0_1765855309_0.png
+[16-Dec-2025 04:21:49 Europe/Berlin] File Name: Lulu in a bag (3).png
+[16-Dec-2025 04:21:49 Europe/Berlin] File Size: 50242
+[16-Dec-2025 04:21:49 Europe/Berlin] File Type: image/png
+[16-Dec-2025 04:21:49 Europe/Berlin] Image Order: 1
+[16-Dec-2025 04:21:49 Europe/Berlin] SUCCESS: Image record inserted into database with ID: 3
+[16-Dec-2025 04:21:49 Europe/Berlin] Verification - Rows found: 1
+[16-Dec-2025 04:21:49 Europe/Berlin] Processing image 1
+[16-Dec-2025 04:21:49 Europe/Berlin] Upload error code: 0
+[16-Dec-2025 04:21:49 Europe/Berlin] File: Lulu in a bag (2).png, Size: 64288, Type: image/png
+[16-Dec-2025 04:21:49 Europe/Berlin] Attempting to move file to: ratingimages/6940d04d99308_1765855309_1.png
+[16-Dec-2025 04:21:49 Europe/Berlin] SUCCESS: File moved to ratingimages/6940d04d99308_1765855309_1.png
+[16-Dec-2025 04:21:49 Europe/Berlin] SUCCESS: Thumbnail created at ratingimages/thumbnails/thumb_6940d04d99308_1765855309_1.png
+[16-Dec-2025 04:21:49 Europe/Berlin] === IMAGE INSERT DEBUG ===
+[16-Dec-2025 04:21:49 Europe/Berlin] Rating ID: 12
+[16-Dec-2025 04:21:49 Europe/Berlin] Upload Path: ratingimages/6940d04d99308_1765855309_1.png
+[16-Dec-2025 04:21:49 Europe/Berlin] Thumbnail Path: ratingimages/thumbnails/thumb_6940d04d99308_1765855309_1.png
+[16-Dec-2025 04:21:49 Europe/Berlin] File Name: Lulu in a bag (2).png
+[16-Dec-2025 04:21:49 Europe/Berlin] File Size: 64288
+[16-Dec-2025 04:21:50 Europe/Berlin] File Type: image/png
+[16-Dec-2025 04:21:50 Europe/Berlin] Image Order: 2
+[16-Dec-2025 04:21:50 Europe/Berlin] SUCCESS: Image record inserted into database with ID: 4
+[16-Dec-2025 04:21:50 Europe/Berlin] Verification - Rows found: 1
+[16-Dec-2025 04:21:50 Europe/Berlin] Processing image 2
+[16-Dec-2025 04:21:50 Europe/Berlin] Upload error code: 0
+[16-Dec-2025 04:21:50 Europe/Berlin] File: Lulu in a bag (1).png, Size: 3047337, Type: image/png
+[16-Dec-2025 04:21:50 Europe/Berlin] Attempting to move file to: ratingimages/6940d04e03a62_1765855310_2.png
+[16-Dec-2025 04:21:50 Europe/Berlin] SUCCESS: File moved to ratingimages/6940d04e03a62_1765855310_2.png
+[16-Dec-2025 04:21:50 Europe/Berlin] SUCCESS: Thumbnail created at ratingimages/thumbnails/thumb_6940d04e03a62_1765855310_2.png
+[16-Dec-2025 04:21:50 Europe/Berlin] === IMAGE INSERT DEBUG ===
+[16-Dec-2025 04:21:50 Europe/Berlin] Rating ID: 12
+[16-Dec-2025 04:21:50 Europe/Berlin] Upload Path: ratingimages/6940d04e03a62_1765855310_2.png
+[16-Dec-2025 04:21:50 Europe/Berlin] Thumbnail Path: ratingimages/thumbnails/thumb_6940d04e03a62_1765855310_2.png
+[16-Dec-2025 04:21:50 Europe/Berlin] File Name: Lulu in a bag (1).png
+[16-Dec-2025 04:21:50 Europe/Berlin] File Size: 3047337
+[16-Dec-2025 04:21:50 Europe/Berlin] File Type: image/png
+[16-Dec-2025 04:21:50 Europe/Berlin] Image Order: 3
+[16-Dec-2025 04:21:50 Europe/Berlin] SUCCESS: Image record inserted into database with ID: 5
+[16-Dec-2025 04:21:50 Europe/Berlin] Verification - Rows found: 1
+[16-Dec-2025 04:21:50 Europe/Berlin] Processing image 3
+[16-Dec-2025 04:21:50 Europe/Berlin] Upload error code: 0
+[16-Dec-2025 04:21:50 Europe/Berlin] File: IMC Five Projects.png, Size: 887367, Type: image/png
+[16-Dec-2025 04:21:50 Europe/Berlin] Attempting to move file to: ratingimages/6940d04eb73aa_1765855310_3.png
+[16-Dec-2025 04:21:50 Europe/Berlin] SUCCESS: File moved to ratingimages/6940d04eb73aa_1765855310_3.png
+[16-Dec-2025 04:21:50 Europe/Berlin] PHP Deprecated:  Implicit conversion from float -37.5 to int loses precision in C:\xamppNEW\htdocs\CSSMS\orders.php on line 200
+[16-Dec-2025 04:21:51 Europe/Berlin] SUCCESS: Thumbnail created at ratingimages/thumbnails/thumb_6940d04eb73aa_1765855310_3.png
+[16-Dec-2025 04:21:51 Europe/Berlin] === IMAGE INSERT DEBUG ===
+[16-Dec-2025 04:21:51 Europe/Berlin] Rating ID: 12
+[16-Dec-2025 04:21:51 Europe/Berlin] Upload Path: ratingimages/6940d04eb73aa_1765855310_3.png
+[16-Dec-2025 04:21:51 Europe/Berlin] Thumbnail Path: ratingimages/thumbnails/thumb_6940d04eb73aa_1765855310_3.png
+[16-Dec-2025 04:21:51 Europe/Berlin] File Name: IMC Five Projects.png
+[16-Dec-2025 04:21:51 Europe/Berlin] File Size: 887367
+[16-Dec-2025 04:21:51 Europe/Berlin] File Type: image/png
+[16-Dec-2025 04:21:51 Europe/Berlin] Image Order: 4
+[16-Dec-2025 04:21:51 Europe/Berlin] SUCCESS: Image record inserted into database with ID: 6
+[16-Dec-2025 04:21:51 Europe/Berlin] Verification - Rows found: 1
+[16-Dec-2025 04:21:51 Europe/Berlin] === RATING SUBMISSION END ===
+[16-Dec-2025 04:21:51 Europe/Berlin] === Script Started at 2025-12-16 04:21:51 ===
