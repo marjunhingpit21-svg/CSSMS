@@ -97,8 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
 
                 // Only update if we have new address data
                 if ($selected_address_id == 0 && !empty($first_name)) {
-                    $update_customer = $conn->prepare("UPDATE customers SET first_name=?, last_name=?, phone=? WHERE customer_id=?");
-                    $update_customer->bind_param("sssi", $first_name, $last_name, $phone, $customer_id);
+                    $update_customer = $conn->prepare("UPDATE customers SET first_name=?, last_name=?, phone=?, email=? WHERE customer_id=?");
+                    $update_customer->bind_param("ssssi", $first_name, $last_name, $phone, $user_email, $customer_id);
                     $update_customer->execute();
                 } else {
                     // Use existing customer data for address lookup
@@ -113,8 +113,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
                 }
 
                 // FIX: Changed from 5 placeholders to 4
-                $insert_customer = $conn->prepare("INSERT INTO customers (user_id, first_name, last_name, phone) VALUES (?, ?, ?, ?)");
-                $insert_customer->bind_param("isss", $_SESSION['user_id'], $first_name, $last_name, $phone);
+                // NEW (FIXED):
+                $insert_customer = $conn->prepare("INSERT INTO customers (user_id, first_name, last_name, phone, email) VALUES (?, ?, ?, ?, ?)");
+                $insert_customer->bind_param("issss", $_SESSION['user_id'], $first_name, $last_name, $phone, $user_email);
                 $insert_customer->execute();
                 $customer_id = $conn->insert_id;
             }
