@@ -5,13 +5,61 @@ document.addEventListener('DOMContentLoaded', function() {
     updateFKeyState();
 });
 
+// Add a flag to track if "Others" discount authorization was successful
+let othersDiscountAuthorized = false;
+
 // F1 - Apply Discount
 function applyDiscount() {
     if (cart.length === 0) {
         alert('Please add items to the cart first.');
         return;
     }
+    
+    // If Others discount is selected but not authorized, trigger authorization
+    if (globalDiscountType === 'others' && !othersDiscountAuthorized) {
+        selectDiscountType('others', 0);
+        return;
+    }
+    
+    showDiscountModalWithOthersSelected();
+}
 
+function selectDiscountType(type, percentage) {
+    if (type === 'others') {
+        // For "Others" discount, require authorization first
+        showAuthorizationModal(
+            'APPLY CUSTOM DISCOUNT',
+            (extraData, authData) => {
+                // After SUCCESSFUL authorization
+                othersDiscountAuthorized = true;
+                globalDiscountType = 'others'; // Set type to others
+                globalDiscount = 0; // Reset to 0 for custom input
+                showDiscountModalWithOthersSelected(authData); // Show discount modal with Others selected
+            },
+            null, // extraData
+            () => {
+                // Callback when authorization is cancelled or failed
+                // Reset everything
+                othersDiscountAuthorized = false;
+                globalDiscountType = ''; // Clear discount type
+                showFunctionFeedback('Custom discount authorization cancelled');
+            }
+        );
+    } else {
+        globalDiscountType = type;
+        globalDiscount = percentage;
+        othersDiscountAuthorized = false; // Reset for non-others discounts
+        applyDiscount(); // Show discount modal immediately for non-others
+    }
+}
+
+// New function to show discount modal with Others already selected
+function showDiscountModalWithOthersSelected(authData = null) {
+    if (cart.length === 0) {
+        alert('Please add items to the cart first.');
+        return;
+    }
+    
     const modalHTML = `
         <div style="padding: 20px;">
            <div style="margin-bottom: 20px;">
@@ -44,6 +92,14 @@ function applyDiscount() {
                 </div>
             </div>
             
+            ${authData ? `
+                <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+                    <p style="margin: 0; color: #2e7d32; font-size: 12px;">
+                        ✓ Authorized by: ${authData.employee_name} (${authData.position})
+                    </p>
+                </div>
+            ` : ''}
+            
             <div style="margin-bottom: 20px;" id="discountIdNumberSection" style="display: ${globalDiscountType ? 'block' : 'none'}">
                 <label style="font-weight: 600; display: block; margin-bottom: 8px;">ID Number:</label>
                 <input type="text" id="discountIdNumber" 
@@ -60,29 +116,40 @@ function applyDiscount() {
             </div>
             
             <div style="display: flex; gap: 10px;">
-                <button class="btn btn-primary" onclick="saveDiscount()" style="flex: 1;">Apply Discount</button>
+                <button class="btn btn-primary" onclick="saveDiscount()" style="flex: 1;">
+                    Apply Discount
+                </button>
                 <button class="btn btn-secondary" onclick="closeCustomModal()">Cancel</button>
             </div>
         </div>
     `;
     
     showCustomModal('Apply Discount', modalHTML);
-}
-
-function selectDiscountType(type, percentage) {
-    globalDiscountType = type;
-    if (type !== 'others') {
-        globalDiscount = percentage;
+    
+    // Auto-focus the discount input field if Others is selected
+    if (globalDiscountType === 'others') {
+        setTimeout(() => {
+            const discountInput = document.getElementById('discountInput');
+            if (discountInput) {
+                discountInput.focus();
+                discountInput.select();
+            }
+        }, 100);
     }
-    applyDiscount();
 }
-
+// Update the saveDiscount function
 function saveDiscount() {
     let discount = globalDiscount;
+    let discountInput = null;
     
     if (globalDiscountType === 'others') {
-        const discountInput = document.getElementById('discountInput');
+        discountInput = document.getElementById('discountInput');
         discount = parseFloat(discountInput?.value) || 0;
+        
+        // Store authorization info for Others discount
+        globalDiscountAuthorizedBy = pendingAuthorization?.authData?.employee_name || 'System';
+        globalDiscountAuthId = pendingAuthorization?.authData?.employee_id || null;
+        globalDiscountAuthPosition = pendingAuthorization?.authData?.position || '';
     }
     
     const idNumber = document.getElementById('discountIdNumber')?.value.trim() || '';
@@ -97,12 +164,63 @@ function saveDiscount() {
         return;
     }
     
+    // Create discount note for all cart items
+    const now = new Date();
+    const dateTime = now.toLocaleString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    let discountNote = '';
+    
+    if (globalDiscountType === 'others') {
+        discountNote = `
+╔══════════════════════════════════════════════════════════════════════╗
+║ CUSTOM DISCOUNT - ${dateTime.padEnd(30)} ║
+╠══════════════════════════════════════════════════════════════════════╣
+║ Discount: ${discount}%${' '.padEnd(59)} ║
+║ ID Number: ${idNumber.padEnd(58)} ║
+╠══════════════════════════════════════════════════════════════════════╣
+║ Authorized by: ${globalDiscountAuthorizedBy.padEnd(57)} ║
+║ Position:      ${globalDiscountAuthPosition.padEnd(57)} ║
+╚══════════════════════════════════════════════════════════════════════╝
+`;
+    } else if (globalDiscountType) {
+        discountNote = `
+╔══════════════════════════════════════════════════════════════════════╗
+║ ${globalDiscountType.toUpperCase()} DISCOUNT - ${dateTime.padEnd(31)} ║
+╠══════════════════════════════════════════════════════════════════════╣
+║ Discount: ${discount}%${' '.padEnd(59)} ║
+║ ID Number: ${idNumber.padEnd(58)} ║
+╚══════════════════════════════════════════════════════════════════════╝
+`;
+    }
+    
+    // Add discount note to all cart items
+    if (discountNote) {
+        cart.forEach(item => {
+            if (item.notes) {
+                item.notes += '\n\n' + discountNote;
+            } else {
+                item.notes = discountNote;
+            }
+        });
+    }
+    
     globalDiscount = discount;
     globalDiscountIdNumber = idNumber;
     
     updateTotals();
     showFunctionFeedback(`${globalDiscountType ? globalDiscountType.toUpperCase() + ' ' : ''}Discount applied: ${discount}%`);
     closeCustomModal();
+    
+    // Reset authorization flag after saving (only for Others)
+    if (globalDiscountType === 'others') {
+        othersDiscountAuthorized = false;
+    }
 }
 
 // F3 - Delete All Items
@@ -118,12 +236,13 @@ function deleteAllItems() {
         globalDiscount = 0;
         globalDiscountType = '';
         globalDiscountIdNumber = '';
+        othersDiscountAuthorized = false; // Reset authorization flag
         renderCart();
         showFunctionFeedback('All items deleted from cart');
     }
 }
 
-// F4 - Change Price
+// F4 - Change Price (with authorization)
 function changePrice() {
     if (selectedItemIndex === -1 || !cart[selectedItemIndex]) {
         alert('Please add an item to the cart first.');
@@ -132,9 +251,27 @@ function changePrice() {
 
     const item = cart[selectedItemIndex];
     
+    // Show authorization modal first
+    showAuthorizationModal(
+        `CHANGE PRICE for "${item.product_name}"`,
+        (extraData, authData) => {
+            // After authorization, show price change modal
+            showPriceChangeModal(item, authData);
+        },
+        { item }
+    );
+}
+
+function showPriceChangeModal(item, authData) {
     const modalHTML = `
         <div style="padding: 20px;">
             <h3 style="margin-bottom: 15px; color: #1a1a2e;">Change Price</h3>
+            
+            <div style="background: #ffeef2; border-left: 4px solid #e91e63; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; color: #c2185b; font-size: 14px;">
+                    Authorized by: ${authData.employee_name} (${authData.position})
+                </p>
+            </div>
             
             <p style="margin-bottom: 15px; color: #666;">
                 Changing price for: <strong>${item.product_name}</strong>
@@ -158,8 +295,20 @@ function changePrice() {
                        placeholder="0.00" min="0" step="0.01" value="${item.final_price.toFixed(2)}" autofocus>
             </div>
             
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: 600; display: block; margin-bottom: 8px;">
+                    Reason for Price Change: <span style="color: #d32f2f;">*</span>
+                </label>
+                <textarea id="priceChangeReason" 
+                       style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; min-height: 80px; font-size: 14px; resize: vertical;"
+                       placeholder="Please provide a reason for changing the price (e.g., customer request, special discount, price adjustment)..."></textarea>
+                <div id="priceChangeReasonError" style="color: #d32f2f; font-size: 12px; margin-top: 5px; display: none;">
+                    Please provide a reason for the price change
+                </div>
+            </div>
+            
             <div style="display: flex; gap: 10px;">
-                <button class="btn btn-primary" onclick="savePrice()" style="flex: 1;">Change Price</button>
+                <button class="btn btn-primary" id="changePriceBtn" style="flex: 1;">Change Price</button>
                 <button class="btn btn-secondary" onclick="closeCustomModal()">Cancel</button>
             </div>
         </div>
@@ -167,22 +316,109 @@ function changePrice() {
     
     showCustomModal('Change Price', modalHTML);
     setTimeout(() => document.getElementById('priceInput').select(), 100);
+    
+    // Add event listener AFTER the modal is shown
+    setTimeout(() => {
+        const changePriceBtn = document.getElementById('changePriceBtn');
+        if (changePriceBtn) {
+            changePriceBtn.addEventListener('click', function() {
+                savePrice(item, authData);
+            });
+        }
+    }, 100);
 }
 
-function savePrice() {
+function savePrice(item, authData) {
     const newPrice = parseFloat(document.getElementById('priceInput').value);
+    const reason = document.getElementById('priceChangeReason')?.value.trim() || '';
+    const errorDiv = document.getElementById('priceChangeReasonError');
     
     if (isNaN(newPrice) || newPrice < 0) {
         alert('Invalid price. Please enter a valid amount.');
         return;
     }
+    
+    // Check if price is actually changing
+    if (newPrice === item.final_price) {
+        alert('No changes detected. The new price is the same as the current price.');
+        return;
+    }
+    
+    // Validate reason
+    if (!reason) {
+        if (errorDiv) {
+            errorDiv.textContent = 'Please provide a reason for the price change';
+            errorDiv.style.display = 'block';
+        } else {
+            alert('Please provide a reason for the price change.');
+        }
+        return;
+    }
 
-    cart[selectedItemIndex].final_price = newPrice;
-    cart[selectedItemIndex].discount = 0;
-    cart[selectedItemIndex].price_changed = true;
+    // Find the item in cart (in case index changed)
+    const itemIndex = cart.findIndex(cartItem => 
+        cartItem.product_id === item.product_id && 
+        cartItem.product_size_id === item.product_size_id
+    );
+    
+    if (itemIndex === -1) {
+        alert('Item not found in cart.');
+        return;
+    }
+
+    // Store authorization info with the price change
+    cart[itemIndex].final_price = newPrice;
+    cart[itemIndex].discount = 0;
+    cart[itemIndex].price_changed = true;
+    cart[itemIndex].price_changed_by = authData.employee_name;
+    cart[itemIndex].price_change_auth_id = authData.employee_id;
+    cart[itemIndex].price_change_reason = reason;
+    
+    // Create or update notes with price change information
+    const now = new Date();
+    const dateTime = now.toLocaleString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    const priceChangeNote = `
+╔══════════════════════════════════════════════════════════════════════╗
+║ PRICE CHANGE - ${dateTime.padEnd(32)} ║
+╠══════════════════════════════════════════════════════════════════════╣
+║ Old Price: ₱${item.final_price.toFixed(2).padEnd(48)} ║
+║ New Price: ₱${newPrice.toFixed(2).padEnd(48)} ║
+║ Change:    ${newPrice > item.final_price ? 'INCREASE' : 'DECREASE'}${' '.padEnd(51)} ║
+╠══════════════════════════════════════════════════════════════════════╣
+║ REASON: ${reason.substring(0, 68).padEnd(69)} ║
+${reason.length > 68 ? `║         ${reason.substring(68, 136).padEnd(69)} ║` : ''}
+${reason.length > 136 ? `║         ${reason.substring(136, 204).padEnd(69)} ║` : ''}
+╠══════════════════════════════════════════════════════════════════════╣
+║ Authorized by: ${authData.employee_name.padEnd(57)} ║
+║ Position:      ${authData.position.padEnd(57)} ║
+╚══════════════════════════════════════════════════════════════════════╝
+`;
+    
+    // Append to existing notes or create new notes
+    if (cart[itemIndex].notes) {
+        cart[itemIndex].notes += '\n\n' + priceChangeNote;
+    } else {
+        cart[itemIndex].notes = priceChangeNote;
+    }
+    
+    // Update selected item index if needed
+    if (selectedItemIndex === itemIndex) {
+        selectedItemIndex = itemIndex;
+    }
     
     renderCart();
-    showFunctionFeedback(`Price changed to ₱${newPrice.toFixed(2)}`);
+    
+    // Show appropriate message based on price change
+    const changeType = newPrice > item.final_price ? 'increased' : 'decreased';
+    showFunctionFeedback(`Price ${changeType} to ₱${newPrice.toFixed(2)} (Authorized by: ${authData.employee_name})`);
+    
     closeCustomModal();
 }
 
@@ -353,7 +589,6 @@ function confirmDelete() {
 }
 
 // ESC - Logout
-// ESC - Logout
 function logoutCashier() {
     if (cart.length > 0) {
         if (!confirm('You have items in the cart. Are you sure you want to logout?')) {
@@ -362,7 +597,7 @@ function logoutCashier() {
     }
     
     if (confirm('Logout from POS system?.')) {
-        window.location.href = '../logout.php';  // Changed from index.php to logout.php
+        window.location.href = 'logout.php';  // Changed from index.php to logout.php
     }
 }
 
@@ -392,4 +627,150 @@ function updateFKeyState() {
             }
         }
     });
+}
+
+// Authorization System for Manager/Supervisor Actions
+
+let pendingAuthorization = null;
+
+// Show authorization modal
+function showAuthorizationModal(action, successCallback, extraData = {}, failCallback = null) {
+    pendingAuthorization = { 
+        action, 
+        successCallback, 
+        extraData, 
+        failCallback 
+    };
+    
+    const modalHTML = `
+        <div style="padding: 20px;">
+            <h3 style="margin-bottom: 15px; color: #1a1a2e;">Authorization Required</h3>
+            
+            <div style="background: #fff3cd; border-left: 4px solid #ff9800; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; color: #856404; font-size: 14px;">
+                    ⚠️ Manager/Supervisor authorization required for:
+                </p>
+                <p style="margin: 8px 0 0 0; color: #856404; font-size: 14px; font-weight: 600;">
+                    ${action}
+                </p>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: 600; display: block; margin-bottom: 8px;">
+                    Manager/Supervisor Employee Number:
+                </label>
+                <input type="text" id="authEmployeeNumber" 
+                       style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px;"
+                       placeholder="EMP-XXX"
+                       autofocus>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: 600; display: block; margin-bottom: 8px;">
+                    Password:
+                </label>
+                <input type="password" id="authPassword" 
+                       style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px;"
+                       placeholder="Enter password">
+            </div>
+            
+            <div id="authError" style="color: #d32f2f; font-size: 14px; margin-bottom: 15px; display: none;">
+                Invalid employee number or password
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="verifyAuthorization()" style="flex: 1;">
+                    Verify Authorization
+                </button>
+                <button class="btn btn-secondary" id="cancelAuthBtn">Cancel</button>
+            </div>
+        </div>
+    `;
+    
+    showCustomModal('Manager Authorization', modalHTML);
+    
+    // Add event listener for cancel button
+    setTimeout(() => {
+        const cancelBtn = document.getElementById('cancelAuthBtn');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', function() {
+                if (pendingAuthorization?.failCallback) {
+                    pendingAuthorization.failCallback();
+                }
+                cancelAuthorization();
+            });
+        }
+    }, 100);
+}
+
+// Verify authorization credentials
+function verifyAuthorization() {
+    const employeeNumber = document.getElementById('authEmployeeNumber').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const errorDiv = document.getElementById('authError');
+    
+    if (!employeeNumber || !password) {
+        errorDiv.textContent = 'Please enter both employee number and password';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span style="opacity: 0.7;">Verifying...</span>';
+    btn.disabled = true;
+    
+    // Verify credentials via AJAX
+    fetch('verify_authorization.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            employee_number: employeeNumber,
+            password: password,
+            action: pendingAuthorization.action
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Authorization successful
+            showFunctionFeedback(`Authorized by ${data.employee_name} (${data.position})`);
+            closeCustomModal();
+            
+            // Store authData for later use
+            pendingAuthorization.authData = data;
+            
+            // Execute the pending callback with extra data
+            if (pendingAuthorization.successCallback) {
+                pendingAuthorization.successCallback(pendingAuthorization.extraData, data);
+            }
+            
+            pendingAuthorization = null;
+        } else {
+            // Authorization failed
+            errorDiv.textContent = data.message || 'Invalid credentials or insufficient permissions';
+            errorDiv.style.display = 'block';
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            
+            // Clear password field
+            document.getElementById('authPassword').value = '';
+            document.getElementById('authPassword').focus();
+        }
+    })
+    .catch(err => {
+        console.error('Authorization error:', err);
+        errorDiv.textContent = 'Error verifying authorization. Please try again.';
+        errorDiv.style.display = 'block';
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
+
+function cancelAuthorization() {
+    if (pendingAuthorization?.failCallback) {
+        pendingAuthorization.failCallback();
+    }
+    pendingAuthorization = null;
+    closeCustomModal();
 }

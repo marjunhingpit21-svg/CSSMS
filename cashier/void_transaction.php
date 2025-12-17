@@ -17,6 +17,9 @@ $input = json_decode(file_get_contents('php://input'), true);
 $sale_id = intval($input['sale_id'] ?? 0);
 $void_reason = trim($input['void_reason'] ?? '');
 $voided_by = intval($input['voided_by'] ?? $_SESSION['employee_id']);
+$authorized_by_name = trim($input['authorized_by_name'] ?? '');
+$authorized_by_position = trim($input['authorized_by_position'] ?? '');
+$void_timestamp = trim($input['void_timestamp'] ?? date('Y-m-d H:i:s'));
 
 // Validate input
 if ($sale_id <= 0) {
@@ -34,7 +37,7 @@ mysqli_begin_transaction($conn);
 
 try {
     // Check if transaction exists and is not already voided
-    $check_query = "SELECT sale_id, status FROM sales WHERE sale_id = ?";
+    $check_query = "SELECT sale_id, status, notes FROM sales WHERE sale_id = ?";
     $check_stmt = mysqli_prepare($conn, $check_query);
     mysqli_stmt_bind_param($check_stmt, "i", $sale_id);
     mysqli_stmt_execute($check_stmt);
@@ -49,16 +52,30 @@ try {
         throw new Exception('Transaction is already voided');
     }
     
-    // Update sales table
+    $void_note = "\n\n" . str_repeat("═", 70) . "\n";
+    $void_note .= "VOIDED TRANSACTION - " . date('M d, Y h:i A') . "\n";
+    $void_note .= str_repeat("─", 70) . "\n";
+    $void_note .= "Reason: " . $void_reason . "\n";
+    $void_note .= str_repeat("─", 70) . "\n";
+    $void_note .= "Authorized by: " . $authorized_by_name . "\n";
+    $void_note .= "Position:      " . $authorized_by_position . "\n";
+    $void_note .= str_repeat("═", 70) . "\n";
+
+    // Combine with existing notes
+    $new_notes = $sale['notes'] ? $sale['notes'] . $void_note : $void_note;
+ 
+
+    // Update sales table with void info and notes
     $update_query = "UPDATE sales 
                      SET status = 'voided',
                          void_reason = ?,
                          voided_by = ?,
-                         voided_at = NOW()
+                         voided_at = NOW(),
+                         notes = ?
                      WHERE sale_id = ?";
     
     $update_stmt = mysqli_prepare($conn, $update_query);
-    mysqli_stmt_bind_param($update_stmt, "sii", $void_reason, $voided_by, $sale_id);
+    mysqli_stmt_bind_param($update_stmt, "sisi", $void_reason, $voided_by, $new_notes, $sale_id);
     
     if (!mysqli_stmt_execute($update_stmt)) {
         throw new Exception('Failed to void transaction: ' . mysqli_error($conn));
@@ -88,7 +105,7 @@ try {
     $log_query = "INSERT INTO activity_logs (employee_id, action, description, created_at) 
                   VALUES (?, 'void_transaction', ?, NOW())";
     $log_stmt = mysqli_prepare($conn, $log_query);
-    $description = "Voided transaction #$sale_id. Reason: $void_reason";
+    $description = "Voided transaction #$sale_id. Reason: $void_reason. Authorized by: $authorized_by_name";
     mysqli_stmt_bind_param($log_stmt, "is", $voided_by, $description);
     mysqli_stmt_execute($log_stmt);
     

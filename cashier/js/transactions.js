@@ -296,8 +296,9 @@ function showTransactionDetailsModal(sale, items) {
                 </div>
                 
                 ${sale.notes ? `
-                    <div style="margin-top: 15px; padding: 10px; background: #f5f5f5; border-radius: 6px; font-size: 12px;">
-                        <strong>Notes:</strong> ${sale.notes}
+                    <div style="margin-top: 15px; padding: 12px; background: #f9f9f9; border-radius: 6px; font-size: 11px; font-family: monospace; line-height: 1.4; white-space: pre-wrap; border: 1px solid #e0e0e0;">
+                        <strong style="display: block; margin-bottom: 8px; color: #333;">Transaction Notes:</strong>
+                        ${sale.notes.replace(/║/g, '│').replace(/╔/g, '┌').replace(/╗/g, '┐').replace(/╠/g, '├').replace(/╣/g, '┤').replace(/╚/g, '└').replace(/╝/g, '┘').replace(/═/g, '─').replace(/╬/g, '┼')}
                     </div>
                 ` : ''}
                 
@@ -306,6 +307,7 @@ function showTransactionDetailsModal(sale, items) {
                         <strong>Void Reason:</strong>
                         <p>${sale.void_reason}</p>
                         ${sale.voided_by_name ? `<p style="margin-top: 5px; font-size: 11px;">Voided by: ${sale.voided_by_name} on ${new Date(sale.voided_at).toLocaleString()}</p>` : ''}
+                        ${sale.authorized_by_name ? `<p style="margin-top: 2px; font-size: 11px;">Authorized by: ${sale.authorized_by_name} (${sale.authorized_by_position || 'Manager/Supervisor'})</p>` : ''}
                     </div>
                 ` : ''}
                 
@@ -333,17 +335,30 @@ function showTransactionDetailsModal(sale, items) {
     showCustomModal('Transaction Details', modalHTML);
 }
 
+// Void Transaction with Authorization
 function voidTransaction(saleId, saleNumber) {
+    // Show authorization modal first
+    showAuthorizationModal(
+        `VOID TRANSACTION #${saleNumber}`,
+        (extraData, authData) => {
+            // After authorization, show the void reason modal
+            showVoidReasonModal(saleId, saleNumber, authData);
+        },
+        { saleId, saleNumber }
+    );
+}
+
+function showVoidReasonModal(saleId, saleNumber, authData) {
     const modalHTML = `
         <div style="padding: 20px;">
             <h3 style="margin-bottom: 15px; color: #1a1a2e;">Void Transaction</h3>
             
-            <div style="background: #fff3cd; border-left: 4px solid #ff9800; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <p style="margin: 0; color: #856404; font-size: 14px;">
-                    ⚠️ Are you sure you want to void transaction <strong>${saleNumber}</strong>?
+            <div style="background: #ffeef2; border-left: 4px solid #e91e63; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; color: #c2185b; font-size: 14px;">
+                    ⚠️ Transaction: <strong>${saleNumber}</strong>
                 </p>
-                <p style="margin: 8px 0 0 0; color: #856404; font-size: 12px;">
-                    This action cannot be undone. The transaction will be marked as voided.
+                <p style="margin: 5px 0 0 0; color: #c2185b; font-size: 12px;">
+                    Authorized by: ${authData.employee_name} (${authData.position})
                 </p>
             </div>
             
@@ -352,17 +367,17 @@ function voidTransaction(saleId, saleNumber) {
                     Reason for Void: <span style="color: #d32f2f;">*</span>
                 </label>
                 <textarea id="voidReason" 
-                        style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; min-height: 100px; font-size: 14px; font-family: 'Inter', sans-serif; resize: vertical;"
+                        style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; min-height: 100px; font-size: 14px; resize: vertical;"
                         placeholder="Please provide a reason for voiding this transaction (e.g., customer request, wrong order, system error)..."
                         autofocus></textarea>
                 <div id="voidReasonError" style="color: #d32f2f; font-size: 12px; margin-top: 5px; display: none;">
-                    Please provide a reason for voiding this transaction
+                    Please provide a detailed reason (at least 10 characters)
                 </div>
             </div>
             
             <div style="display: flex; gap: 10px;">
-                <button class="btn btn-primary" onclick="confirmVoidTransaction(${saleId})" style="flex: 1; background: #ff9800;">
-                    Void Transaction
+                <button class="btn btn-primary" id="confirmVoidBtn" style="flex: 1; background: #e91e63;">
+                    Confirm Void
                 </button>
                 <button class="btn btn-secondary" onclick="closeCustomModal()">Cancel</button>
             </div>
@@ -371,9 +386,19 @@ function voidTransaction(saleId, saleNumber) {
     
     showCustomModal('Void Transaction', modalHTML);
     setTimeout(() => document.getElementById('voidReason').focus(), 100);
+    
+    // Add event listener AFTER the modal is shown
+    setTimeout(() => {
+        const confirmBtn = document.getElementById('confirmVoidBtn');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function() {
+                confirmVoidTransaction(saleId, authData);
+            });
+        }
+    }, 100);
 }
 
-function confirmVoidTransaction(saleId) {
+function confirmVoidTransaction(saleId, authData) {
     const reason = document.getElementById('voidReason').value.trim();
     const errorDiv = document.getElementById('voidReasonError');
     
@@ -384,10 +409,16 @@ function confirmVoidTransaction(saleId) {
         return;
     }
     
-    const btn = event.target;
+    const btn = document.getElementById('confirmVoidBtn');
+    if (!btn) return;
+    
     const originalText = btn.innerHTML;
     btn.innerHTML = '<span style="opacity: 0.7;">Processing...</span>';
     btn.disabled = true;
+    
+    // Create timestamp for the void action
+    const now = new Date();
+    const dateTime = now.toLocaleString();
     
     fetch('void_transaction.php', {
         method: 'POST',
@@ -395,7 +426,11 @@ function confirmVoidTransaction(saleId) {
         body: JSON.stringify({
             sale_id: saleId,
             void_reason: reason,
-            voided_by: EMPLOYEE_ID
+            voided_by: EMPLOYEE_ID,
+            authorized_by: authData.employee_id,
+            authorized_by_name: authData.employee_name,
+            authorized_by_position: authData.position,
+            void_timestamp: dateTime
         })
     })
     .then(r => r.json())
@@ -429,4 +464,23 @@ function printTransactionReceipt(saleId) {
 
 function closeTransactionModal() {
     document.getElementById('transactionModal').style.display = 'none';
+}
+
+// Utility Functions
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+}
+
+function formatTime(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
 }

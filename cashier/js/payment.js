@@ -42,39 +42,30 @@ function openPaymentModal(mode) {
     } else if (mode === 'ewallet') {
         html += `
             <div style="margin:20px 0;">
-                <label style="font-weight:600;">Amount Received:</label>
-                <input type="number" id="cashInput" 
-                    style="font-size:20px;padding:10px;width:100%;margin-top:8px;border:2px solid #ffeef2;border-radius:8px;" 
-                    value="${total.toFixed(2)}"
-                    step="0.01"
-                    autofocus>
+                <label style="font-weight:600;display:block;margin-bottom:10px;">Select E-Wallet:</label>
+                <div style="display:flex;gap:10px;margin-bottom:20px;">
+                    <button onclick="selectEWallet('gcash', ${total})" class="btn" style="flex:1;padding:15px;background:white;color:#007DFE;border:2px solid #007DFE;border-radius:8px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;" onmouseover="this.style.background='#007DFE';this.style.color='white';" onmouseout="this.style.background='white';this.style.color='#007DFE';">
+                        <span>GCash</span>
+                    </button>
+                    <button onclick="selectEWallet('paymaya', ${total})" class="btn" style="flex:1;padding:15px;background:white;color:#00D632;border:2px solid #00D632;border-radius:8px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;" onmouseover="this.style.background='#00D632';this.style.color='white';" onmouseout="this.style.background='white';this.style.color='#00D632';">
+                        <span>PayMaya</span>
+                    </button>
+                </div>
             </div>
-            <div style="margin:20px 0;">
-                <label style="font-weight:600;">E-Wallet Reference Number:</label>
-                <input type="text" id="refInput" 
-                    style="font-size:16px;padding:10px;width:100%;margin-top:8px;border:2px solid #ffeef2;border-radius:8px;" 
-                    placeholder="Enter GCash/PayMaya/GrabPay reference number"
-                    maxlength="50">
-            </div>
-            <p style="text-align:center;margin:20px 0;color:#666;font-size:14px;">
-                <strong>E-Wallet Payment</strong><br>
-                Verify amount and reference number before completing
-            </p>
         `;
     } else if (mode === 'card') {
         html += `
             <div style="margin:20px 0;">
-                <label style="font-weight:600;">Card Terminal Reference:</label>
-                <input type="text" id="refInput" 
-                    style="font-size:16px;padding:10px;width:100%;margin-top:8px;border:2px solid #ffeef2;border-radius:8px;" 
-                    placeholder="Enter card authorization/reference number"
-                    maxlength="50"
-                    autofocus>
+                <label style="font-weight:600;display:block;margin-bottom:10px;">Select Bank:</label>
+                <div style="display:flex;gap:10px;margin-bottom:20px;">
+                    <button onclick="selectBank('landbank', ${total})" class="btn" style="flex:1;padding:15px;background:white;color:#00843D;border:2px solid #00843D;border-radius:8px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;" onmouseover="this.style.background='#00843D';this.style.color='white';" onmouseout="this.style.background='white';this.style.color='#00843D';">
+                        <span>LandBank</span>
+                    </button>
+                    <button onclick="selectBank('seabank', ${total})" class="btn" style="flex:1;padding:15px;background:white;color:#FF6B00;border:2px solid #FF6B00;border-radius:8px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;" onmouseover="this.style.background='#FF6B00';this.style.color='white';" onmouseout="this.style.background='white';this.style.color='#FF6B00';">
+                        <span>SeaBank</span>
+                    </button>
+                </div>
             </div>
-            <p style="text-align:center;margin:20px 0;color:#666;font-size:14px;">
-                <strong>Card Payment</strong><br>
-                Enter the authorization code from the card terminal
-            </p>
         `;
     }
 
@@ -86,27 +77,25 @@ function openPaymentModal(mode) {
 
     document.getElementById('modalBody').innerHTML = html;
 
-    if (mode === 'cash' || mode === 'ewallet') {
+    if (mode === 'cash') {
         const cashInput = document.getElementById('cashInput');
         
         cashInput.addEventListener('input', function() {
             const received = parseFloat(this.value) || 0;
             const change = received - total;
             
-            if (mode === 'cash') {
-                const changeBox = document.getElementById('changeBox');
-                const changeAmount = document.getElementById('changeAmount');
-                const errorBox = document.getElementById('cashError');
-                
-                if (received < total) {
-                    changeBox.style.display = 'none';
-                    errorBox.textContent = 'Amount received is less than total';
-                    errorBox.style.display = 'block';
-                } else {
-                    errorBox.style.display = 'none';
-                    changeBox.style.display = 'block';
-                    changeAmount.textContent = change.toFixed(2);
-                }
+            const changeBox = document.getElementById('changeBox');
+            const changeAmount = document.getElementById('changeAmount');
+            const errorBox = document.getElementById('cashError');
+            
+            if (received < total) {
+                changeBox.style.display = 'none';
+                errorBox.textContent = 'Amount received is less than total';
+                errorBox.style.display = 'block';
+            } else {
+                errorBox.style.display = 'none';
+                changeBox.style.display = 'block';
+                changeAmount.textContent = change.toFixed(2);
             }
         });
         
@@ -114,50 +103,200 @@ function openPaymentModal(mode) {
             cashInput.focus();
             cashInput.select();
         }, 100);
-    } else if (mode === 'card') {
-        setTimeout(() => {
-            document.getElementById('refInput').focus();
-        }, 100);
     }
 }
 
-function closePaymentModal() {
-    document.getElementById('paymentModal').style.display = 'none';
+// New function to handle E-Wallet selection
+function selectEWallet(provider, total) {
+    // Store selected provider
+    window.selectedEWalletProvider = provider;
+    window.selectedPaymentTotal = total;
+    
+    // Close the payment modal
+    closePaymentModal();
+    
+    // Show QR payment modal
+    showQRPaymentModal('ewallet', provider, total);
 }
 
-function processPayment(method) {
+// New function to handle Bank selection
+function selectBank(bank, total) {
+    // Store selected bank
+    window.selectedBank = bank;
+    window.selectedPaymentTotal = total;
+    
+    // Close the payment modal
+    closePaymentModal();
+    
+    // Show QR payment modal
+    showQRPaymentModal('card', bank, total);
+}
+
+// NEW FUNCTION: Show QR Payment Modal
+function showQRPaymentModal(paymentMethod, provider, total) {
+    const receiptNum = document.getElementById('receiptNumber').textContent;
+    
+    let providerName = '';
+    let qrImage = '';
+    let titleColor = '#e91e63';
+    
+    if (paymentMethod === 'ewallet') {
+        if (provider === 'gcash') {
+            providerName = 'GCash';
+            qrImage = 'img/gcash.jpg';
+            titleColor = '#007DFE';
+        } else if (provider === 'paymaya') {
+            providerName = 'PayMaya';
+            qrImage = 'img/Maya.jpg';
+            titleColor = '#00D632';
+        }
+    } else if (paymentMethod === 'card') {
+        if (provider === 'landbank') {
+            providerName = 'LandBank';
+            qrImage = 'img/LandBank.jpg';
+            titleColor = '#00843D';
+        } else if (provider === 'seabank') {
+            providerName = 'SeaBank';
+            qrImage = 'img/MariBank.jpeg';
+            titleColor = '#FF6B00';
+        }
+    }
+    
+    const html = `
+        <div style="text-align:center;font-size:16px;font-weight:600;margin:10px 0;color:#666;">
+            Receipt #${receiptNum}
+        </div>
+        <div style="text-align:center;font-size:22px;font-weight:700;margin:15px 0;color:${titleColor};">
+            ₱${total.toFixed(2)}
+        </div>
+        
+        <div style="text-align:center;margin:15px 0;">
+            <div style="font-weight:700;font-size:18px;margin-bottom:10px;color:${titleColor};">
+                ${providerName} Payment
+            </div>
+            <div style="padding:15px;background:#f9f9f9;border-radius:10px;display:inline-block;margin-bottom:10px;">
+                <img src="${qrImage}" alt="QR Code" style="width:200px;height:200px;border:2px solid #ddd;border-radius:6px;">
+            </div>
+            <div style="margin-top:8px;font-size:14px;color:#666;">
+                Scan to pay <strong>₱${total.toFixed(2)}</strong>
+            </div>
+        </div>
+        
+        <div style="margin:15px 0;">
+            <label style="font-weight:600;display:block;margin-bottom:6px;font-size:14px;">Amount Received:</label>
+            <input type="number" id="qrCashInput" 
+                style="font-size:16px;padding:10px;width:100%;margin-top:6px;border:2px solid #ffeef2;border-radius:6px;" 
+                value="${total.toFixed(2)}"
+                step="0.01">
+        </div>
+        
+        <div style="margin:15px 0;">
+            <label style="font-weight:600;display:block;margin-bottom:6px;font-size:14px;">Reference Number:</label>
+            <input type="text" id="qrRefInput" 
+                style="font-size:14px;padding:10px;width:100%;margin-top:6px;border:2px solid #ffeef2;border-radius:6px;" 
+                placeholder="Enter reference number from your payment"
+                maxlength="50"
+                autofocus>
+        </div>
+        
+        <div style="display:flex;gap:8px;margin-top:20px;">
+            <button onclick="processQRPayment('${paymentMethod}', '${provider}')" class="btn btn-primary" style="flex:1;padding:12px;">
+                Complete Payment
+            </button>
+            <button onclick="closeQRPaymentModal()" class="btn btn-secondary" style="padding:12px;">
+                Cancel
+            </button>
+        </div>
+    `;
+    
+    // Create modal if it doesn't exist
+    if (!document.getElementById('qrPaymentModal')) {
+        const modalDiv = document.createElement('div');
+        modalDiv.id = 'qrPaymentModal';
+        modalDiv.className = 'modal';
+        modalDiv.style.display = 'none';
+        modalDiv.innerHTML = `
+            <div class="modal-content" style="max-width:420px;max-height:100vh;margin-top:50px;position:relative;top:10px;">
+                <div class="modal-header">
+                    <h2 style="font-size:20px;">QR Payment</h2>
+                    <span class="close" onclick="closeQRPaymentModal()">&times;</span>
+                </div>
+                <div class="modal-body" id="qrModalBody" style="max-height:calc(85vh - 60px);overflow-y:auto;padding:15px;"></div>
+            </div>
+        `;
+        document.body.appendChild(modalDiv);
+    }
+    
+    document.getElementById('qrModalBody').innerHTML = html;
+    document.getElementById('qrPaymentModal').style.display = 'block';
+    
+    // Focus on reference input
+    setTimeout(() => {
+        const refInput = document.getElementById('qrRefInput');
+        if (refInput) refInput.focus();
+    }, 100);
+}
+
+// Function to close QR payment modal
+function closeQRPaymentModal() {
+    const modal = document.getElementById('qrPaymentModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    window.selectedEWalletProvider = null;
+    window.selectedBank = null;
+    window.selectedPaymentTotal = null;
+}
+
+// Function to process QR payment
+function processQRPayment(paymentMethod, provider) {
+    const cashInput = document.getElementById('qrCashInput');
+    const refInput = document.getElementById('qrRefInput');
+    
+    const cashReceived = parseFloat(cashInput.value) || 0;
+    const transactionRef = refInput ? refInput.value.trim() : null;
+    const total = window.selectedPaymentTotal || 0;
+    
+    // Validation
+    if (cashReceived <= 0) {
+        alert('Please enter a valid amount!');
+        return;
+    }
+    
+    if (!transactionRef || transactionRef === '') {
+        alert(`Please enter the reference number from your ${paymentMethod === 'ewallet' ? 'e-wallet' : 'bank'} payment!`);
+        return;
+    }
+    
+    // Process the payment
+    let method = paymentMethod;
+    let fullTransactionRef = transactionRef;
+    
+    if (paymentMethod === 'ewallet' && provider) {
+        fullTransactionRef = `${provider.toUpperCase()}-${transactionRef}`;
+    } else if (paymentMethod === 'card' && provider) {
+        fullTransactionRef = `${provider.toUpperCase()}-${transactionRef}`;
+    }
+    
+    // Close QR modal
+    closeQRPaymentModal();
+    
+    // Process the actual payment with the collected data
+    processPaymentWithData(method, cashReceived, fullTransactionRef, total);
+}
+
+// Helper function to process payment with collected data
+function processPaymentWithData(method, cashReceived, transactionRef, total) {
     const subtotal = cart.reduce((s,i) => s + i.final_price * i.quantity, 0);
     const tax = subtotal * 0.12;
     const discountAmount = subtotal * (globalDiscount / 100);
-    const total = subtotal + tax - discountAmount;
+    const actualTotal = subtotal + tax - discountAmount;
     const receiptNum = document.getElementById('receiptNumber').textContent;
-    let cashReceived = null;
-    let transactionRef = null;
     
-    if (method === 'cash' || method === 'ewallet') {
-        const cashInput = document.getElementById('cashInput');
-        cashReceived = parseFloat(cashInput.value) || 0;
-        
-        if (method === 'cash' && cashReceived < total) {
-            alert('Cash received must be greater than or equal to total amount!');
-            return;
-        }
-        
-        if (cashReceived <= 0) {
-            alert('Please enter a valid amount!');
-            return;
-        }
-    }
-    
-    if (method === 'card' || method === 'ewallet') {
-        const refInput = document.getElementById('refInput');
-        transactionRef = refInput ? refInput.value.trim() : null;
-        
-        if (!transactionRef || transactionRef === '') {
-            const timestamp = Date.now();
-            const random = Math.floor(Math.random() * 10000);
-            transactionRef = `${method.toUpperCase()}-${timestamp}-${random}`;
-        }
+    // Verify total matches
+    if (Math.abs(total - actualTotal) > 0.01) {
+        alert('Payment amount does not match cart total. Please try again.');
+        return;
     }
     
     const saleData = {
@@ -165,7 +304,7 @@ function processPayment(method) {
         items: cart,
         subtotal: subtotal,
         tax: tax,
-        total_amount: total,
+        total_amount: actualTotal,
         payment_method: method,
         discount: discountAmount,
         discount_percentage: globalDiscount,
@@ -176,10 +315,10 @@ function processPayment(method) {
         receipt_number: receiptNum
     };
 
-    console.log('Processing payment:', saleData);
+    console.log('Processing QR payment:', saleData);
 
     // Disable the button to prevent double-clicks
-    const completeBtn = document.querySelector('#paymentModal .btn-primary');
+    const completeBtn = document.querySelector('#qrPaymentModal .btn-primary');
     const originalBtnText = completeBtn ? completeBtn.innerHTML : '';
     if (completeBtn) {
         completeBtn.disabled = true;
@@ -198,9 +337,8 @@ function processPayment(method) {
         if (res.success) {
             showFunctionFeedback('Payment successful!');
             
-            // IMPORTANT: Save cart items for receipt preview BEFORE clearing
-            // Make sure we're using the correct cart data
-            const cartDataForPreview = [...cart]; // Create a copy
+            // Save cart items for receipt preview BEFORE clearing
+            const cartDataForPreview = [...cart];
             console.log('Saving cart data for preview:', cartDataForPreview);
             
             localStorage.setItem('lastCartItems', JSON.stringify(cartDataForPreview));
@@ -208,7 +346,7 @@ function processPayment(method) {
             // Store payment data for receipt preview
             window.mainReceiptPaymentData = {
                 receipt_number: receiptNum,
-                total: total,
+                total: actualTotal,
                 method: method,
                 transaction_ref: transactionRef,
                 cash_received: cashReceived,
@@ -221,7 +359,6 @@ function processPayment(method) {
             };
             
             console.log('Saved payment data:', window.mainReceiptPaymentData);
-            console.log('Cart items saved to localStorage');
             
             // Clear cart and reset
             cart = [];
@@ -230,6 +367,11 @@ function processPayment(method) {
             globalDiscountType = '';
             globalDiscountIdNumber = '';
             renderCart();
+            
+            // Clear selected providers
+            window.selectedEWalletProvider = null;
+            window.selectedBank = null;
+            window.selectedPaymentTotal = null;
             
             // Get new receipt number
             fetch('get_next_receipt_number.php')
@@ -243,7 +385,7 @@ function processPayment(method) {
                 })
                 .catch(err => console.error('Error getting receipt number:', err));
             
-            // ✅ REFRESH TRANSACTION HISTORY IF MODAL IS OPEN
+            // Refresh transaction history if modal is open
             const transactionModal = document.getElementById('transactionModal');
             if (transactionModal && transactionModal.style.display === 'block') {
                 console.log('Refreshing transaction history...');
@@ -251,9 +393,7 @@ function processPayment(method) {
                 loadTransactionHistory(currentDate);
             }
             
-            closePaymentModal();
-            
-            // Show receipt preview with a slight delay to ensure data is saved
+            // Show receipt preview
             setTimeout(() => {
                 console.log('Attempting to show receipt preview...');
                 showMainReceiptPrintPreview();
@@ -277,6 +417,159 @@ function processPayment(method) {
         }
         alert('Payment failed. Please try again.');
     });
+}
+
+// Updated processPayment function for cash payments
+function processPayment(method) {
+    // If method is cash, process normally
+    if (method === 'cash') {
+        const subtotal = cart.reduce((s,i) => s + i.final_price * i.quantity, 0);
+        const tax = subtotal * 0.12;
+        const discountAmount = subtotal * (globalDiscount / 100);
+        const total = subtotal + tax - discountAmount;
+        const receiptNum = document.getElementById('receiptNumber').textContent;
+        
+        const cashInput = document.getElementById('cashInput');
+        const cashReceived = parseFloat(cashInput.value) || 0;
+        
+        if (cashReceived < total) {
+            alert('Cash received must be greater than or equal to total amount!');
+            return;
+        }
+        
+        if (cashReceived <= 0) {
+            alert('Please enter a valid amount!');
+            return;
+        }
+        
+        // Generate transaction reference for cash
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 10000);
+        const transactionRef = `CASH-${timestamp}-${random}`;
+        
+        const saleData = {
+            employee_id: EMPLOYEE_ID,
+            items: cart,
+            subtotal: subtotal,
+            tax: tax,
+            total_amount: total,
+            payment_method: method,
+            discount: discountAmount,
+            discount_percentage: globalDiscount,
+            discount_type: globalDiscountType,
+            discount_id_number: globalDiscountIdNumber,
+            cash_received: cashReceived,
+            transaction_reference: transactionRef,
+            receipt_number: receiptNum
+        };
+
+        console.log('Processing cash payment:', saleData);
+
+        // Disable the button to prevent double-clicks
+        const completeBtn = document.querySelector('#paymentModal .btn-primary');
+        const originalBtnText = completeBtn ? completeBtn.innerHTML : '';
+        if (completeBtn) {
+            completeBtn.disabled = true;
+            completeBtn.innerHTML = 'Processing...';
+        }
+
+        fetch('process_sale.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(saleData)
+        })
+        .then(r => r.json())
+        .then(res => {
+            console.log('Payment response:', res);
+            
+            if (res.success) {
+                showFunctionFeedback('Payment successful!');
+                
+                // Save cart items for receipt preview BEFORE clearing
+                const cartDataForPreview = [...cart];
+                console.log('Saving cart data for preview:', cartDataForPreview);
+                
+                localStorage.setItem('lastCartItems', JSON.stringify(cartDataForPreview));
+                
+                // Store payment data for receipt preview
+                window.mainReceiptPaymentData = {
+                    receipt_number: receiptNum,
+                    total: total,
+                    method: method,
+                    transaction_ref: transactionRef,
+                    cash_received: cashReceived,
+                    subtotal: subtotal,
+                    tax: tax,
+                    discount_amount: discountAmount,
+                    global_discount: globalDiscount,
+                    global_discount_type: globalDiscountType,
+                    global_discount_id_number: globalDiscountIdNumber
+                };
+                
+                console.log('Saved payment data:', window.mainReceiptPaymentData);
+                
+                // Clear cart and reset
+                cart = [];
+                selectedItemIndex = -1;
+                globalDiscount = 0;
+                globalDiscountType = '';
+                globalDiscountIdNumber = '';
+                renderCart();
+                
+                closePaymentModal();
+                
+                // Get new receipt number
+                fetch('get_next_receipt_number.php')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            receiptCounter = parseInt(data.next_receipt_number);
+                            document.getElementById('receiptNumber').textContent = data.next_receipt_number;
+                            originalReceiptNumber = data.next_receipt_number;
+                        }
+                    })
+                    .catch(err => console.error('Error getting receipt number:', err));
+                
+                // Refresh transaction history if modal is open
+                const transactionModal = document.getElementById('transactionModal');
+                if (transactionModal && transactionModal.style.display === 'block') {
+                    console.log('Refreshing transaction history...');
+                    const currentDate = document.getElementById('transactionDate')?.value || new Date().toISOString().split('T')[0];
+                    loadTransactionHistory(currentDate);
+                }
+                
+                // Show receipt preview
+                setTimeout(() => {
+                    console.log('Attempting to show receipt preview...');
+                    showMainReceiptPrintPreview();
+                }, 200);
+                
+            } else {
+                // Re-enable button on error
+                if (completeBtn) {
+                    completeBtn.disabled = false;
+                    completeBtn.innerHTML = originalBtnText;
+                }
+                alert('Error: ' + res.message);
+            }
+        })
+        .catch(err => {
+            console.error('Payment error:', err);
+            // Re-enable button on error
+            if (completeBtn) {
+                completeBtn.disabled = false;
+                completeBtn.innerHTML = originalBtnText;
+            }
+            alert('Payment failed. Please try again.');
+        });
+    } else {
+        // For ewallet or card, we should have already handled it via QR modal
+        alert(`Please select a ${method === 'ewallet' ? 'e-wallet' : 'bank'} payment method first.`);
+    }
+}
+
+function closePaymentModal() {
+    document.getElementById('paymentModal').style.display = 'none';
 }
 
 // NEW FUNCTION: Show receipt preview for main receipt - DEBUG VERSION
