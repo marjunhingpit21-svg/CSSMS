@@ -14,14 +14,13 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $employee_number = trim($_POST['employee_number'] ?? '');
     $password = $_POST['password'] ?? '';
-    $branch_name = trim($_POST['branch'] ?? '');
 
     // Basic validation
-    if (empty($employee_number) || empty($password) || empty($branch_name)) {
+    if (empty($employee_number) || empty($password)) {
         $error = 'Please fill in all fields.';
     } else {
         try {
-            // Query: Find active cashier with matching employee_number and branch_name
+            // Query: Find active cashier with matching employee_number
             $stmt = $conn->prepare("
                 SELECT 
                     e.employee_id,
@@ -30,17 +29,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     e.last_name,
                     e.password_hash,
                     e.position,
-                    e.branch_id,
-                    e.is_active,
-                    b.branch_name
+                    e.is_active
                 FROM employees e
-                INNER JOIN branches b ON e.branch_id = b.branch_id
                 WHERE e.employee_number = ?
-                  AND b.branch_name = ?
                   AND e.position = 'cashier'
                 LIMIT 1
             ");
-            $stmt->bind_param("ss", $employee_number, $branch_name);
+            $stmt->bind_param("s", $employee_number);
             $stmt->execute();
             $result = $stmt->get_result();
 
@@ -57,8 +52,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['employee_id'] = $user['employee_id'];
                     $_SESSION['employee_number'] = $user['employee_number'];
                     $_SESSION['cashier_name'] = $user['first_name'] . ' ' . $user['last_name'];
-                    $_SESSION['branch_id'] = $user['branch_id'];
-                    $_SESSION['branch_name'] = $user['branch_name'];
                     $_SESSION['role'] = 'cashier';
 
                     // Update last login timestamp
@@ -74,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $error = 'Invalid password. Please try again.';
                 }
             } else {
-                $error = 'Invalid Employee ID or Branch. Only cashiers can log in here.';
+                $error = 'Invalid Employee ID. Only cashiers can log in here.';
             }
 
             $stmt->close();
@@ -83,17 +76,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'System error. Please try again later.';
         }
     }
-}
-
-// Fetch active branches for dropdown
-try {
-    $branches_result = $conn->query("SELECT branch_name FROM branches WHERE is_active = 1 ORDER BY branch_name");
-    $branches = [];
-    while ($row = $branches_result->fetch_assoc()) {
-        $branches[] = $row['branch_name'];
-    }
-} catch (Exception $e) {
-    $branches = [];
 }
 ?>
 
@@ -134,7 +116,7 @@ try {
                     </div>
                     <div class="feature-item-compact">
                         <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                        <span>Multi-branch</span>
+                        <span>Inventory Tracking</span>
                     </div>
                 </div>
             </div>
@@ -173,41 +155,21 @@ try {
                 <?php endif; ?>
 
                 <form method="POST" action="index.php" class="login-form">
-                    <div class="form-row">
-                        <div class="input-group">
-                            <label for="employee_number">Employee ID</label>
-                            <div class="input-wrapper">
-                                <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                                </svg>
-                                <input 
-                                    type="text" 
-                                    id="employee_number" 
-                                    name="employee_number"
-                                    value="<?php echo htmlspecialchars($employee_number ?? ''); ?>"
-                                    placeholder="EMP-XXXX"
-                                    required
-                                    autocomplete="username"
-                                >
-                            </div>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="branch">Branch Location</label>
-                            <div class="input-wrapper">
-                                <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
-                                </svg>
-                                <select id="branch" name="branch" required>
-                                    <option value="">Select branch</option>
-                                    <?php foreach ($branches as $b): ?>
-                                        <option value="<?php echo htmlspecialchars($b); ?>" 
-                                            <?php echo (isset($_POST['branch']) && $_POST['branch'] === $b) ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($b); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                    <div class="input-group">
+                        <label for="employee_number">Employee ID</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                            </svg>
+                            <input 
+                                type="text" 
+                                id="employee_number" 
+                                name="employee_number"
+                                value="<?php echo htmlspecialchars($employee_number ?? ''); ?>"
+                                placeholder="EMP-XXXX"
+                                required
+                                autocomplete="username"
+                            >
                         </div>
                     </div>
 
@@ -254,4 +216,4 @@ try {
         </div>
     </div>
 </body>
-</html>
+</html

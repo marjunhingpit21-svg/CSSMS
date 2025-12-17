@@ -37,8 +37,6 @@ try {
             s.voided_at,
             CONCAT(e.first_name, ' ', e.last_name) AS cashier_name,
             e.employee_number,
-            b.branch_name,
-            b.address AS branch_address,
             CASE 
                 WHEN c.customer_id IS NOT NULL 
                 THEN CONCAT(c.first_name, ' ', c.last_name)
@@ -52,7 +50,6 @@ try {
             END AS change_amount
         FROM sales s
         JOIN employees e ON s.employee_id = e.employee_id
-        JOIN branches b ON s.branch_id = b.branch_id
         LEFT JOIN customers c ON s.customer_id = c.customer_id
         LEFT JOIN employees ve ON s.voided_by = ve.employee_id
         WHERE s.sale_id = ?

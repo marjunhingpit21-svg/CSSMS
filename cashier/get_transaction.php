@@ -10,7 +10,6 @@ if (!isset($_SESSION['employee_id'])) {
 }
 
 $employee_id = $_SESSION['employee_id'];
-$branch_id = $_SESSION['branch_id'];
 
 // Get date filter (default to today)
 $date = isset($_GET['date']) ? $_GET['date'] : date('Y-m-d');
@@ -37,7 +36,6 @@ try {
             s.voided_at,
             CONCAT(e.first_name, ' ', e.last_name) AS cashier_name,
             e.employee_number,
-            b.branch_name,
             CASE 
                 WHEN c.customer_id IS NOT NULL 
                 THEN CONCAT(c.first_name, ' ', c.last_name)
@@ -48,15 +46,13 @@ try {
             (SELECT SUM(quantity) FROM sale_items WHERE sale_id = s.sale_id) AS total_quantity
         FROM sales s
         JOIN employees e ON s.employee_id = e.employee_id
-        JOIN branches b ON s.branch_id = b.branch_id
         LEFT JOIN customers c ON s.customer_id = c.customer_id
         LEFT JOIN employees ve ON s.voided_by = ve.employee_id
-        WHERE s.branch_id = ?
-        AND DATE(s.sale_date) = ?
+        WHERE DATE(s.sale_date) = ?
     ";
     
-    $params = [$branch_id, $date];
-    $types = "is";
+    $params = [$date];
+    $types = "s";
     
     // Add search filter if provided
     if (!empty($search)) {
@@ -98,13 +94,12 @@ try {
             SUM(CASE WHEN payment_method = 'ewallet' AND COALESCE(status, 'completed') != 'voided' THEN total_amount ELSE 0 END) AS ewallet_total,
             SUM(CASE WHEN COALESCE(status, 'completed') != 'voided' THEN discount ELSE 0 END) AS total_discounts
         FROM sales
-        WHERE branch_id = ?
-        AND DATE(sale_date) = ?
+        WHERE DATE(sale_date) = ?
         AND payment_status = 'completed'
     ";
     
     $summaryStmt = $conn->prepare($summaryQuery);
-    $summaryStmt->bind_param("is", $branch_id, $date);
+    $summaryStmt->bind_param("s", $date);
     $summaryStmt->execute();
     $summary = $summaryStmt->get_result()->fetch_assoc();
     

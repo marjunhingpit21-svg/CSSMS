@@ -175,12 +175,6 @@ body {
     gap: 16px;
 }
 
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-}
-
 .input-group {
     display: flex;
     flex-direction: column;
@@ -529,10 +523,6 @@ body {
 
     .form-panel {
         padding: 40px 35px;
-    }
-
-    .form-row {
-        grid-template-columns: 1fr;
     }
 }
 
