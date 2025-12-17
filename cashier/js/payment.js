@@ -198,8 +198,12 @@ function processPayment(method) {
         if (res.success) {
             showFunctionFeedback('Payment successful!');
             
-            // Save cart items for receipt preview BEFORE clearing
-            localStorage.setItem('lastCartItems', JSON.stringify(cart));
+            // IMPORTANT: Save cart items for receipt preview BEFORE clearing
+            // Make sure we're using the correct cart data
+            const cartDataForPreview = [...cart]; // Create a copy
+            console.log('Saving cart data for preview:', cartDataForPreview);
+            
+            localStorage.setItem('lastCartItems', JSON.stringify(cartDataForPreview));
             
             // Store payment data for receipt preview
             window.mainReceiptPaymentData = {
@@ -207,13 +211,17 @@ function processPayment(method) {
                 total: total,
                 method: method,
                 transaction_ref: transactionRef,
-                cash_received: cashReceived
+                cash_received: cashReceived,
+                subtotal: subtotal,
+                tax: tax,
+                discount_amount: discountAmount,
+                global_discount: globalDiscount,
+                global_discount_type: globalDiscountType,
+                global_discount_id_number: globalDiscountIdNumber
             };
             
-            // Show receipt preview instead of immediately printing
-            setTimeout(() => {
-                showMainReceiptPrintPreview();
-            }, 100);
+            console.log('Saved payment data:', window.mainReceiptPaymentData);
+            console.log('Cart items saved to localStorage');
             
             // Clear cart and reset
             cart = [];
@@ -245,6 +253,12 @@ function processPayment(method) {
             
             closePaymentModal();
             
+            // Show receipt preview with a slight delay to ensure data is saved
+            setTimeout(() => {
+                console.log('Attempting to show receipt preview...');
+                showMainReceiptPrintPreview();
+            }, 200);
+            
         } else {
             // Re-enable button on error
             if (completeBtn) {
@@ -265,26 +279,43 @@ function processPayment(method) {
     });
 }
 
-// NEW FUNCTION: Show receipt preview for main receipt
+// NEW FUNCTION: Show receipt preview for main receipt - DEBUG VERSION
 function showMainReceiptPrintPreview() {
-    if (!window.mainReceiptPaymentData) {
-        alert('No receipt data available.');
+    console.log('showMainReceiptPrintPreview called');
+    
+    // Check if showCustomModal function exists
+    if (typeof showCustomModal !== 'function') {
+        console.error('showCustomModal function not found!');
+        alert('Error: Print preview system not available. Please check console.');
         return;
     }
     
-    const receiptNum = window.mainReceiptPaymentData.receipt_number;
-    const date = new Date().toLocaleString();
-    const employeeName = EMPLOYEE_NAME;
-    
-    // Get last cart items from localStorage
+    // Get data from localStorage
     const lastCartItems = JSON.parse(localStorage.getItem('lastCartItems') || '[]');
     const paymentData = window.mainReceiptPaymentData;
     
-    // Calculate totals from last cart items
-    const subtotal = lastCartItems.reduce((s,i) => s + i.final_price * i.quantity, 0);
+    console.log('lastCartItems from localStorage:', lastCartItems);
+    console.log('paymentData from window:', paymentData);
+    
+    if (!paymentData || lastCartItems.length === 0) {
+        console.error('No receipt data available for preview');
+        console.log('Payment data:', paymentData);
+        console.log('Cart items:', lastCartItems);
+        alert('No receipt data available for preview. Please check console for details.');
+        return;
+    }
+    
+    const receiptNum = paymentData.receipt_number;
+    const date = new Date().toLocaleString();
+    const employeeName = EMPLOYEE_NAME;
+    
+    // Calculate totals
+    const subtotal = lastCartItems.reduce((s,i) => s + (i.final_price || 0) * (i.quantity || 1), 0);
     const tax = subtotal * 0.12;
-    const discountAmount = subtotal * (globalDiscount / 100);
-    const total = subtotal + tax - discountAmount;
+    const discountAmount = paymentData.discount_amount || 0;
+    const total = paymentData.total || (subtotal + tax - discountAmount);
+    
+    console.log('Calculated totals:', { subtotal, tax, discountAmount, total });
     
     const printPreviewHTML = `
         <div style="padding: 20px;">
@@ -302,11 +333,11 @@ function showMainReceiptPrintPreview() {
                     ${lastCartItems.map(item => `
                         <div style="display: flex; justify-content: space-between; margin: 5px 0; font-size: 13px;">
                             <div style="flex: 1;">
-                                <div>${item.product_name} (${item.size_name})</div>
-                                <div style="font-size: 11px;">${item.quantity} × ₱${item.final_price.toFixed(2)}</div>
+                                <div>${item.product_name || 'Unknown'} (${item.size_name || 'N/A'})</div>
+                                <div style="font-size: 11px;">${item.quantity || 1} × ₱${(item.final_price || 0).toFixed(2)}</div>
                                 ${item.notes ? `<div style="font-size: 10px; color: #666;">${item.notes}</div>` : ''}
                             </div>
-                            <div style="font-weight: bold;">₱${(item.quantity * item.final_price).toFixed(2)}</div>
+                            <div style="font-weight: bold;">₱${((item.quantity || 1) * (item.final_price || 0)).toFixed(2)}</div>
                         </div>
                     `).join('')}
                 </div>
@@ -328,7 +359,7 @@ function showMainReceiptPrintPreview() {
                         <span>TOTAL:</span>
                         <span>₱${total.toFixed(2)}</span>
                     </div>
-                    ${paymentData && paymentData.method === 'cash' ? `
+                    ${paymentData && paymentData.method === 'cash' && paymentData.cash_received ? `
                         <div style="display: flex; justify-content: space-between; margin: 3px 0;">
                             <span>Cash Received:</span>
                             <span>₱${paymentData.cash_received.toFixed(2)}</span>
@@ -365,24 +396,32 @@ function showMainReceiptPrintPreview() {
         </div>
     `;
     
+    console.log('Showing custom modal with receipt preview');
     showCustomModal('Print Preview', printPreviewHTML);
 }
 
 // Updated printReceipt function to work with preview
 function printReceipt() {
-    const receiptNum = window.mainReceiptPaymentData ? window.mainReceiptPaymentData.receipt_number : document.getElementById('receiptNumber').textContent;
-    const date = new Date().toLocaleString();
-    const employeeName = EMPLOYEE_NAME;
+    console.log('printReceipt called');
     
-    // Get last cart items from localStorage
+    // Get data from localStorage
     const lastCartItems = JSON.parse(localStorage.getItem('lastCartItems') || '[]');
     const paymentData = window.mainReceiptPaymentData;
     
+    if (!paymentData || lastCartItems.length === 0) {
+        alert('No receipt data available to print.');
+        return;
+    }
+    
+    const receiptNum = paymentData.receipt_number;
+    const date = new Date().toLocaleString();
+    const employeeName = EMPLOYEE_NAME;
+    
     // Calculate totals
-    const subtotal = lastCartItems.reduce((s,i) => s + i.final_price * i.quantity, 0);
+    const subtotal = lastCartItems.reduce((s,i) => s + (i.final_price || 0) * (i.quantity || 1), 0);
     const tax = subtotal * 0.12;
-    const discountAmount = subtotal * (globalDiscount / 100);
-    const total = subtotal + tax - discountAmount;
+    const discountAmount = paymentData.discount_amount || 0;
+    const total = paymentData.total || (subtotal + tax - discountAmount);
     
     const printWindow = window.open('', '_blank');
     
@@ -418,11 +457,11 @@ function printReceipt() {
                     ${lastCartItems.map(item => `
                         <div class="item">
                             <div class="item-details">
-                                <div>${item.product_name} (${item.size_name})</div>
-                                <div style="font-size: 11px;">${item.quantity} × ₱${item.final_price.toFixed(2)}</div>
+                                <div>${item.product_name || 'Unknown'} (${item.size_name || 'N/A'})</div>
+                                <div style="font-size: 11px;">${item.quantity || 1} × ₱${(item.final_price || 0).toFixed(2)}</div>
                                 ${item.notes ? `<div style="font-size: 10px; color: #666;">${item.notes}</div>` : ''}
                             </div>
-                            <div class="item-total">₱${(item.quantity * item.final_price).toFixed(2)}</div>
+                            <div class="item-total">₱${((item.quantity || 1) * (item.final_price || 0)).toFixed(2)}</div>
                         </div>
                     `).join('')}
                 </div>
@@ -431,7 +470,7 @@ function printReceipt() {
                     <div class="summary-row"><span>Tax (12%):</span><span>₱${tax.toFixed(2)}</span></div>
                     <div class="summary-row"><span>Discount:</span><span>₱${discountAmount.toFixed(2)}</span></div>
                     <div class="summary-row total"><span>TOTAL:</span><span>₱${total.toFixed(2)}</span></div>
-                    ${paymentData && paymentData.method === 'cash' ? `
+                    ${paymentData && paymentData.method === 'cash' && paymentData.cash_received ? `
                         <div class="summary-row"><span>Cash Received:</span><span>₱${paymentData.cash_received.toFixed(2)}</span></div>
                         <div class="summary-row"><span>Change:</span><span>₱${(paymentData.cash_received - total).toFixed(2)}</span></div>
                     ` : ''}
@@ -452,12 +491,17 @@ function printReceipt() {
     
     printWindow.document.close();
     printWindow.print();
-    closeCustomModal();
+    
+    if (typeof closeCustomModal === 'function') {
+        closeCustomModal();
+    }
     
     // Clear temporary data
     window.mainReceiptPaymentData = null;
     localStorage.removeItem('lastCartItems');
     
     // Focus on search input
-    if (searchInput) searchInput.focus();
+    if (searchInput) {
+        searchInput.focus();
+    }
 }
