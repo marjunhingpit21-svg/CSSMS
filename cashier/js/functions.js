@@ -353,6 +353,7 @@ function confirmDelete() {
 }
 
 // ESC - Logout
+// ESC - Logout
 function logoutCashier() {
     if (cart.length > 0) {
         if (!confirm('You have items in the cart. Are you sure you want to logout?')) {
@@ -360,8 +361,8 @@ function logoutCashier() {
         }
     }
     
-    if (confirm('Logout from POS system?')) {
-        window.location.href = 'index.php';
+    if (confirm('Logout from POS system?.')) {
+        window.location.href = '../logout.php';  // Changed from index.php to logout.php
     }
 }
 
