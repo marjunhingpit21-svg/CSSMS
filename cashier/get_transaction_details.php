@@ -17,7 +17,7 @@ if ($sale_id <= 0) {
 }
 
 try {
-    // Get sale details
+    // Get sale details with authorization information
     $saleQuery = "
         SELECT 
             s.sale_id,
@@ -43,6 +43,9 @@ try {
                 ELSE 'Walk-in Customer'
             END AS customer_name,
             CONCAT(ve.first_name, ' ', ve.last_name) as voided_by_name,
+            ve.position as voided_by_position,
+            s.authorized_by as discount_authorized_by,
+            s.authorized_by_position as discount_authorized_position,
             CASE 
                 WHEN s.payment_method = 'cash' AND s.cash_received IS NOT NULL 
                 THEN s.cash_received - s.total_amount 
@@ -70,7 +73,7 @@ try {
         $sale['status'] = 'completed';
     }
     
-    // Get sale items
+    // Get sale items with price change authorization information
     $itemsQuery = "
         SELECT 
             si.product_name,
@@ -79,7 +82,9 @@ try {
             si.unit_price,
             si.subtotal,
             si.discount,
-            si.total
+            si.total,
+            si.price_change_authorized_by,
+            si.price_change_authorized_position
         FROM sale_items si
         WHERE si.sale_id = ?
         ORDER BY si.sale_item_id

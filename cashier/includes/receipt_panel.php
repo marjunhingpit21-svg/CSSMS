@@ -22,7 +22,7 @@
         <div class="receipt-actions">
             <div class="payment-modes">
                 <button class="btn-payment btn-cash" onclick="openPaymentModal('cash')">Cash</button>
-                <button class="btn-payment btn-card" onclick="openPaymentModal('card')">Card</button>
+                <button class="btn-payment btn-card" onclick="openPaymentModal('card')">Bank Transfer</button>
                 <button class="btn-payment btn-ewallet" onclick="openPaymentModal('ewallet')">E-Wallet</button>
             </div>
             <div style="display: flex; gap: 10px; margin-top: 10px;">
@@ -62,7 +62,7 @@
             <div class="receipt-actions">
                 <div class="payment-modes">
                     <button class="btn-payment btn-cash" onclick="openSplitPaymentModal(1, 'cash')">Cash</button>
-                    <button class="btn-payment btn-card" onclick="openSplitPaymentModal(1, 'card')">Card</button>
+                    <button class="btn-payment btn-card" onclick="openSplitPaymentModal(1, 'card')">Bank Transfer</button>
                     <button class="btn-payment btn-ewallet" onclick="openSplitPaymentModal(1, 'ewallet')">E-Wallet</button>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
@@ -106,7 +106,7 @@
             <div class="receipt-actions">
                 <div class="payment-modes">
                     <button class="btn-payment btn-cash" onclick="openSplitPaymentModal(2, 'cash')">Cash</button>
-                    <button class="btn-payment btn-card" onclick="openSplitPaymentModal(2, 'card')">Card</button>
+                    <button class="btn-payment btn-card" onclick="openSplitPaymentModal(2, 'card')">Bank Transfer</button>
                     <button class="btn-payment btn-ewallet" onclick="openSplitPaymentModal(2, 'ewallet')">E-Wallet</button>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 10px;">

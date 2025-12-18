@@ -18,6 +18,15 @@ let splitPaymentData = {
 let lastScannedProduct = null;
 let lastScannedTime = 0;
 
+
+
+// NEW: Add these 3 lines here
+let globalDiscountAuthorizedBy = '';
+let globalDiscountAuthPosition = '';
+let globalDiscountAuthId = null;
+
+// ... rest of your globals.js continues
+
 // Search-related globals
 let searchTimeout;
 let allProducts = [];

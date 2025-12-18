@@ -1,9 +1,11 @@
 <?php
+// process_sale.php - WITH AUTHORIZATION DETAILS
 session_start();
 require_once '../database/db.php';
 
 header('Content-Type: application/json');
 
+// Get input
 $input = json_decode(file_get_contents('php://input'), true);
 
 if (!$input || empty($input['items'])) {
@@ -16,8 +18,8 @@ try {
 
     // Prepare cash_received value
     $cash_received = null;
-    if ($input['payment_method'] === 'cash' || $input['payment_method'] === 'ewallet') {
-        $cash_received = isset($input['cash_received']) ? floatval($input['cash_received']) : null;
+    if (($input['payment_method'] === 'cash' || $input['payment_method'] === 'ewallet') && isset($input['cash_received'])) {
+        $cash_received = floatval($input['cash_received']);
         
         // Validate cash payment
         if ($input['payment_method'] === 'cash' && $cash_received < $input['total_amount']) {
@@ -25,7 +27,7 @@ try {
         }
     }
 
-    // Get transaction reference (for card/ewallet payments)
+    // Get transaction reference
     $transaction_reference = isset($input['transaction_reference']) && !empty($input['transaction_reference']) 
         ? trim($input['transaction_reference']) 
         : null;
@@ -34,58 +36,96 @@ try {
     $subtotal = isset($input['subtotal']) ? floatval($input['subtotal']) : 0;
     $tax = isset($input['tax']) ? floatval($input['tax']) : 0;
     $discount = isset($input['discount']) ? floatval($input['discount']) : 0;
-    $discount_percentage = isset($input['discount_percentage']) ? floatval($input['discount_percentage']) : 0;
     $total_amount = floatval($input['total_amount']);
     
-    // Prepare comprehensive notes combining all item notes and metadata
-    $sale_notes_array = [];
+    // Prepare notes
+    $sale_notes = '';
     
-    // Add discount info if applicable
-    if ($discount_percentage > 0) {
-        $sale_notes_array[] = "Transaction Discount: {$discount_percentage}%";
-    }
-    
-    // Collect all item-specific notes
-    foreach ($input['items'] as $item) {
-        $item_note_parts = [];
+    // Add discount info to notes
+    if (isset($input['discount_percentage']) && $input['discount_percentage'] > 0) {
+        $discount_type = isset($input['discount_type']) ? $input['discount_type'] : '';
+        $discount_id = isset($input['discount_id_number']) ? $input['discount_id_number'] : '';
         
-        // Add product name for context
-        $item_note_parts[] = $item['product_name'] . " (" . $item['size_name'] . ")";
-        
-        // Add user notes if any
-        if (!empty($item['notes'])) {
-            $item_note_parts[] = "Note: " . trim($item['notes']);
+        $sale_notes .= "Discount: " . $input['discount_percentage'] . "%";
+        if ($discount_type) {
+            $sale_notes .= " (" . strtoupper($discount_type) . ")";
         }
-        
-        // Add clerk info if different
-        if (!empty($item['clerk_name'])) {
-            $item_note_parts[] = "Clerk: " . trim($item['clerk_name']);
-        }
-        
-        // Add price change indicator
-        if (isset($item['price_changed']) && $item['price_changed']) {
-            $item_note_parts[] = "Price Changed from ₱" . number_format($item['original_price'], 2) . " to ₱" . number_format($item['final_price'], 2);
-        }
-        
-        // Only add to notes if there's something to note
-        if (count($item_note_parts) > 1) { // More than just the product name
-            $sale_notes_array[] = implode(" - ", $item_note_parts);
+        if ($discount_id) {
+            $sale_notes .= " ID: " . $discount_id;
         }
     }
     
-    // Combine all notes
-    $sale_notes = implode(" | ", $sale_notes_array);
+    // Prepare authorization details for the sale
+    $authorization_details = null;
+    if (isset($input['authorization_data'])) {
+        $auth_data = $input['authorization_data'];
+        
+        // Create structured authorization details
+        $auth_details = [
+            'log_id' => isset($auth_data['log_id']) ? $auth_data['log_id'] : null,
+            'authorized_by' => isset($auth_data['employee_name']) ? $auth_data['employee_name'] : '',
+            'position' => isset($auth_data['position']) ? $auth_data['position'] : '',
+            'employee_number' => isset($auth_data['employee_number']) ? $auth_data['employee_number'] : '',
+            'reason' => isset($auth_data['reason']) ? $auth_data['reason'] : '',
+            'timestamp' => date('Y-m-d H:i:s'),
+            'action' => isset($input['authorization_action']) ? $input['authorization_action'] : 'SALE_AUTHORIZATION'
+        ];
+        
+        $authorization_details = json_encode($auth_details, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        
+        // Also add to notes for visibility
+        if (!empty($sale_notes)) {
+            $sale_notes .= "\n\n";
+        }
+        $sale_notes .= "AUTHORIZED TRANSACTION\n";
+        $sale_notes .= "Authorized by: " . $auth_data['employee_name'] . " (" . $auth_data['position'] . ")\n";
+        if (isset($auth_data['reason']) && !empty($auth_data['reason'])) {
+            $sale_notes .= "Reason: " . $auth_data['reason'];
+        }
+    }
     
-    // Insert sale WITHOUT branch_id - transaction reference and notes included
+    // Prepare discount authorization details
+    $discount_authorized_by = null;
+    $discount_authorized_position = null;
+    
+    // Check if authorization data exists (from pendingAuthorization)
+    if (isset($input['authorization_data'])) {
+        $auth_data = $input['authorization_data'];
+        $discount_authorized_by = isset($auth_data['employee_name']) ? $auth_data['employee_name'] : null;
+        $discount_authorized_position = isset($auth_data['position']) ? $auth_data['position'] : null;
+    }
+    
+    // Also check the old format for backwards compatibility
+    if (isset($input['discount_type']) && $input['discount_type'] === 'others' && isset($input['discount_authorization'])) {
+        $discount_auth = $input['discount_authorization'];
+        if (!$discount_authorized_by) {
+            $discount_authorized_by = isset($discount_auth['authorized_by']) ? $discount_auth['authorized_by'] : null;
+        }
+        if (!$discount_authorized_position) {
+            $discount_authorized_position = isset($discount_auth['authorized_position']) ? $discount_auth['authorized_position'] : null;
+        }
+    }
+    
+    // Add discount authorization to sale notes if available
+    if ($discount_authorized_by && $discount_authorized_position && isset($input['discount_type']) && $input['discount_type'] === 'others') {
+        if (!empty($sale_notes)) {
+            $sale_notes .= "\n\n";
+        }
+        $sale_notes .= "CUSTOM DISCOUNT AUTHORIZATION\n";
+        $sale_notes .= "Authorized by: " . $discount_authorized_by . " (" . $discount_authorized_position . ")";
+    }
+    
+    // Insert sale with authorization details
     $stmt = $conn->prepare("
         INSERT INTO sales 
         (employee_id, subtotal, tax, total_amount, discount, payment_method, 
-         payment_status, cash_received, transaction_reference, notes, sale_date)
-        VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, NOW())
+         payment_status, cash_received, transaction_reference, notes, 
+         authorization_details, authorized_by, authorized_by_position, sale_date)
+        VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?, ?, NOW())
     ");
     
     $stmt->bind_param(
-        "iddddsdss",
+        "iddddsdsssss",
         $input['employee_id'],
         $subtotal,
         $tax,
@@ -94,22 +134,22 @@ try {
         $input['payment_method'],
         $cash_received,
         $transaction_reference,
-        $sale_notes
+        $sale_notes,
+        $authorization_details,
+        $discount_authorized_by,
+        $discount_authorized_position
     );
     
     if (!$stmt->execute()) {
-        $error_msg = "Failed to create sale: " . $stmt->error;
-        error_log($error_msg);
-        throw new Exception($error_msg);
+        throw new Exception("Failed to create sale: " . $stmt->error);
     }
     
     $sale_id = $conn->insert_id;
     
-    // Get the generated sale_number and sale_date
-    $result = $conn->query("SELECT sale_number, DATE(sale_date) as sale_date FROM sales WHERE sale_id = $sale_id");
+    // Get the generated sale_number
+    $result = $conn->query("SELECT sale_number FROM sales WHERE sale_id = $sale_id");
     $row = $result->fetch_assoc();
     $sale_number = $row['sale_number'];
-    $sale_date = $row['sale_date'];
 
     // Insert sale items & reduce stock
     $itemStmt = $conn->prepare("
@@ -124,8 +164,18 @@ try {
         WHERE product_size_id = ? AND stock_quantity >= ?
     ");
 
-    // Get actual cost prices for all products in cart
-    $productSizeIds = array_map(function($item) { return intval($item['product_size_id']); }, $input['items']);
+    // Get actual cost prices
+    $productSizeIds = array_map(function($item) { 
+        return isset($item['product_size_id']) ? intval($item['product_size_id']) : 0; 
+    }, $input['items']);
+    
+    // Filter out invalid IDs
+    $productSizeIds = array_filter($productSizeIds, function($id) { return $id > 0; });
+    
+    if (empty($productSizeIds)) {
+        throw new Exception("No valid product size IDs found");
+    }
+    
     $placeholders = implode(',', array_fill(0, count($productSizeIds), '?'));
     
     $costQuery = $conn->prepare("
@@ -144,30 +194,37 @@ try {
     while ($row = $costResult->fetch_assoc()) {
         $costPrices[$row['product_size_id']] = floatval($row['cost_price']);
     }
+    
+    $costQuery->close();
 
     foreach ($input['items'] as $item) {
+        if (!isset($item['product_size_id']) || !isset($item['quantity'])) {
+            continue; // Skip invalid items
+        }
+        
+        $product_size_id = intval($item['product_size_id']);
         $unit_price = floatval($item['final_price']);
         $quantity = intval($item['quantity']);
-        
-        // Get actual cost from database
-        if (!isset($costPrices[$item['product_size_id']])) {
-            throw new Exception("Cost price not found for product: " . $item['product_name']);
-        }
-        $unit_cost = $costPrices[$item['product_size_id']];
-            
+        $unit_cost = isset($costPrices[$product_size_id]) ? $costPrices[$product_size_id] : 0;
         $subtotal_item = $unit_price * $quantity;
         $total = $subtotal_item;
         
-        $product_name = $item['product_name'];
-        $size_display = $item['size_name'];
+        // Check if price was changed
+        $price_change_authorized_by = null;
+        $price_change_authorized_position = null;
+        
+        if (isset($item['price_changed_by']) && isset($item['price_change_position'])) {
+            $price_change_authorized_by = $item['price_changed_by'];
+            $price_change_authorized_position = $item['price_change_position'];
+        }
         
         // Insert sale item
         $itemStmt->bind_param(
             "iissidddd", 
             $sale_id, 
-            $item['product_size_id'],
-            $product_name,
-            $size_display,
+            $product_size_id,
+            $item['product_name'],
+            $item['size_name'],
             $quantity, 
             $unit_price, 
             $unit_cost,
@@ -178,93 +235,81 @@ try {
         if (!$itemStmt->execute()) {
             throw new Exception("Failed to add sale item: " . $itemStmt->error);
         }
+        
+        // Get the inserted sale_item_id to update with price change authorization
+        $sale_item_id = $conn->insert_id;
+        
+        // If price was changed with authorization, update the sale_items record
+        if ($price_change_authorized_by && $price_change_authorized_position) {
+            $updateItemStmt = $conn->prepare("
+                UPDATE sale_items 
+                SET price_change_authorized_by = ?, 
+                    price_change_authorized_position = ?
+                WHERE sale_item_id = ?
+            ");
+            
+            $updateItemStmt->bind_param(
+                "ssi",
+                $price_change_authorized_by,
+                $price_change_authorized_position,
+                $sale_item_id
+            );
+            
+            if (!$updateItemStmt->execute()) {
+                throw new Exception("Failed to update price change authorization: " . $updateItemStmt->error);
+            }
+            
+            $updateItemStmt->close();
+        }
 
-        // Update stock
+        // Reduce stock
         $stockStmt->bind_param(
             "iii", 
             $quantity, 
-            $item['product_size_id'], 
+            $product_size_id, 
             $quantity
         );
         
         if (!$stockStmt->execute() || $stockStmt->affected_rows === 0) {
-            throw new Exception("Insufficient stock for " . $product_name);
+            throw new Exception("Insufficient stock for " . $item['product_name']);
         }
     }
-
-    // ========================================
-    // UPDATE AGGREGATED SALES TABLES USING STORED PROCEDURES
-    // ========================================
     
-    // Update employee daily sales (no branch_id needed)
-    $empProc = $conn->prepare("CALL update_employee_daily_sales(?)");
-    $empProc->bind_param("s", $sale_date);
-    if (!$empProc->execute()) {
-        error_log("Failed to update employee_daily_sales: " . $empProc->error);
-    }
-    $empProc->close();
-    
-    // Update daily sales (company-wide)
-    $total_cost = 0;
-    $total_items_sold = 0;
-    
-    foreach ($input['items'] as $item) {
-        $quantity = intval($item['quantity']);
-        $unit_cost = $costPrices[$item['product_size_id']];
-        $total_cost += ($unit_cost * $quantity);
-        $total_items_sold += $quantity;
-    }
-    
-    $net_profit = $total_amount - $total_cost;
-    
-    $dailyStmt = $conn->prepare("
-        INSERT INTO daily_sales 
-        (sales_date, total_orders, total_revenue, total_cost, 
-         total_profit, total_items_sold)
-        VALUES (?, 1, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-            total_orders = total_orders + 1,
-            total_revenue = total_revenue + VALUES(total_revenue),
-            total_cost = total_cost + VALUES(total_cost),
-            total_profit = total_profit + VALUES(total_profit),
-            total_items_sold = total_items_sold + VALUES(total_items_sold),
-            updated_at = CURRENT_TIMESTAMP
-    ");
-    
-    $dailyStmt->bind_param(
-        "sdddi",
-        $sale_date,
-        $total_amount,
-        $total_cost,
-        $net_profit,
-        $total_items_sold
-    );
-    
-    if (!$dailyStmt->execute()) {
-        error_log("Failed to update daily_sales: " . $dailyStmt->error);
-    }
+    $itemStmt->close();
+    $stockStmt->close();
 
     $conn->commit();
     
-    echo json_encode([
+    // Return success
+    $response = [
         'success' => true, 
         'sale_id' => $sale_id,
         'receipt_number' => $sale_number,
-        'transaction_reference' => $transaction_reference
-    ]);
+        'transaction_reference' => $transaction_reference,
+        'message' => 'Payment processed successfully'
+    ];
+    
+    // Include authorization info if available
+    if ($authorization_details) {
+        $response['authorization_details'] = json_decode($authorization_details, true);
+    }
+    
+    // Include discount authorization info if available
+    if ($discount_authorized_by) {
+        $response['discount_authorization'] = [
+            'authorized_by' => $discount_authorized_by,
+            'authorized_position' => $discount_authorized_position
+        ];
+    }
+    
+    echo json_encode($response);
 
 } catch (Exception $e) {
     $conn->rollback();
-    $error_details = [
-        'error' => $e->getMessage(),
-        'file' => $e->getFile(),
-        'line' => $e->getLine()
-    ];
-    error_log("Sale processing error: " . json_encode($error_details));
+    error_log("Process sale error: " . $e->getMessage());
     echo json_encode([
         'success' => false, 
-        'message' => $e->getMessage(),
-        'debug' => $error_details
+        'message' => $e->getMessage()
     ]);
 }
 ?>

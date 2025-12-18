@@ -48,7 +48,7 @@ function openPaymentModal(mode) {
                         <span>GCash</span>
                     </button>
                     <button onclick="selectEWallet('paymaya', ${total})" class="btn" style="flex:1;padding:15px;background:white;color:#00D632;border:2px solid #00D632;border-radius:8px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;" onmouseover="this.style.background='#00D632';this.style.color='white';" onmouseout="this.style.background='white';this.style.color='#00D632';">
-                        <span>PayMaya</span>
+                        <span>Maya</span>
                     </button>
                 </div>
             </div>
@@ -59,10 +59,10 @@ function openPaymentModal(mode) {
                 <label style="font-weight:600;display:block;margin-bottom:10px;">Select Bank:</label>
                 <div style="display:flex;gap:10px;margin-bottom:20px;">
                     <button onclick="selectBank('landbank', ${total})" class="btn" style="flex:1;padding:15px;background:white;color:#00843D;border:2px solid #00843D;border-radius:8px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;" onmouseover="this.style.background='#00843D';this.style.color='white';" onmouseout="this.style.background='white';this.style.color='#00843D';">
-                        <span>LandBank</span>
+                        <span>LANDBANK</span>
                     </button>
                     <button onclick="selectBank('seabank', ${total})" class="btn" style="flex:1;padding:15px;background:white;color:#FF6B00;border:2px solid #FF6B00;border-radius:8px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;" onmouseover="this.style.background='#FF6B00';this.style.color='white';" onmouseout="this.style.background='white';this.style.color='#FF6B00';">
-                        <span>SeaBank</span>
+                        <span>MariBank</span>
                     </button>
                 </div>
             </div>
@@ -143,20 +143,20 @@ function showQRPaymentModal(paymentMethod, provider, total) {
     if (paymentMethod === 'ewallet') {
         if (provider === 'gcash') {
             providerName = 'GCash';
-            qrImage = 'img/gcash.jpg';
+            qrImage = 'img/gcash.jpeg';
             titleColor = '#007DFE';
         } else if (provider === 'paymaya') {
-            providerName = 'PayMaya';
-            qrImage = 'img/Maya.jpg';
+            providerName = 'Maya';
+            qrImage = 'img/Maya.jpeg';
             titleColor = '#00D632';
         }
     } else if (paymentMethod === 'card') {
         if (provider === 'landbank') {
-            providerName = 'LandBank';
+            providerName = 'LANDBANK';
             qrImage = 'img/LandBank.jpg';
             titleColor = '#00843D';
         } else if (provider === 'seabank') {
-            providerName = 'SeaBank';
+            providerName = 'MariBank';
             qrImage = 'img/MariBank.jpeg';
             titleColor = '#FF6B00';
         }
@@ -299,6 +299,37 @@ function processPaymentWithData(method, cashReceived, transactionRef, total) {
         return;
     }
     
+    // Check if authorization is needed
+    const requiresAuthorization = checkIfAuthorizationNeeded();
+    
+    if (requiresAuthorization && !window.pendingAuthorization) {
+        // Show authorization modal with specific details
+        const authDetails = buildAuthorizationDetails();
+        
+        showAuthorizationModal(
+            'AUTHORIZATION REQUIRED FOR SPECIAL CHANGES',
+            (extraData, authData) => {
+                // Store authorization data with additional details
+                window.pendingAuthorization = {
+                    authorized_by: authData.employee_name,
+                    position: authData.position,
+                    reason: authData.reason || 'No reason provided',
+                    employee_id: authData.employee_id,
+                    employee_name: authData.employee_name,
+                    details: authDetails
+                };
+                // Retry payment with authorization
+                processPaymentWithData(method, cashReceived, transactionRef, total);
+            },
+            { details: authDetails },
+            () => {
+                alert('Payment cancelled. Authorization is required for this transaction.');
+                window.pendingAuthorization = null;
+            }
+        );
+        return;
+    }
+    
     const saleData = {
         employee_id: EMPLOYEE_ID,
         items: cart,
@@ -314,11 +345,34 @@ function processPaymentWithData(method, cashReceived, transactionRef, total) {
         transaction_reference: transactionRef,
         receipt_number: receiptNum
     };
+    
+    // Add discount authorization data if "Others" discount was used
+    if (globalDiscountType === 'others' && window.othersDiscountAuthData) {
+        saleData.authorization_data = window.othersDiscountAuthData;
+        saleData.discount_authorization = {
+            authorized_by: window.othersDiscountAuthData.employee_name,
+            authorized_position: window.othersDiscountAuthData.position
+        };
+    }
+    
+    // Add authorization data if available (from price changes)
+    if (window.pendingAuthorization && window.pendingAuthorization.authData) {
+        if (!saleData.authorization_data) {
+            saleData.authorization_data = window.pendingAuthorization.authData;
+        }
+        saleData.authorization_action = 'SALE_AUTHORIZATION';
+    }
 
-    console.log('Processing QR payment:', saleData);
+    // Add authorization data if available
+    if (window.pendingAuthorization) {
+        saleData.authorization_data = window.pendingAuthorization;
+    }
+
+    console.log('Processing payment with data:', saleData);
 
     // Disable the button to prevent double-clicks
-    const completeBtn = document.querySelector('#qrPaymentModal .btn-primary');
+    const completeBtn = document.querySelector('#qrPaymentModal .btn-primary') || 
+                       document.querySelector('#paymentModal .btn-primary');
     const originalBtnText = completeBtn ? completeBtn.innerHTML : '';
     if (completeBtn) {
         completeBtn.disabled = true;
@@ -355,7 +409,9 @@ function processPaymentWithData(method, cashReceived, transactionRef, total) {
                 discount_amount: discountAmount,
                 global_discount: globalDiscount,
                 global_discount_type: globalDiscountType,
-                global_discount_id_number: globalDiscountIdNumber
+                global_discount_id_number: globalDiscountIdNumber,
+                authorization_log_id: res.authorization_log_id,
+                requires_authorization: res.requires_authorization
             };
             
             console.log('Saved payment data:', window.mainReceiptPaymentData);
@@ -372,6 +428,9 @@ function processPaymentWithData(method, cashReceived, transactionRef, total) {
             window.selectedEWalletProvider = null;
             window.selectedBank = null;
             window.selectedPaymentTotal = null;
+            
+            // Clear authorization
+            window.pendingAuthorization = null;
             
             // Get new receipt number
             fetch('get_next_receipt_number.php')
@@ -419,6 +478,61 @@ function processPaymentWithData(method, cashReceived, transactionRef, total) {
     });
 }
 
+// Function to check if authorization is needed
+function checkIfAuthorizationNeeded() {
+    // Check for price changes
+    const hasPriceChanges = cart.some(item => item.price_changed);
+    
+    // Check for custom discount
+    const hasCustomDiscount = globalDiscountType === 'others' && globalDiscount > 0;
+    
+    return hasPriceChanges || hasCustomDiscount;
+}
+
+// Function to build authorization details for the modal
+function buildAuthorizationDetails() {
+    const details = {
+        price_changes: [],
+        discount: null,
+        timestamp: new Date().toISOString()
+    };
+    
+    // Collect price change details
+    cart.forEach(item => {
+        if (item.price_changed) {
+            details.price_changes.push({
+                product: item.product_name,
+                size: item.size_name,
+                old_price: item.original_price,
+                new_price: item.final_price,
+                authorized_by: item.price_changed_by || null,
+                position: item.price_changed_position || null,
+                reason: item.price_change_reason || null
+            });
+        }
+    });
+    
+    // Collect discount details
+    if (globalDiscountType === 'others' && globalDiscount > 0) {
+        const subtotal = cart.reduce((s,i) => s + i.final_price * i.quantity, 0);
+        details.discount = {
+            type: 'custom',
+            percentage: globalDiscount,
+            amount: subtotal * (globalDiscount / 100),
+            id_number: globalDiscountIdNumber || ''
+        };
+    } else if (globalDiscountType && globalDiscount > 0) {
+        const subtotal = cart.reduce((s,i) => s + i.final_price * i.quantity, 0);
+        details.discount = {
+            type: globalDiscountType,
+            percentage: globalDiscount,
+            amount: subtotal * (globalDiscount / 100),
+            id_number: globalDiscountIdNumber || ''
+        };
+    }
+    
+    return details;
+}
 // Updated processPayment function for cash payments
 function processPayment(method) {
     // If method is cash, process normally
@@ -473,12 +587,40 @@ function processPayment(method) {
             completeBtn.innerHTML = 'Processing...';
         }
 
+        // ADD DEBUG LOGGING
+        console.log('Sending cash payment request to process_sale.php with data:', saleData);
+        
         fetch('process_sale.php', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify(saleData)
         })
-        .then(r => r.json())
+        .then(response => {
+            // Log the raw response
+            console.log('Response status:', response.status);
+            
+            // First, get the response as text to see what we're getting
+            return response.text().then(text => {
+                console.log('Raw response text (first 500 chars):', text.substring(0, 500));
+                
+                // Try to parse as JSON
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Failed to parse JSON:', e);
+                    console.error('Raw response was:', text);
+                    
+                    // Check if it's an HTML error page
+                    if (text.includes('<br />') || text.includes('<b>') || text.includes('<!DOCTYPE')) {
+                        throw new Error('Server returned HTML error page. Check PHP errors.');
+                    }
+                    throw new Error('Invalid JSON response from server');
+                }
+            });
+        })
         .then(res => {
             console.log('Payment response:', res);
             
@@ -560,7 +702,7 @@ function processPayment(method) {
                 completeBtn.disabled = false;
                 completeBtn.innerHTML = originalBtnText;
             }
-            alert('Payment failed. Please try again.');
+            alert('Payment failed: ' + err.message + '\n\nPlease check the server error logs.');
         });
     } else {
         // For ewallet or card, we should have already handled it via QR modal
@@ -615,7 +757,7 @@ function showMainReceiptPrintPreview() {
             <h3 style="margin-bottom: 15px; color: #1a1a2e;">Print Preview - Main Receipt</h3>
             
             <div style="background: white; border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; font-family: monospace;">
-                <div style="text-align: center; margin-bottom: 10px;">
+                <div style="text-align: center; margin-bottom: 10px;max-height:450px;overflow-y:auto;">
                     <h4 style="margin: 0; color: #e91e63;">Altiere</h4>
                     <div style="font-size: 12px; color: #666;">Receipt #: ${receiptNum}</div>
                     <div style="font-size: 12px; color: #666;">Date: ${date}</div>
@@ -628,7 +770,6 @@ function showMainReceiptPrintPreview() {
                             <div style="flex: 1;">
                                 <div>${item.product_name || 'Unknown'} (${item.size_name || 'N/A'})</div>
                                 <div style="font-size: 11px;">${item.quantity || 1} × ₱${(item.final_price || 0).toFixed(2)}</div>
-                                ${item.notes ? `<div style="font-size: 10px; color: #666;">${item.notes}</div>` : ''}
                             </div>
                             <div style="font-weight: bold;">₱${((item.quantity || 1) * (item.final_price || 0)).toFixed(2)}</div>
                         </div>
@@ -752,7 +893,6 @@ function printReceipt() {
                             <div class="item-details">
                                 <div>${item.product_name || 'Unknown'} (${item.size_name || 'N/A'})</div>
                                 <div style="font-size: 11px;">${item.quantity || 1} × ₱${(item.final_price || 0).toFixed(2)}</div>
-                                ${item.notes ? `<div style="font-size: 10px; color: #666;">${item.notes}</div>` : ''}
                             </div>
                             <div class="item-total">₱${((item.quantity || 1) * (item.final_price || 0)).toFixed(2)}</div>
                         </div>

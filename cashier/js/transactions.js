@@ -203,137 +203,7 @@ function viewTransactionDetails(saleId) {
             alert('Error loading transaction details');
         });
 }
-
-function showTransactionDetailsModal(sale, items) {
-    const isVoided = sale.status === 'voided';
-    
-    const modalHTML = `
-        <div class="transaction-detail-modal">
-            <div class="receipt-preview">
-                <div class="receipt-preview-header">
-                    <h3>Altiere</h3>
-                    <p>Receipt #: ${sale.sale_number}</p>
-                    <p>Date: ${new Date(sale.sale_date).toLocaleString()}</p>
-                    ${isVoided ? '<p style="color: #ff9800; font-weight: 700; margin-top: 10px;">⚠️ VOIDED TRANSACTION</p>' : ''}
-                </div>
-                
-                <div class="receipt-info-grid">
-                    <div class="receipt-info-item">
-                        <span class="receipt-info-label">Cashier:</span>
-                        <span class="receipt-info-value">${sale.cashier_name}</span>
-                    </div>
-                    <div class="receipt-info-item">
-                        <span class="receipt-info-label">Employee #:</span>
-                        <span class="receipt-info-value">${sale.employee_number}</span>
-                    </div>
-                    <div class="receipt-info-item">
-                        <span class="receipt-info-label">Customer:</span>
-                        <span class="receipt-info-value">${sale.customer_name}</span>
-                    </div>
-                    <div class="receipt-info-item">
-                        <span class="receipt-info-label">Payment:</span>
-                        <span class="receipt-info-value">
-                            <span class="payment-badge ${sale.payment_method}">${sale.payment_method.toUpperCase()}</span>
-                        </span>
-                    </div>
-                    ${isVoided ? `
-                    <div class="receipt-info-item">
-                        <span class="receipt-info-label">Status:</span>
-                        <span class="receipt-info-value">
-                            <span class="status-badge voided">VOIDED</span>
-                        </span>
-                    </div>
-                    ` : ''}
-                </div>
-                
-                <div class="receipt-items-list">
-                    ${items.map(item => `
-                        <div class="receipt-item-row">
-                            <div>
-                                <div class="receipt-item-name">${item.product_name} (${item.size_display})</div>
-                                <div class="receipt-item-details">${item.quantity} × ₱${parseFloat(item.unit_price).toFixed(2)}</div>
-                            </div>
-                            <div class="receipt-item-total">₱${parseFloat(item.total).toFixed(2)}</div>
-                        </div>
-                    `).join('')}
-                </div>
-                
-                <div class="receipt-totals">
-                    <div class="receipt-total-row">
-                        <span>Subtotal:</span>
-                        <span>₱${parseFloat(sale.subtotal).toFixed(2)}</span>
-                    </div>
-                    <div class="receipt-total-row">
-                        <span>Tax (12%):</span>
-                        <span>₱${parseFloat(sale.tax).toFixed(2)}</span>
-                    </div>
-                    <div class="receipt-total-row">
-                        <span>Discount:</span>
-                        <span>₱${parseFloat(sale.discount).toFixed(2)}</span>
-                    </div>
-                    <div class="receipt-total-row grand-total">
-                        <span>TOTAL:</span>
-                        <span ${isVoided ? 'style="text-decoration: line-through; opacity: 0.6;"' : ''}>₱${parseFloat(sale.total_amount).toFixed(2)}</span>
-                    </div>
-                    
-                    ${sale.payment_method === 'cash' && sale.cash_received ? `
-                        <div class="receipt-total-row">
-                            <span>Cash Received:</span>
-                            <span>₱${parseFloat(sale.cash_received).toFixed(2)}</span>
-                        </div>
-                        <div class="receipt-total-row">
-                            <span>Change:</span>
-                            <span>₱${parseFloat(sale.cash_received - sale.total_amount).toFixed(2)}</span>
-                        </div>
-                    ` : ''}
-                    
-                    ${sale.transaction_reference ? `
-                        <div class="receipt-total-row">
-                            <span>Reference:</span>
-                            <span>${sale.transaction_reference}</span>
-                        </div>
-                    ` : ''}
-                </div>
-                
-                ${sale.notes ? `
-                    <div style="margin-top: 15px; padding: 12px; background: #f9f9f9; border-radius: 6px; font-size: 11px; font-family: monospace; line-height: 1.4; white-space: pre-wrap; border: 1px solid #e0e0e0;">
-                        <strong style="display: block; margin-bottom: 8px; color: #333;">Transaction Notes:</strong>
-                        ${sale.notes.replace(/║/g, '│').replace(/╔/g, '┌').replace(/╗/g, '┐').replace(/╠/g, '├').replace(/╣/g, '┤').replace(/╚/g, '└').replace(/╝/g, '┘').replace(/═/g, '─').replace(/╬/g, '┼')}
-                    </div>
-                ` : ''}
-                
-                ${isVoided && sale.void_reason ? `
-                    <div class="void-note">
-                        <strong>Void Reason:</strong>
-                        <p>${sale.void_reason}</p>
-                        ${sale.voided_by_name ? `<p style="margin-top: 5px; font-size: 11px;">Voided by: ${sale.voided_by_name} on ${new Date(sale.voided_at).toLocaleString()}</p>` : ''}
-                        ${sale.authorized_by_name ? `<p style="margin-top: 2px; font-size: 11px;">Authorized by: ${sale.authorized_by_name} (${sale.authorized_by_position || 'Manager/Supervisor'})</p>` : ''}
-                    </div>
-                ` : ''}
-                
-                <div class="receipt-footer">
-                    <p>Thank you for shopping with us!</p>
-                    <p>Please keep this receipt for returns/exchanges</p>
-                </div>
-            </div>
-            
-            <div style="margin-top: 20px; display: flex; gap: 10px;">
-                ${!isVoided ? `
-                    <button class="btn btn-primary" onclick="printTransactionReceipt(${sale.sale_id})" style="flex: 1;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="margin-right: 5px;">
-                            <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" stroke-width="2"/>
-                            <rect x="6" y="14" width="12" height="8" stroke-width="2"/>
-                        </svg>
-                        Print Receipt
-                    </button>
-                ` : '<div style="flex: 1;"></div>'}
-                <button class="btn btn-secondary" onclick="closeCustomModal()">Close</button>
-            </div>
-        </div>
-    `;
-    
-    showCustomModal('Transaction Details', modalHTML);
-}
+// transactions.js - Key Functions with Authorization Support
 
 // Void Transaction with Authorization
 function voidTransaction(saleId, saleNumber) {
@@ -416,7 +286,6 @@ function confirmVoidTransaction(saleId, authData) {
     btn.innerHTML = '<span style="opacity: 0.7;">Processing...</span>';
     btn.disabled = true;
     
-    // Create timestamp for the void action
     const now = new Date();
     const dateTime = now.toLocaleString();
     
@@ -452,6 +321,159 @@ function confirmVoidTransaction(saleId, authData) {
         btn.innerHTML = originalText;
         btn.disabled = false;
     });
+}
+
+function showTransactionDetailsModal(sale, items) {
+    const isVoided = sale.status === 'voided';
+    
+    const modalHTML = `
+        <div class="transaction-detail-modal">
+            <div class="receipt-preview">
+                <div class="receipt-preview-header">
+                    <h3>Altiere</h3>
+                    <p>Receipt #: ${sale.sale_number}</p>
+                    <p>Date: ${new Date(sale.sale_date).toLocaleString()}</p>
+                    ${isVoided ? '<p style="color: #ff9800; font-weight: 700; margin-top: 10px;">⚠️ VOIDED TRANSACTION</p>' : ''}
+                </div>
+                
+                <div class="receipt-info-grid">
+                    <div class="receipt-info-item">
+                        <span class="receipt-info-label">Cashier:</span>
+                        <span class="receipt-info-value">${sale.cashier_name}</span>
+                    </div>
+                    <div class="receipt-info-item">
+                        <span class="receipt-info-label">Employee #:</span>
+                        <span class="receipt-info-value">${sale.employee_number}</span>
+                    </div>
+                    <div class="receipt-info-item">
+                        <span class="receipt-info-label">Customer:</span>
+                        <span class="receipt-info-value">${sale.customer_name}</span>
+                    </div>
+                    <div class="receipt-info-item">
+                        <span class="receipt-info-label">Payment:</span>
+                        <span class="receipt-info-value">
+                            <span class="payment-badge ${sale.payment_method}">${sale.payment_method.toUpperCase()}</span>
+                        </span>
+                    </div>
+                    ${isVoided ? `
+                    <div class="receipt-info-item">
+                        <span class="receipt-info-label">Status:</span>
+                        <span class="receipt-info-value">
+                            <span class="status-badge voided">VOIDED</span>
+                        </span>
+                    </div>
+                    ` : ''}
+                </div>
+                
+                <div class="receipt-items-list">
+                    ${items.map(item => `
+                        <div class="receipt-item-row">
+                            <div>
+                                <div class="receipt-item-name">${item.product_name} (${item.size_display})</div>
+                                <div class="receipt-item-details">${item.quantity} × ₱${parseFloat(item.unit_price).toFixed(2)}</div>
+                                ${item.price_change_authorized_by && item.price_change_authorized_position ? `
+                                    <div style="font-size: 10px; color: #2196f3; margin-top: 3px; padding: 3px 6px; background: #e3f2fd; border-radius: 3px; display: inline-block;">
+                                        🔒 Price changed by: ${item.price_change_authorized_by} (${item.price_change_authorized_position})
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <div class="receipt-item-total">₱${parseFloat(item.total).toFixed(2)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="receipt-totals">
+                    <div class="receipt-total-row">
+                        <span>Subtotal:</span>
+                        <span>₱${parseFloat(sale.subtotal).toFixed(2)}</span>
+                    </div>
+                    <div class="receipt-total-row">
+                        <span>Tax (12%):</span>
+                        <span>₱${parseFloat(sale.tax).toFixed(2)}</span>
+                    </div>
+                    <div class="receipt-total-row">
+                        <span>Discount:</span>
+                        <span>₱${parseFloat(sale.discount).toFixed(2)}</span>
+                    </div>
+                    <div class="receipt-total-row grand-total">
+                        <span>TOTAL:</span>
+                        <span ${isVoided ? 'style="text-decoration: line-through; opacity: 0.6;"' : ''}>₱${parseFloat(sale.total_amount).toFixed(2)}</span>
+                    </div>
+                    
+                    ${sale.payment_method === 'cash' && sale.cash_received ? `
+                        <div class="receipt-total-row">
+                            <span>Cash Received:</span>
+                            <span>₱${parseFloat(sale.cash_received).toFixed(2)}</span>
+                        </div>
+                        <div class="receipt-total-row">
+                            <span>Change:</span>
+                            <span>₱${parseFloat(sale.cash_received - sale.total_amount).toFixed(2)}</span>
+                        </div>
+                    ` : ''}
+                    
+                    ${sale.transaction_reference ? `
+                        <div class="receipt-total-row">
+                            <span>Reference:</span>
+                            <span>${sale.transaction_reference}</span>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                ${sale.notes || sale.discount_authorized_by || (sale.status === 'voided' && sale.voided_by_name) ? `
+                    <div style="margin-top: 15px; padding: 12px; background: #f9f9f9; border-radius: 6px; font-size: 11px; font-family: monospace; line-height: 1.4; white-space: pre-wrap; border: 1px solid #e0e0e0;">
+                        <strong style="display: block; margin-bottom: 8px; color: #333;">Transaction Notes:</strong>
+                        ${sale.notes || ''}
+                        
+                        ${(sale.discount_authorized_by && sale.discount_authorized_position) ? `
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #4caf50;">
+                                <strong style="color: #4caf50;">✓ Custom Discount Authorized by:</strong><br/>
+                                ${sale.discount_authorized_by} (${sale.discount_authorized_position})
+                            </div>
+                        ` : ''}
+                        
+                        ${(sale.status === 'voided' && sale.voided_by_name && sale.voided_by_position) ? `
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ff9800;">
+                                <strong style="color: #ff9800;">⚠️ Transaction Voided by:</strong><br/>
+                                ${sale.voided_by_name} (${sale.voided_by_position})
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : ''}
+                
+                ${isVoided && sale.void_reason ? `
+                    <div class="void-note">
+                        <strong>Void Reason:</strong>
+                        <p>${sale.void_reason}</p>
+                        ${sale.voided_by_name ? `
+                            <p style="margin-top: 5px; font-size: 11px;">
+                                Voided by: ${sale.voided_by_name}${sale.voided_by_position ? ' (' + sale.voided_by_position + ')' : ''} on ${new Date(sale.voided_at).toLocaleString()}
+                            </p>
+                        ` : ''}
+                    </div>
+                ` : ''}
+                
+                <div class="receipt-footer">
+                    <p>Thank you for shopping with us!</p>
+                    <p>Please keep this receipt for returns/exchanges</p>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                ${!isVoided ? `
+                    <button class="btn btn-primary" onclick="printTransactionReceipt(${sale.sale_id})" style="flex: 1;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="margin-right: 5px;">
+                            <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" stroke-width="2"/>
+                            <rect x="6" y="14" width="12" height="8" stroke-width="2"/>
+                        </svg>
+                        Print Receipt
+                    </button>
+                ` : '<div style="flex: 1;"></div>'}
+                <button class="btn btn-secondary" onclick="closeCustomModal()">Close</button>
+            </div>
+        </div>
+    `;
+    
+    showCustomModal('Transaction Details', modalHTML);
 }
 
 function reprintTransaction(saleId) {

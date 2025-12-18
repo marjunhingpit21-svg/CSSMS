@@ -17,6 +17,7 @@ $input = json_decode(file_get_contents('php://input'), true);
 $sale_id = intval($input['sale_id'] ?? 0);
 $void_reason = trim($input['void_reason'] ?? '');
 $voided_by = intval($input['voided_by'] ?? $_SESSION['employee_id']);
+$authorized_by_id = intval($input['authorized_by'] ?? 0);
 $authorized_by_name = trim($input['authorized_by_name'] ?? '');
 $authorized_by_position = trim($input['authorized_by_position'] ?? '');
 $void_timestamp = trim($input['void_timestamp'] ?? date('Y-m-d H:i:s'));
@@ -29,6 +30,11 @@ if ($sale_id <= 0) {
 
 if (empty($void_reason) || strlen($void_reason) < 10) {
     echo json_encode(['success' => false, 'message' => 'Void reason must be at least 10 characters']);
+    exit();
+}
+
+if ($authorized_by_id <= 0) {
+    echo json_encode(['success' => false, 'message' => 'Authorization information missing']);
     exit();
 }
 
@@ -52,20 +58,10 @@ try {
         throw new Exception('Transaction is already voided');
     }
     
-    $void_note = "\n\n" . str_repeat("═", 70) . "\n";
-    $void_note .= "VOIDED TRANSACTION - " . date('M d, Y h:i A') . "\n";
-    $void_note .= str_repeat("─", 70) . "\n";
-    $void_note .= "Reason: " . $void_reason . "\n";
-    $void_note .= str_repeat("─", 70) . "\n";
-    $void_note .= "Authorized by: " . $authorized_by_name . "\n";
-    $void_note .= "Position:      " . $authorized_by_position . "\n";
-    $void_note .= str_repeat("═", 70) . "\n";
-
     // Combine with existing notes
     $new_notes = $sale['notes'] ? $sale['notes'] . $void_note : $void_note;
- 
 
-    // Update sales table with void info and notes
+    // Update sales table with void info, authorization details, and notes
     $update_query = "UPDATE sales 
                      SET status = 'voided',
                          void_reason = ?,
@@ -75,7 +71,7 @@ try {
                      WHERE sale_id = ?";
     
     $update_stmt = mysqli_prepare($conn, $update_query);
-    mysqli_stmt_bind_param($update_stmt, "sisi", $void_reason, $voided_by, $new_notes, $sale_id);
+    mysqli_stmt_bind_param($update_stmt, "sisi", $void_reason, $authorized_by_id, $new_notes, $sale_id);
     
     if (!mysqli_stmt_execute($update_stmt)) {
         throw new Exception('Failed to void transaction: ' . mysqli_error($conn));
@@ -101,11 +97,11 @@ try {
         }
     }
     
-    // Log the void action
+    // Log the void action with authorization details
     $log_query = "INSERT INTO activity_logs (employee_id, action, description, created_at) 
                   VALUES (?, 'void_transaction', ?, NOW())";
     $log_stmt = mysqli_prepare($conn, $log_query);
-    $description = "Voided transaction #$sale_id. Reason: $void_reason. Authorized by: $authorized_by_name";
+    $description = "Voided transaction #$sale_id. Reason: $void_reason. Authorized by: $authorized_by_name ($authorized_by_position)";
     mysqli_stmt_bind_param($log_stmt, "is", $voided_by, $description);
     mysqli_stmt_execute($log_stmt);
     
@@ -115,7 +111,9 @@ try {
     echo json_encode([
         'success' => true,
         'message' => 'Transaction voided successfully',
-        'sale_id' => $sale_id
+        'sale_id' => $sale_id,
+        'voided_by' => $authorized_by_name,
+        'voided_position' => $authorized_by_position
     ]);
     
 } catch (Exception $e) {

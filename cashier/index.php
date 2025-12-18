@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cashier Portal - TrendyWear</title>
+    <title>Cashier Portal - Altiere Store</title>
     <link rel="stylesheet" href="css/cashier_login.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -96,13 +96,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="branding-content">
                 <div class="branding-logo">
                     <div class="logo-icon-large">
-                        <svg width="56" height="56" viewBox="0 0 40 40" fill="none">
-                            <path d="M20 5L10 15H16V30H24V15H30L20 5Z" fill="white"/>
-                            <circle cx="20" cy="35" r="1.5" fill="white"/>
-                        </svg>
+                        <!-- PNG Logo -->
+                        <img src="img/altière2.png" alt="Altiere Logo" style="width: 100%; height: 100%;">
                     </div>
-                    <h1>TrendyWear</h1>
-                    <p>Stock Management System</p>
+                    <h1>Altiere</h1>
+                    <p>Cashier Management System</p>
                 </div>
 
                 <div class="feature-list-compact">
@@ -128,13 +126,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="login-header">
                     <div class="brand-mini">
                         <div class="brand-icon">
-                            <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
-                                <path d="M20 5L10 15H16V30H24V15H30L20 5Z" fill="#e91e63"/>
-                                <circle cx="20" cy="35" r="1.5" fill="#e91e63"/>
-                            </svg>
+                            <!-- PNG Logo -->
+                            <img src="img/altière2.png" alt="Altiere Logo" style="width: 100%; height: 100%;">
                         </div>
                         <div class="brand-text">
-                            <span class="brand-name">TrendyWear</span>
+                            <span class="brand-name">Altiere</span>
                             <span class="brand-subtitle">Cashier Portal</span>
                         </div>
                     </div>
@@ -216,4 +212,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </body>
-</html
+</html>

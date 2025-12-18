@@ -8,6 +8,14 @@ document.addEventListener('DOMContentLoaded', function() {
 // Add a flag to track if "Others" discount authorization was successful
 let othersDiscountAuthorized = false;
 
+// Function to format notes with proper spacing
+function formatNotesForDisplay(notes) {
+    if (!notes) return '';
+    
+    // Replace single newlines with double newlines for better spacing
+    return notes.replace(/\n\n+/g, '\n\n'); // Ensure consistent spacing
+}
+
 // F1 - Apply Discount
 function applyDiscount() {
     if (cart.length === 0) {
@@ -30,10 +38,14 @@ function selectDiscountType(type, percentage) {
         showAuthorizationModal(
             'APPLY CUSTOM DISCOUNT',
             (extraData, authData) => {
-                // After SUCCESSFUL authorization
+                // After SUCCESSFUL authorization - store auth data globally
                 othersDiscountAuthorized = true;
                 globalDiscountType = 'others'; // Set type to others
                 globalDiscount = 0; // Reset to 0 for custom input
+                
+                // Store authorization data globally for later use in payment
+                window.othersDiscountAuthData = authData;
+                
                 showDiscountModalWithOthersSelected(authData); // Show discount modal with Others selected
             },
             null, // extraData
@@ -42,6 +54,7 @@ function selectDiscountType(type, percentage) {
                 // Reset everything
                 othersDiscountAuthorized = false;
                 globalDiscountType = ''; // Clear discount type
+                window.othersDiscountAuthData = null; // Clear auth data
                 showFunctionFeedback('Custom discount authorization cancelled');
             }
         );
@@ -49,6 +62,7 @@ function selectDiscountType(type, percentage) {
         globalDiscountType = type;
         globalDiscount = percentage;
         othersDiscountAuthorized = false; // Reset for non-others discounts
+        window.othersDiscountAuthData = null; // Clear auth data for non-others
         applyDiscount(); // Show discount modal immediately for non-others
     }
 }
@@ -100,7 +114,7 @@ function showDiscountModalWithOthersSelected(authData = null) {
                 </div>
             ` : ''}
             
-            <div style="margin-bottom: 20px;" id="discountIdNumberSection" style="display: ${globalDiscountType ? 'block' : 'none'}">
+            <div style="margin-bottom: 20px;" id="discountIdNumberSection">
                 <label style="font-weight: 600; display: block; margin-bottom: 8px;">ID Number:</label>
                 <input type="text" id="discountIdNumber" 
                        style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px;"
@@ -113,6 +127,18 @@ function showDiscountModalWithOthersSelected(authData = null) {
                 <input type="number" id="discountInput" 
                        style="width: 100%; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 18px;"
                        placeholder="0" min="0" max="100" step="0.01" value="${globalDiscount}" autofocus>
+            </div>
+            
+            <div style="margin-bottom: 20px; display: ${globalDiscountType === 'others' ? 'block' : 'none'};" id="discountReasonSection">
+                <label style="font-weight: 600; display: block; margin-bottom: 8px;">
+                    Reason for Custom Discount: <span style="color: #d32f2f;">*</span>
+                </label>
+                <textarea id="discountReason" 
+                       style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; min-height: 80px; font-size: 14px; resize: vertical;"
+                       placeholder="Please provide a reason for the custom discount (e.g., special promotion, customer request, price adjustment)..."></textarea>
+                <div id="discountReasonError" style="color: #d32f2f; font-size: 12px; margin-top: 5px; display: none;">
+                    Please provide a reason for the custom discount
+                </div>
             </div>
             
             <div style="display: flex; gap: 10px;">
@@ -137,19 +163,42 @@ function showDiscountModalWithOthersSelected(authData = null) {
         }, 100);
     }
 }
+
 // Update the saveDiscount function
 function saveDiscount() {
     let discount = globalDiscount;
     let discountInput = null;
+    let discountReason = '';
+    let discountReasonError = null;
+    let discountAuthName = '';
+    let discountAuthPosition = '';
     
     if (globalDiscountType === 'others') {
         discountInput = document.getElementById('discountInput');
+        discountReason = document.getElementById('discountReason')?.value.trim() || '';
+        discountReasonError = document.getElementById('discountReasonError');
         discount = parseFloat(discountInput?.value) || 0;
+        
+        // Validate reason for Others discount
+        if (!discountReason) {
+            if (discountReasonError) {
+                discountReasonError.textContent = 'Please provide a reason for the custom discount';
+                discountReasonError.style.display = 'block';
+            } else {
+                alert('Please provide a reason for the custom discount.');
+            }
+            return;
+        }
         
         // Store authorization info for Others discount
         globalDiscountAuthorizedBy = pendingAuthorization?.authData?.employee_name || 'System';
         globalDiscountAuthId = pendingAuthorization?.authData?.employee_id || null;
         globalDiscountAuthPosition = pendingAuthorization?.authData?.position || '';
+        discountAuthName = globalDiscountAuthorizedBy;
+        discountAuthPosition = globalDiscountAuthPosition;
+    } else {
+        // For PWD and Senior discounts, use the fixed percentage
+        discount = globalDiscountType === 'pwd' || globalDiscountType === 'senior' ? 20 : 0;
     }
     
     const idNumber = document.getElementById('discountIdNumber')?.value.trim() || '';
@@ -159,51 +208,30 @@ function saveDiscount() {
         return;
     }
     
-    if (discount < 0 || discount > 100) {
+    if (globalDiscountType === 'others' && (discount < 0 || discount > 100)) {
         alert('Invalid discount. Please enter a value between 0 and 100.');
         return;
     }
     
     // Create discount note for all cart items
     const now = new Date();
-    const dateTime = now.toLocaleString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-    
+    const dateTime = now.toLocaleString();
     let discountNote = '';
     
     if (globalDiscountType === 'others') {
-        discountNote = `
-╔══════════════════════════════════════════════════════════════════════╗
-║ CUSTOM DISCOUNT - ${dateTime.padEnd(30)} ║
-╠══════════════════════════════════════════════════════════════════════╣
-║ Discount: ${discount}%${' '.padEnd(59)} ║
-║ ID Number: ${idNumber.padEnd(58)} ║
-╠══════════════════════════════════════════════════════════════════════╣
-║ Authorized by: ${globalDiscountAuthorizedBy.padEnd(57)} ║
-║ Position:      ${globalDiscountAuthPosition.padEnd(57)} ║
-╚══════════════════════════════════════════════════════════════════════╝
-`;
+        discountNote = `[CUSTOM DISCOUNT ${dateTime}]: ${discount}% discount applied. ID: ${idNumber}. Reason: ${discountReason}. Authorized by: ${discountAuthName} (${discountAuthPosition}).`;
     } else if (globalDiscountType) {
-        discountNote = `
-╔══════════════════════════════════════════════════════════════════════╗
-║ ${globalDiscountType.toUpperCase()} DISCOUNT - ${dateTime.padEnd(31)} ║
-╠══════════════════════════════════════════════════════════════════════╣
-║ Discount: ${discount}%${' '.padEnd(59)} ║
-║ ID Number: ${idNumber.padEnd(58)} ║
-╚══════════════════════════════════════════════════════════════════════╝
-`;
+        discountNote = `[${globalDiscountType.toUpperCase()} DISCOUNT ${dateTime}]: ${discount}% discount applied. ID: ${idNumber}.`;
     }
     
-    // Add discount note to all cart items
+    // Add discount note to all cart items with proper formatting
     if (discountNote) {
         cart.forEach(item => {
-            if (item.notes) {
-                item.notes += '\n\n' + discountNote;
+            // Format existing notes with proper spacing
+            const existingNotes = formatNotesForDisplay(item.notes || '');
+            
+            if (existingNotes) {
+                item.notes = existingNotes + '\n\n' + discountNote;
             } else {
                 item.notes = discountNote;
             }
@@ -332,6 +360,8 @@ function savePrice(item, authData) {
     const newPrice = parseFloat(document.getElementById('priceInput').value);
     const reason = document.getElementById('priceChangeReason')?.value.trim() || '';
     const errorDiv = document.getElementById('priceChangeReasonError');
+    const authName = authData.employee_name;
+    const authPosition = authData.position;
     
     if (isNaN(newPrice) || newPrice < 0) {
         alert('Invalid price. Please enter a valid amount.');
@@ -370,40 +400,21 @@ function savePrice(item, authData) {
     cart[itemIndex].final_price = newPrice;
     cart[itemIndex].discount = 0;
     cart[itemIndex].price_changed = true;
-    cart[itemIndex].price_changed_by = authData.employee_name;
+    cart[itemIndex].price_changed_by = authName;
+    cart[itemIndex].price_change_position = authPosition; // Fixed variable name
     cart[itemIndex].price_change_auth_id = authData.employee_id;
     cart[itemIndex].price_change_reason = reason;
     
     // Create or update notes with price change information
     const now = new Date();
-    const dateTime = now.toLocaleString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+    const dateTime = now.toLocaleString();
+    const priceChangeNote = `[PRICE CHANGE ${dateTime}]: Changed to ₱${newPrice.toFixed(2)}. Reason: ${reason}. Authorized by: ${authName} (${authPosition}).`;
     
-    const priceChangeNote = `
-╔══════════════════════════════════════════════════════════════════════╗
-║ PRICE CHANGE - ${dateTime.padEnd(32)} ║
-╠══════════════════════════════════════════════════════════════════════╣
-║ Old Price: ₱${item.final_price.toFixed(2).padEnd(48)} ║
-║ New Price: ₱${newPrice.toFixed(2).padEnd(48)} ║
-║ Change:    ${newPrice > item.final_price ? 'INCREASE' : 'DECREASE'}${' '.padEnd(51)} ║
-╠══════════════════════════════════════════════════════════════════════╣
-║ REASON: ${reason.substring(0, 68).padEnd(69)} ║
-${reason.length > 68 ? `║         ${reason.substring(68, 136).padEnd(69)} ║` : ''}
-${reason.length > 136 ? `║         ${reason.substring(136, 204).padEnd(69)} ║` : ''}
-╠══════════════════════════════════════════════════════════════════════╣
-║ Authorized by: ${authData.employee_name.padEnd(57)} ║
-║ Position:      ${authData.position.padEnd(57)} ║
-╚══════════════════════════════════════════════════════════════════════╝
-`;
-    
-    // Append to existing notes or create new notes
+    // Append to existing notes with proper formatting
     if (cart[itemIndex].notes) {
-        cart[itemIndex].notes += '\n\n' + priceChangeNote;
+        // Format existing notes with proper spacing
+        const formattedNotes = formatNotesForDisplay(cart[itemIndex].notes);
+        cart[itemIndex].notes = formattedNotes + '\n\n' + priceChangeNote;
     } else {
         cart[itemIndex].notes = priceChangeNote;
     }
@@ -414,10 +425,6 @@ ${reason.length > 136 ? `║         ${reason.substring(136, 204).padEnd(69)} �
     }
     
     renderCart();
-    
-    // Show appropriate message based on price change
-    const changeType = newPrice > item.final_price ? 'increased' : 'decreased';
-    showFunctionFeedback(`Price ${changeType} to ₱${newPrice.toFixed(2)} (Authorized by: ${authData.employee_name})`);
     
     closeCustomModal();
 }
@@ -443,7 +450,7 @@ function addNotes() {
                 <label style="font-weight: 600; display: block; margin-bottom: 8px;">Notes:</label>
                 <textarea id="itemNotes" class="notes-input" 
                           placeholder="Enter notes for this item..."
-                          style="width: 100%; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; min-height: 120px; font-size: 16px; resize: vertical;">${item.notes || ''}</textarea>
+                          style="width: 100%; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; min-height: 120px; font-size: 16px; resize: vertical;">${formatNotesForDisplay(item.notes) || ''}</textarea>
             </div>
             
             <div style="display: flex; gap: 10px;">
@@ -701,6 +708,33 @@ function showAuthorizationModal(action, successCallback, extraData = {}, failCal
             });
         }
     }, 100);
+}
+
+// Add this function to format transaction notes with authorization details
+function formatTransactionNotes(item) {
+    let notes = item.notes || '';
+    
+    // Add price change authorization info if available
+    if (item.price_changed_by && item.price_change_position) {
+        const priceChangeAuthNote = `[Price Change Authorized by: ${item.price_changed_by} (${item.price_change_position})]`;
+        if (notes) {
+            notes += '\n\n' + priceChangeAuthNote;
+        } else {
+            notes = priceChangeAuthNote;
+        }
+    }
+    
+    // Add discount authorization info if available (for Others discount)
+    if (globalDiscountType === 'others' && globalDiscountAuthorizedBy && globalDiscountAuthPosition) {
+        const discountAuthNote = `[Custom Discount Authorized by: ${globalDiscountAuthorizedBy} (${globalDiscountAuthPosition})]`;
+        if (notes) {
+            notes += '\n\n' + discountAuthNote;
+        } else {
+            notes = discountAuthNote;
+        }
+    }
+    
+    return notes;
 }
 
 // Verify authorization credentials

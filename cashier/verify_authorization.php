@@ -1,5 +1,5 @@
 <?php
-// verify_authorization.php
+// verify_authorization.php - UPDATED VERSION
 // Turn off error display for production, log errors instead
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
@@ -50,6 +50,10 @@ if (!isset($data['employee_number'], $data['password'], $data['action'])) {
 $employee_number = trim($data['employee_number']);
 $password = $data['password'];
 $action = $data['action'];
+$reason = isset($data['reason']) ? trim($data['reason']) : '';
+$details = isset($data['details']) ? $data['details'] : null;
+$requested_by_employee_id = isset($data['requested_by_employee_id']) ? intval($data['requested_by_employee_id']) : 0;
+$requested_by_employee_name = isset($data['requested_by_employee_name']) ? trim($data['requested_by_employee_name']) : '';
 
 // Try to include database connection with error handling
 try {
@@ -85,9 +89,6 @@ try {
     
     $employee = $result->fetch_assoc();
     
-    // Debug: Check what's in the database
-    // error_log("Employee found: " . $employee['employee_number'] . ", Hash: " . substr($employee['password_hash'], 0, 20) . "...");
-    
     // Verify password
     $passwordValid = password_verify($password, $employee['password_hash']);
     
@@ -99,8 +100,6 @@ try {
             $passwordValid = true;
         } else {
             error_log("Password verification failed for: " . $employee_number);
-            error_log("Input password: " . $password);
-            error_log("Stored hash: " . $employee['password_hash']);
         }
     }
     
@@ -116,6 +115,7 @@ try {
         case 'VOID TRANSACTION':
         case 'CHANGE PRICE':
         case 'APPLY CUSTOM DISCOUNT':
+        case 'AUTHORIZATION REQUIRED FOR SPECIAL CHANGES':
             $hasPermission = in_array($employee['position'], ['supervisor', 'manager']);
             break;
         
@@ -128,24 +128,63 @@ try {
         exit;
     }
     
-    // Log the authorization
-    $log_query = "INSERT INTO activity_logs (employee_id, action, description) 
-                  VALUES (?, 'authorization', ?)";
+    // Log the authorization to authorization_logs table
+    $log_query = "INSERT INTO authorization_logs 
+                  (action, authorized_by, position, reason, details, 
+                   employee_id, employee_name, timestamp) 
+                  VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
     $log_stmt = $conn->prepare($log_query);
+    
     if ($log_stmt) {
-        $log_desc = "Authorization for: $action - Employee: " . $employee['first_name'] . ' ' . $employee['last_name'];
-        $log_stmt->bind_param("is", $employee['employee_id'], $log_desc);
-        $log_stmt->execute();
+        // Prepare details as JSON if it's an array/object
+        $details_json = null;
+        if ($details !== null) {
+            $details_json = is_array($details) || is_object($details) ? 
+                          json_encode($details) : $details;
+        }
+        
+        $log_stmt->bind_param(
+            "sssssis", 
+            $action,
+            $employee['employee_number'],
+            $employee['position'],
+            $reason,
+            $details_json,
+            $requested_by_employee_id,
+            $requested_by_employee_name
+        );
+        
+        if (!$log_stmt->execute()) {
+            error_log("Failed to log authorization: " . $log_stmt->error);
+        }
+        
+        $log_id = $log_stmt->insert_id;
         $log_stmt->close();
     }
     
-    // Return success
+    // Log to activity_logs as well (optional, for backward compatibility)
+    $activity_query = "INSERT INTO activity_logs (employee_id, action, description) 
+                      VALUES (?, 'authorization', ?)";
+    $activity_stmt = $conn->prepare($activity_query);
+    if ($activity_stmt) {
+        $log_desc = "Authorization for: $action - Employee: " . $employee['first_name'] . ' ' . $employee['last_name'];
+        if ($reason) {
+            $log_desc .= " - Reason: " . $reason;
+        }
+        $activity_stmt->bind_param("is", $employee['employee_id'], $log_desc);
+        $activity_stmt->execute();
+        $activity_stmt->close();
+    }
+    
+    // Return success with log ID
     echo json_encode([
         'success' => true,
         'employee_id' => $employee['employee_id'],
         'employee_name' => $employee['first_name'] . ' ' . $employee['last_name'],
         'employee_number' => $employee['employee_number'],
-        'position' => $employee['position']
+        'position' => $employee['position'],
+        'log_id' => isset($log_id) ? $log_id : null,
+        'message' => 'Authorization successful'
     ]);
     
     $stmt->close();
